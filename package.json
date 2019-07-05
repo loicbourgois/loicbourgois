@@ -7,7 +7,8 @@
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "deploy": "mv ./docs/CNAME ./CNAME.tmp ; ng build --prod --output-path docs --base-href / ; mv ./CNAME.tmp ./docs/CNAME ; cp ./docs/index.html ./docs/404.html; git add . ; git commit -am 'Deploy' ; git push origin master"
   },
   "private": true,
   "dependencies": {
