@@ -21,9 +21,10 @@ export class SpreadComponent implements OnInit {
 
     async ngOnInit() {
         await this.import_rustwasm();
+        const speed = 1;
         const canvas = <HTMLCanvasElement>document.getElementById('canvas');
-        canvas.width = canvas.scrollWidth / 10;
-        canvas.height = canvas.scrollHeight / 10;
+        canvas.width = canvas.scrollWidth / speed;
+        canvas.height = canvas.scrollHeight / speed;
         const context = canvas.getContext('2d');
         const image_data = context.createImageData(canvas.width, canvas.height);
 
