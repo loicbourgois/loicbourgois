@@ -1,1 +1,18 @@
-/* You can add global styles to this file, and also import other style files */
+* {
+    color: #ddd;
+    font-family: monospace;
+    font-size: 1.2rem;
+    margin: 0;
+    padding: 0;
+    text-decoration: none;
+}
+
+body {
+    display: flex;
+    height: 100vh;
+    background: #222;
+}
+
+a:hover {
+    color: #aaf;
+}
