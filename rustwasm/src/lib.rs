@@ -21,25 +21,24 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 pub struct Universe {
-    width: usize,
-    height: usize,
-    pool: Vec<usize>,
-    free_cells: Vec<usize>,
-    cells: Vec<Cell>,
-    max_cell_value: Option<i32>
+    width: u32,
+    height: u32,
+    pool: Vec<u32>,
+    free_cells: Vec<u32>,
+    cells: Vec<Cell>
 }
 
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct Cell {
-    x: usize,
-    y: usize,
-    index: usize,
-    value: Option<usize>
+    x: u32,
+    y: u32,
+    index: u32,
+    value: Option<u32>
 }
 
 #[wasm_bindgen]
-pub fn new_universe(width: usize, height: usize) -> Universe {
+pub fn new_universe(width: u32, height: u32) -> Universe {
     let mut cells = Vec::new();
     let mut free_cells = Vec::new();
     let pool = Vec::new();
@@ -59,13 +58,12 @@ pub fn new_universe(width: usize, height: usize) -> Universe {
         height,
         pool,
         free_cells,
-        cells,
-        max_cell_value: None
+        cells
     }
 }
 
-pub fn cell_index(x: usize, y: usize, width: usize) -> usize {
-    (y as usize) * (width) + (x as usize)
+pub fn cell_index(x: u32, y: u32, width: u32) -> u32 {
+    y * width + x
 }
 
 #[wasm_bindgen]
@@ -81,20 +79,21 @@ pub fn get_pool_length(universe: & Universe) -> usize {
 
 #[wasm_bindgen]
 pub fn tick (universe: &mut Universe, pool_index: usize) {
-    if(universe.pool.len() == 0) {
+    if universe.pool.len() == 0 {
         return;
     }
     let cell_index = universe.pool[pool_index];
     universe.pool.remove(pool_index);
-    
+
     let neighbours_max_value = get_neighbours_max_value(
-        universe.cells.clone(),
+        &universe.cells,
         cell_index,
         universe.width,
-        universe.height);
+        universe.height
+    );
 
     let cell_value = neighbours_max_value + 1;
-    universe.cells[cell_index].value = Some(cell_value);
+    universe.cells[cell_index as usize].value = Some(cell_value);
 
     let free_cell_to_remove_option = universe.free_cells.iter().position(|&x| x == cell_index);
 
@@ -110,18 +109,18 @@ pub fn tick (universe: &mut Universe, pool_index: usize) {
     add_neighbours(
         &mut universe.pool,
         cell_index,
-        universe.free_cells.clone(),
+        &universe.free_cells,
         universe.width,
         universe.height
     );
 }
 
 fn add_neighbours(
-    pool: &mut Vec<usize>,
-    cell_index: usize,
-    free_cells: Vec<usize>,
-    width: usize,
-    height: usize
+    pool: &mut Vec<u32>,
+    cell_index: u32,
+    free_cells: & Vec<u32>,
+    width: u32,
+    height: u32
 ) {
     let neighbours_indexes = get_neighbours_indexes(cell_index, width, height);
     for neighbour_index in neighbours_indexes.iter() {
@@ -137,11 +136,11 @@ fn add_neighbours(
 }
 
 fn get_neighbours_max_value(
-        cells: Vec<Cell>,
-        cell_index: usize,
-        width: usize,
-        height: usize
-) -> usize {
+        cells: & Vec<Cell>,
+        cell_index: u32,
+        width: u32,
+        height: u32
+) -> u32 {
     let neighbours_indexes = get_neighbours_indexes(
         cell_index,
         width,
@@ -149,7 +148,7 @@ fn get_neighbours_max_value(
     );
     let mut max = 0;
     for neighbour_index in neighbours_indexes.iter() {
-        match cells[*neighbour_index].value {
+        match cells[(*neighbour_index) as usize].value {
             Some(value) => {
                 max = cmp::max(max, value);
             },
@@ -163,32 +162,29 @@ fn get_neighbours_max_value(
 
 
 fn get_neighbours_indexes(
-    cell_index: usize,
-    width: usize,
-    height: usize
-) -> Vec<usize> {
-    let mut indexes = Vec::new();
+    cell_index: u32,
+    width: u32,
+    height: u32
+) -> [u32; 4] {
     let x = cell_index % width;
     let y = cell_index / width;
-    for delta in [(0, 1), (0, height-1), (width-1, 0), (1, 0)].iter() {
-        let delta_x = delta.0;
-        let delta_y = delta.1;
-        let x_new = (x + delta_x) % width;
-        let y_new = (y + delta_y) % height;
-        indexes.push(y_new * width + x_new);
-    };
-    return indexes
+    [
+        ((y + 1) % height) * width + x,
+        ((y + height - 1) % height) * width + x,
+        y * width + (x + 1) % width,
+        y * width + (x + width - 1) % width
+    ]
 }
 
 
 #[wasm_bindgen]
-pub fn add_index_to_pool(universe: &mut Universe, index: usize) {
+pub fn add_index_to_pool(universe: &mut Universe, index: u32) {
     universe.pool.push(index);
 }
 
 #[wasm_bindgen]
-pub fn cells_values (universe: &Universe) -> Vec<usize> {
-    let mut values : Vec<usize> = Vec::new();
+pub fn cells_values (universe: &Universe) -> Vec<u32> {
+    let mut values : Vec<u32> = Vec::new();
     for cell in universe.cells.iter() {
         match cell.value {
             Some(value) => values.push(value),
@@ -199,7 +195,7 @@ pub fn cells_values (universe: &Universe) -> Vec<usize> {
 }
 
 #[wasm_bindgen]
-pub fn cells_max_value (universe: &Universe) -> usize {
+pub fn cells_max_value (universe: &Universe) -> u32 {
     let mut max = 0;
     for cell in universe.cells.iter() {
         match cell.value {
