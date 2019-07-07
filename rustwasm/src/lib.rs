@@ -78,12 +78,24 @@ pub fn get_pool_length(universe: & Universe) -> usize {
 }
 
 #[wasm_bindgen]
-pub fn tick (universe: &mut Universe, pool_index: usize) {
-    if universe.pool.len() == 0 {
-        return;
+pub fn get_cells_length(universe: & Universe) -> usize {
+    universe.cells.len()
+}
+
+#[wasm_bindgen]
+pub fn tick (universe: &mut Universe, pool_index: usize, cell_index_: usize) {
+
+    let cell_index = if universe.pool.len() == 0 {
+        cell_index_ as u32
+    } else {
+        universe.pool[pool_index]
+    };
+
+    if pool_index < universe.pool.len() {
+        universe.pool.remove(pool_index);
+    } else {
+        // Do nothing
     }
-    let cell_index = universe.pool[pool_index];
-    universe.pool.remove(pool_index);
 
     let neighbours_max_value = get_neighbours_max_value(
         &universe.cells,

@@ -6,6 +6,11 @@ import { SpreadComponent } from './spread/spread.component';
 const routes: Routes = [
     {
         path: '',
+        redirectTo: 'spread',
+        pathMatch: 'full'
+    },
+    {
+        path: 'home',
         component: HomeComponent
     }, {
         path: 'spread',
