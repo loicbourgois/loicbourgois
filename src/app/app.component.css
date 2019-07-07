@@ -15,3 +15,11 @@ router-outlet {
 .footer a {
     padding: 0 1rem;
 }
+
+.nav {
+    text-align: center;
+}
+
+.nav a {
+    padding: 0 1rem;
+}

@@ -225,3 +225,91 @@ pub fn cells_max_value (universe: &Universe) -> u32 {
     }
     max
 }
+
+#[wasm_bindgen]
+pub fn tick_lines (universe: &mut Universe, pool_index: usize, cell_index_: usize) {
+
+    let cell_index = if universe.pool.len() == 0 {
+        cell_index_ as u32
+    } else {
+        universe.pool[pool_index]
+    };
+
+    if pool_index < universe.pool.len() {
+        universe.pool.remove(pool_index);
+    } else {
+        // Do nothing
+        return;
+    }
+
+    let free_neighbours_count = free_neighbours_count(
+        cell_index,
+        &universe.cells,
+        universe.width,
+        universe.height
+    );
+    
+    if free_neighbours_count >= 3 {
+        let neighbours_max_value = get_neighbours_max_value(
+            &universe.cells,
+            cell_index,
+            universe.width,
+            universe.height
+        );
+        let cell_value = neighbours_max_value + 2;
+        universe.cells[cell_index as usize].value = Some(cell_value);
+        add_neighbours(
+            &mut universe.pool,
+            cell_index,
+            &universe.free_cells,
+            universe.width,
+            universe.height
+        );
+    } else {
+        universe.cells[cell_index as usize].value = Some(0);
+    }
+
+    match index_for_value(
+        &universe.free_cells,
+        cell_index
+    ) {
+        Some(index) => {
+            universe.free_cells.remove(index);
+        },
+        None => {
+            // Do nothing
+        }
+    }
+}
+
+fn index_for_value(
+    vector: & Vec<u32>,
+    value: u32
+) -> Option<usize> {
+    vector.iter().position(|&x| x == value)
+}
+
+fn free_neighbours_count(
+    cell_index: u32,
+    cells: & Vec<Cell>,
+    width: u32,
+    height: u32
+) -> u32 {
+    let neighbours_indexes = get_neighbours_indexes(
+        cell_index,
+        width,
+        height
+    );
+    let mut count = 0;
+    for neighbour_index in neighbours_indexes.iter() {
+        match cells[(*neighbour_index) as usize].value {
+            Some(_) => {
+                // Do nothing
+            },
+            None => {
+                count += 1;
+            }
+        }
+    };
+    count
+}
