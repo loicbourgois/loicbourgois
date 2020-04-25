@@ -1,0 +1,16 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  overflow: hidden;
+}
+
+canvas {
+  border: #000 solid 0px;
+  width: 100vw;
+  background: #000;
+  height: 100vh;
+}
