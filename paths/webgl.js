@@ -85,6 +85,9 @@ const initWebgl = (image) => {
         // Constants
         bool NO_BLACK = false;
         bool PIVOT = true;
+        bool NO_GAP = false;
+        float CYCLE_RATIO = 0.0;
+          // CYCLE_RATIO = 1.0;
         float COLOR_UNIT = 1.0 / 255.0;
         vec2 PIXEL_UNIT = vec2(1.0, 1.0) / u_textureSize;
 
@@ -215,6 +218,13 @@ const initWebgl = (image) => {
             c_pivot.b = pivot;
           }
 
+          if (false) {
+            float pivot = c_pivot.r;
+            c_pivot.r = c_pivot.b;
+            c_pivot.b = c_pivot.g;
+            c_pivot.g = pivot;
+          }
+
           // Fight
           if (score(c_new) > score(c_pivot)) {
             c = c_new;
@@ -240,6 +250,24 @@ const initWebgl = (image) => {
           // && neighbour_count == 0.0
         ) {
           c = vec4(randz, fract(randzq), fract(randzq*fract(randzq)), 1.0);
+        }
+
+        // Cycle
+        if (true
+          && randxy < CYCLE_RATIO
+          && c.r + c.g + c.b > 0.0
+        ) {
+          c.r = fract(c.r) + COLOR_UNIT;
+          c.g = fract(c.g) + COLOR_UNIT;
+          c.b = fract(c.b) + COLOR_UNIT;
+        }
+
+        if (NO_GAP
+          && c.r + c.g + c.b < 1.0
+        ) {
+          c.r = 0.0;
+          c.g = 0.0;
+          c.b = 0.0;
         }
 
         // Assign color
