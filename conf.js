@@ -1,4 +1,4 @@
-const MODE = 'FEU_TRICOLORE';
+const MODE = 'WATER';
 const MODES = [
   'TEST',
   'RANDOM',
@@ -6,7 +6,8 @@ const MODES = [
   'GALACTIC_CLOUD',
   'SIMPLE',
   'FLOW',
-  'FEU_TRICOLORE'
+  'FEU_TRICOLORE',
+  'WATER'
 ];
 
 const CONF = {};
@@ -40,6 +41,23 @@ CONF.SPREAD = '0.1';
 
 switch (MODE) {
   case 'TEST':
+    break;
+  case 'WATER':
+    CONF.COLOR_MODE = 'LIST';
+    CONF.COLORS = [
+      [0.2, 0, 1],
+      [0.2, 0.5, 1],
+      [0.5, 0.8, 1],
+    ]
+    CONF.MAX_COLOR_UNDER = 2;
+    CONF.PAINT_TRANSPARENT = true;
+    CONF.LOOP_WITH_MASK = true;
+    CONF.MIN_SATURATION = 1.0;
+    CONF.GENERATION_PER_CYCLE = 1000;
+    CONF.MODULO_RGB = false;
+    CONF.INVERT = false;
+    CONF.SPREAD = 0.4;
+    CONF.ZOOM_RATE = 0;
     break;
   case 'FEU_TRICOLORE':
     CONF.COLOR_MODE = 'LIST';

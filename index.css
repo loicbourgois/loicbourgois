@@ -14,3 +14,26 @@ canvas {
   background: #000;
   height: 100vh;
 }
+
+a {
+  color: #fff;
+  text-decoration: none;
+  font-family: monospace;
+  margin: 0.5em;
+  text-shadow: 0 0 5px #000;
+  font-size: 1.5em;
+}
+
+a:hover {
+  text-shadow: 0 0 5px #fff;
+}
+
+#links {
+  position: absolute;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-content: flex-start;
+  flex-wrap: wrap;
+  background: #0001;
+}
