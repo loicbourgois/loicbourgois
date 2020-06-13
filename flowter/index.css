@@ -1,0 +1,35 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  overflow: hidden;
+  background: #000;
+}
+
+canvas {
+  background: #888;
+
+}
+
+#dna, #controllers {
+  display: flex;
+  flex-wrap: wrap;
+  height: max-content;
+}
+
+.nucleobase_controller, .controller {
+  background: #444;
+  width: 4em;
+  height: 4em;
+  display: flex;
+}
+
+.nucleobase_value_div, .controller_value_div {
+  background: #ddd;
+  width: 2em;
+  height: 2em;
+  margin: auto;
+}
