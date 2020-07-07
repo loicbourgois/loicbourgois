@@ -1,7 +1,7 @@
 destination="mnist_png.tar.gz"
 url="https://raw.githubusercontent.com/myleott/mnist_png/master/mnist_png.tar.gz"
-#curl --output $destination $url
-#tar -xvzf $destination
+curl --output $destination $url
+tar -xvzf $destination
 root_path=$(pwd)
 mnist_png="$root_path/mnist_png"
 labels=$mnist_png/labels.txt
