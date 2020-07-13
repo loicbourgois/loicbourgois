@@ -10,3 +10,4 @@ atom $loicbourgois_root_folder/index.html
 atom $loicbourgois_root_folder/${project}/index.html
 atom $loicbourgois_root_folder/${project}/index.css
 atom $loicbourgois_root_folder/${project}/index.js
+open $loicbourgois_root_folder/${project}/index.html
