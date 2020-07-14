@@ -2,5 +2,5 @@
 
 # Setup development environment
 ```bash
-./setup.sh
+. ./setup.sh
 ```
