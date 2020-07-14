@@ -42,8 +42,8 @@ util.draw_platforms = (conf, canvas, context) => {
     }
   })
 }
-util.draw_background = (conf, canvas, context) => {
-  context.fillStyle = conf.colors.background;
+util.draw_background_game = (conf, canvas, context) => {
+  context.fillStyle = conf.colors.background_game;
   context.fillRect(0, 0, canvas.width, canvas.height);
 }
 util.draw_player = (conf, canvas, context, state) => {

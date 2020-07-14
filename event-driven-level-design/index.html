@@ -8,6 +8,15 @@
   <body>
     <canvas id="canvas"></canvas>
     <div id="right-panel">
+      <h1>Game</h1>
+      <p>[space] to jump</p>
+      <div id="game-buttons">
+      <button id="game-button-level-1">Level 1</button>
+      <button id="game-button-level-2">Level 2</button>
+      <button id="game-button-level-3">Level 3</button>
+      <button id="game-button-level-4">Level 4</button>
+      </div>
+      <h1>Editor</h1>
       <div id="controls">
         <div id="controls-keys">
         </div>
@@ -19,10 +28,8 @@
       </div>
       <div id="editor">
         <div id="editor-buttons">
-          <button id="button-animate">Animate</button>
-            <button id="button-render">Render</button>
-          <!--<button>← Import</button>-->
-          <!--<button>Export →</button>-->
+          <button id="button-render">Render</button>
+          <button id="game-button-play">Play</button>
         </div>
         <textarea id="editor-textarea"></textarea>
       </div>
@@ -31,6 +38,9 @@
   <script src="geometry.js"></script>
   <script src="level-0.js"></script>
   <script src="level-1.js"></script>
+  <script src="level-2.js"></script>
+  <script src="level-3.js"></script>
+  <script src="level-4.js"></script>
   <script src="util.js"></script>
   <script src="game.js"></script>
   <script src="index.js"></script>

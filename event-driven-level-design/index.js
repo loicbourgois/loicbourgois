@@ -4,30 +4,24 @@ let do_loop = false
 let conf = level_1;
 const events = {
   start: () => {
-    console.log("start")
     do_loop = true
     loop()
     conf.events = []
     start_time = Date.now()
   },
   stop: () => {
-    console.log("stop")
     do_loop = false
     stop_time = Date.now()
   },
   jump: () => {
-    console.log("jump")
   },
   ground: () => {
-    console.log("ground")
   },
   fall: () => {
-    console.log("fall")
   }
 }
 const controls = {
   s: {
-    key: 's',
     type: 'toggle',
     events: [
       'start',
@@ -35,20 +29,19 @@ const controls = {
     ]
   },
   spacebar: {
-    key: 'spacebar',
     type: 'toggle',
     events: [
       'jump',
       'ground'
     ]
   },
-  f: {
+  /*f: {
     key: 'f',
     type: 'toggle',
     events: [
       'fall',
     ]
-  }
+  }*/
 }
 const canvas = document.getElementById('canvas')
 canvas.width = window.innerHeight
@@ -76,7 +69,7 @@ const draw_rect_line = (x1, y1, x2, y2, color) => {
   draw_rect(x1-a, y1-a, x2+a, y2+a, color)
 }
 const draw_point = (x, y, color) => {
-  draw_rect_line(x, y, x, y, color)
+  util.draw_small_rect_line(conf, canvas, context, x, y, x, y, color)
 }
 const draw_background = () => {
   context.fillStyle = conf.colors.background;
@@ -136,7 +129,7 @@ const draw_walls = () => {
 const draw_trajectories = () => {
   conf.trajectories.forEach((item, i) => {
     const trajectory = item
-    const time_step = Math.max(0.0001, (trajectory.stop - trajectory.start)/conf.point_per_trajectory)
+    const time_step = Math.max(0.0001, (trajectory.stop - trajectory.start) / conf.point_per_trajectory)
     for (let t = trajectory.start ; t <= trajectory.stop ; t += time_step) {
       x = eval(`t=${t};` + trajectory.formulas.x)
       y = eval(`t=${t};` + trajectory.formulas.y)
@@ -148,8 +141,8 @@ const draw_from_conf = () => {
   draw_background()
   draw_borders()
   draw_trajectories()
-  draw_platforms()
-  draw_walls()
+  //draw_platforms()
+  //draw_walls()
   util.draw_surfaces(conf, canvas, context)
 }
 const write_conf_to_editor = () => {
@@ -176,7 +169,6 @@ const add_world_size_to_conf = () => {
     if (trajectory.formulas) {
       const time_step = Math.max(0.001, (trajectory.stop - trajectory.start)/conf.point_per_trajectory)
       for (let t = trajectory.start ; t <= trajectory.stop ; t += time_step ) {
-        //console.log(trajectory.formulas.x)
         x = eval(`t=${t};` + trajectory.formulas.x)
         y = eval(`t=${t};` + trajectory.formulas.y)
         if (x > x_max) {
@@ -204,6 +196,10 @@ const add_world_size_to_conf = () => {
     x: - x_min + conf.world.border_size,
     y: - y_min + conf.world.border_size
   }
+  conf.mins = {
+    x: x_min - conf.world.border_size,
+    y: y_min - conf.world.border_size
+  }
 }
 const get_trajectory = (event_1, event_2, previous_trajectory, direction) => {
   const trajectory = {}
@@ -225,10 +221,11 @@ const get_trajectory = (event_1, event_2, previous_trajectory, direction) => {
       }
       trajectory.type = 'linear'
       break
-    case "jump":
+    case 'jump':
       trajectory.type = 'jump'
-      if (previous_trajectory && previous_trajectory.type == 'jump') {
+      if (previous_trajectory && (previous_trajectory.type == 'jump' || previous_trajectory.type == 'wall-jump') ) {
         direction.x = direction.x * -1.0
+        trajectory.type = 'wall-jump'
       }
       trajectory.formulas = {
         x: `${x_start} + (t-${trajectory.start}) * ${conf.speed.value} * ${direction.x}`,
@@ -285,6 +282,16 @@ const add_surfaces_to_conf = () => {
         y2: eval(`t=${trajectory.stop};` + trajectory.formulas.y) - conf.player.height/2
       })
     }
+    if (trajectory.type == 'wall-jump' ) {
+      const x = eval(`t=${trajectory.start};` + trajectory.formulas.x) - conf.player.width/2 * trajectory.direction.x
+      const y = eval(`t=${trajectory.start};` + trajectory.formulas.y)
+      conf.surfaces.push({
+        x1: x,
+        y1: y - conf.player.height,
+        x2: x,
+        y2: y + conf.player.height
+      })
+    }
   })
 }
 const update_events = () => {
@@ -309,6 +316,7 @@ const step = () => {
 }
 const render = () => {
   conf = JSON.parse(document.getElementById('editor-textarea').value)
+  game.stop()
   step()
 }
 window.addEventListener('resize', e => {
@@ -336,7 +344,6 @@ for (let control_id in controls) {
     control.html.states[event_name] = document.createElement('button')
     control.html.states[event_name].textContent = event_name
     control.html.states[event_name].addEventListener('click', e => {
-      console.log("control_id", control_id, "event_name", event_name)
       events[event_name]()
       const previous_event = conf.events[conf.events.length - 1]
       const previous_event_time = previous_event ? previous_event.time : 0
@@ -365,7 +372,29 @@ const loop = () => {
   }
 }
 step()
+const load_and_play_game = (level) => {
+  if (level == 'level-1') {
+    conf = level_1
+  }
+  if (level == 'level-2') {
+    conf = level_2
+  }
+  if (level == 'level-3') {
+    conf = level_3
+  }
+  if (level == 'level-4') {
+    conf = level_4
+  }
+  step()
+  game.stop()
+  game = new_game(conf, canvas_id)
+  game.play()
+}
+document.getElementById('game-button-play').addEventListener('click', load_and_play_game)
+document.getElementById('game-button-level-1').addEventListener('click', () => {load_and_play_game('level-1')})
+document.getElementById('game-button-level-2').addEventListener('click', () => {load_and_play_game('level-2')})
+document.getElementById('game-button-level-3').addEventListener('click', () => {load_and_play_game('level-3')})
+document.getElementById('game-button-level-4').addEventListener('click', () => {load_and_play_game('level-4')})
 const canvas_id = 'canvas'
-const game = new_game(conf, canvas_id)
-
-game.start()
+let game = new_game(conf, canvas_id)
+game.play()

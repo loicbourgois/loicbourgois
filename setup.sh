@@ -1,5 +1,5 @@
 current_folder=$(pwd)
-loicbourgois_root_folder_relative="`dirname \"$0\"`"              # relative
+loicbourgois_root_folder_relative="`dirname \"$0\"`"
 export loicbourgois_root_folder="`( cd \"$loicbourgois_root_folder_relative\" && pwd )`"
 project="event-driven-level-design"
 cd_folder=$loicbourgois_root_folder/${project}
