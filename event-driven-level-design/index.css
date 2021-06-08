@@ -1,0 +1,82 @@
+* {
+  margin: 0;
+  padding: 0;
+  font-family: monospace;
+}
+
+body {
+  display: flex;
+  overflow: hidden;
+}
+
+canvas {
+  background: #888;
+}
+
+h1 {
+  font-size: 1.5em;
+}
+
+#right-panel {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#editor {
+  display: flex;
+  flex-grow: 1;
+}
+
+#editor-textarea {
+  flex-grow: 1;
+}
+
+#editor-buttons {
+  display: flex;
+  flex-direction: column;
+}
+
+#controls {
+  display: flex;
+  background: #eee;
+}
+
+#controls-keys {
+  display: flex;
+  flex-direction: column;
+}
+
+#controls-states > * {
+  display: flex;
+}
+
+#controls-canvas {
+  width: 0em;
+  height: 0em;
+}
+
+#editor-textarea {
+  border: none;
+  background: #ddd;
+}
+
+#editor-buttons {
+  background: #999;
+}
+
+/*#controls-canvas {
+  width: 0;
+  height: 0;
+}*/
+
+#controls-canvas-outer {
+  flex-grow: 1;
+}
+
+
+/* Élément | file:///Users/lbourgois/github/loicbourgois/event-driven-level-design/index.html */
+
+#controls-canvas-outer {
+  display: flex;
+}

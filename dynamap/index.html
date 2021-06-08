@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="index.css">
+    <title>Dynamap</title>
+  </head>
+  <body>
+    <canvas id='canvas'></canvas>
+    <div id="sliders">
+      <input type="range" min="0" max="10000" value="0" class="slider" id="slider_birth_rate">
+      <input type="range" min="0" max="10000" value="0" class="slider" id="slider_death_rate">
+      <input type="range" min="0" max="10000" value="0" class="slider" id="slider_scale">
+    </div>
+  </body>
+  <script src="fragment_shader.js"></script>
+  <script src="vertex_shader.js"></script>
+  <script src="gl.js"></script>
+  <script src="index.js"></script>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+     <link rel="stylesheet" type="text/css" href="index.css">
+     <title>Compute shader</title>
+  </head>
+  <body>
+    <canvas id='canvas_input'></canvas>
+    <canvas id='canvas_output'></canvas>
+    <div>
+    </div>
+  </body>
+  <script id="vertex_shader" type="x-shader/x-vertex">#version 300 es
+    in vec4 position;
+    in vec2 texture_coords;
+    out vec2 texture_coords_varying;
+    void main() {
+      gl_Position = position;
+      texture_coords_varying = texture_coords;
+    }
+  </script>
+  <script id="fragment_shader" type="x-shader/x-fragment">#version 300 es
+    precision highp float;
+    out vec4 color;
+    in vec2 texture_coords_varying;
+    uniform sampler2D texture_uniform;
+    void main() {
+      vec4 color_1 = texture(texture_uniform, texture_coords_varying);
+      //color = vec4(vec3(color_1.r * 0.01), 1);
+      color = color_1;
+      color.a = 1.0;
+    }
+  </script>
+  <script src="gl_utils.js"></script>
+  <script src="gl.js"></script>
+  <script src="index.js"></script>
+</html>
