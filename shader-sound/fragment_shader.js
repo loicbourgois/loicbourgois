@@ -118,7 +118,7 @@ Cell cell_at_relative(int delta_x, int delta_y) {
   ivec2 pos = pos_in_world_from_buffer_pos();
   int x = pos.x + delta_x;
   int y = pos.y + delta_y;
-  vec4 data_color = texelFetch(buffer_1, ivec2(x, y + WORLD_HEIGHT), 0);
+  vec4 data_color = texelFetch(buffer_1, ivec2(x, y), 0);
   vec4 data_none_none_none = texelFetch(buffer_1, ivec2(x, y), 0);
   vec4 data_quantity_life_none = texelFetch(buffer_1, ivec2(x + WORLD_WIDTH, y + WORLD_HEIGHT), 0);
   vec4 data_none_none_type = texelFetch(buffer_1, ivec2(x + WORLD_WIDTH, y), 0);
@@ -247,189 +247,30 @@ void main() {
   int world_height = WORLD_HEIGHT;
   float t = time_ms * 0.001;
   Cell c = CR(0,0);
-  float random_4 = random4(vec4(c.x, c.y, t, seeds.r));
-  float random_5 = random4(vec4(c.x, c.y, t, seeds.g));
-  float random_6 = random4(vec4(c.x, c.y, t, seeds.b));
-  float random_7 = random4(vec4(c.x, c.y, t, seeds.a));
-  // Initialisation
-  if (c.is_none) {
-    int ground_height = int(float(world_height)*0.6);
-    if (c.y <= ground_height) {
-      c = new_cell(TYPE_GROUND);
+  float random_1 = random4(vec4(c.x, c.y, t, seeds.r));
+  float random_2 = random4(vec4(c.x, c.y, t, seeds.g));
+  float random_3 = random4(vec4(c.x, c.y, t, seeds.b));
+  float random_4 = random4(vec4(c.x, c.y, t, seeds.a));
+  if (c.x == 0 && c.is_none == true) {
+    color = vec4(random_1, random_1, random_1, 1.0);
+  } else if (c.x == 0) {
+    float r = c.color.r;
+    float g = c.color.g;
+    float b = c.color.b;
+    if (random_2 < slider_2) {
+      b = fract(b - UNIT);
+      g = fract(g - UNIT);
+      r = fract(r - UNIT);
     }
-    if (c.y <= ground_height
-      && c.yf >= float(ground_height)*0.8
-      && c.xf >= float(world_width)*0.2
-      && c.xf <= float(world_width)*0.4
-    ) {
-      c = new_cell(TYPE_WATER);
-    }
-    if (c.yf <= float(ground_height) * 1.1
-      && c.yf >= float(ground_height)*0.9
-      && c.xf >= float(world_width)*0.6
-      && c.xf <= float(world_width)*0.9
-    ) {
-      c = new_cell(TYPE_ROCK);
-    }
-    if (c.yf <= float(ground_height) * 1.3
-      && c.yf >= float(ground_height)* 1.2
-      && c.xf >= float(world_width)*0.7
-      && c.xf <= float(world_width)*0.8
-    ) {
-      c = new_cell(TYPE_WATER);
-    }
-    if (c.yf <= float(ground_height) * 1.4
-      && c.yf >= float(ground_height)*0.9
-      && c.xf >= float(world_width)*0.5
-      && c.xf <= float(world_width)*0.6
-    ) {
-      c = new_cell(TYPE_ROCK);
-    }
-    if (c.x == int(float(world_height) * 0.2)
-      //&& c.y == int(float(world_height) * 0.9)
-    ) {
-      c = new_cell(TYPE_AIR);
-      c.quantity = 200.0/255.0;
-    }
-  }
-  // Start sunlight
-  if (c.type == TYPE_EMPTY
-    && random_4 < slider_4
-    && c.y > world_height - 3
-    && live_neighbours_8_count() == 0
-  ) {
-    // c = new_cell(TYPE_SUNLIGHT);
-  }
-  // Grow sunlight
-  if (c.type == TYPE_EMPTY
-    && random_4 < slider_4
-    && CR(0,1).type == TYPE_SUNLIGHT
-  ) {
-    c = new_cell(TYPE_SUNLIGHT);
-  }
-  // Start plant
-  if (CR(0,0).type == TYPE_SUNLIGHT
-     && CR(0, -1).type == TYPE_GROUND
-     && live_neighbours_8_count_of_type(TYPE_WATER) > 0
-     && random_5 < slider_5
-  ) {
-    c = new_cell(TYPE_PLANT);
-  }
-  // Grow plant up
-  if (random_6 < slider_6
-    && CR(0,1).type == TYPE_SUNLIGHT
-    && CR(0,1).life >= 0.9
-    && CR(1,0).type != TYPE_PLANT
-    && CR(-1,0).type != TYPE_PLANT
-    && CR(0,-1).type == TYPE_PLANT
-  ) {
-    c = new_cell(TYPE_PLANT);
-  }
-  // Grow plant sideway
-  int x = 1;
-  if (random_7 < slider_7) {
-    x = -1;
-  }
-  if (CR(0,1).type == TYPE_SUNLIGHT
-    && CR(0,1).life > 0.1
-    && CR(x,0).type == TYPE_PLANT
-    && CR(x*-1,0).type != TYPE_PLANT
-    && CR(x*-2,0).type != TYPE_PLANT
-    && CR(0,-1).type != TYPE_PLANT
-    && CR(x*-1,-1).type != TYPE_PLANT
-  ) {
-    c = new_cell(TYPE_PLANT);
-  }
-  // Decay sunlight
-  if (c.type == TYPE_SUNLIGHT) {
-    c.life -= UNIT*10.0;
-  }
-  // Move water down
-  /*if (c.type == TYPE_EMPTY
-    && CR(0,1).type == TYPE_WATER
-  ) {
-    c = new_cell(TYPE_WATER);
-  }
-  if (CR(0,0).type == TYPE_WATER
-    && CR(0,-1).type == TYPE_EMPTY
-  ) {
-    c.life = 0.0;
-  }*/
-
-  if (CR(CENTER).type == TYPE_AIR) {
-    for (int i = -1 ; i <= 1 ; i++) {
-      for (int j = -1 ; j <= 1 ; j++) {
-
-      }
-    }
-  }
-
-  // Move water left
-  /*if (step % 3 == 0) {
-    if (CR(CENTER).type == TYPE_EMPTY
-      && CR(RIGHT).type == TYPE_WATER
-      && CR(RIGHT_DOWN).type != TYPE_EMPTY
-    ) {
-      c = new_cell(TYPE_WATER);
-    }
-    if (CR(LEFT).type == TYPE_EMPTY
-      && CR(CENTER).type == TYPE_WATER
-      && CR(DOWN).type != TYPE_EMPTY
-    ) {
-      c.life = 0.0;
-    }
+    color = vec4(r,g,b,1.0);
   } else {
-    if (CR(CENTER).type == TYPE_EMPTY
-      && CR(LEFT).type == TYPE_WATER
-      && CR(LEFT_DOWN).type != TYPE_EMPTY
-    ) {
-      c = new_cell(TYPE_WATER);
-    }
-    if (CR(RIGHT).type == TYPE_EMPTY
-      && CR(CENTER).type == TYPE_WATER
-      && CR(DOWN).type != TYPE_EMPTY
-    ) {
-      c.life = 0.0;
-    }
-  }*/
-  // Move water right
-  /*if (CR(CENTER).type == TYPE_EMPTY
-    && CR(LEFT).type == TYPE_WATER
-    && CR(LEFT_DOWN).type != TYPE_EMPTY
-    //&& CR(RIGHT).type != TYPE_WATER
-  ) {
-    //c = new_cell(TYPE_WATER);
+    float r = CR(LEFT).color.r;
+    float g = CR(LEFT).color.g;
+    float b = CR(LEFT).color.b;
+    r = b * 0.5;
+    color = vec4(r,g,b, 1.0);
   }
-  if (CR(RIGHT).type == TYPE_EMPTY
-    && CR(0,0).type == TYPE_WATER
-    && CR(DOWN).type != TYPE_EMPTY
-  ) {
-    //c.life = 0.0;
-  }*/
-  // Decay water
-  // if (c.type == TYPE_WATER) {
-  //  c.life -= UNIT*1.0;
-  //}
-  // Empty cell
-  if (c.life <= 0.0) {
-    c.type = TYPE_EMPTY;
+  if (c.x >= world_width / 2) {
+    color.r = color.r * 4.0;
   }
-  color = get_color(c);
 }`
-
-/*
-sand
-// Move sand down-left
-if (c.type == TYPE_EMPTY
-  && CR(1,0).type != TYPE_EMPTY
-  && CR(1,1).type == TYPE_WATER
-) {
-  c = new_cell(TYPE_WATER);
-}
-if (CR(0,0).type == TYPE_WATER
-  && CR(0,-1).type != TYPE_EMPTY
-  && CR(-1,-1).type == TYPE_EMPTY
-) {
-  c.life = 0.0;
-}
-*/

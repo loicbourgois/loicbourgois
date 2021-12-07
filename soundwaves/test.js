@@ -1,3 +1,52 @@
+const generate_sound_from_buffer = () => {
+  var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const duration_s = 3
+  const frequency = 55 // hz
+  const sample_rate = audioCtx.sampleRate
+  const channel_count = 2
+  const generateSample = (sampleNumber, frequency) => {
+    let sampleTime = sampleNumber / sample_rate;
+    const angular_frequency = frequency * 2 * Math.PI
+    let sampleAngle = sampleTime * angular_frequency;
+    return Math.sin(sampleAngle);
+  }
+  var myArrayBuffer = audioCtx.createBuffer(channel_count, sample_rate * duration_s, audioCtx.sampleRate);
+  for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
+    var nowBuffering = myArrayBuffer.getChannelData(channel);
+    for (var i = 0; i < myArrayBuffer.length; i++) {
+      nowBuffering[i] = generateSample(i, frequency)
+    }
+  }
+  var source = audioCtx.createBufferSource()
+  source.buffer = myArrayBuffer;
+  source.connect(audioCtx.destination);
+  source.start();
+}
+console.log('hello')
+const audio_context = new (window.AudioContext || window.webkitAudioContext)();
+const base_frequency = 22.5
+const octave_count = 4
+const oscillators_per_octave = 12 * 1
+const lines = octave_count * oscillators_per_octave
+const oscillators = []
+for (let i = 0 ; i < octave_count * oscillators_per_octave ; i +=1 ) {
+  const detune = i * 1200.0 / oscillators_per_octave
+  oscillators.push({
+    osc: audio_context.createOscillator(),
+    gain_node: audio_context.createGain()
+  })
+  oscillators[i].gain_node.gain.setValueAtTime(0.0, audio_context.currentTime)
+  oscillators[i].osc.type = 'sine'
+  oscillators[i].osc.frequency.setValueAtTime(base_frequency, audio_context.currentTime)
+  oscillators[i].osc.detune.setValueAtTime(detune, audio_context.currentTime)
+  oscillators[i].osc.connect(oscillators[i].gain_node)
+  oscillators[i].gain_node.connect(audio_context.destination)
+  oscillators[i].osc.start()
+}
+console.log(lines)
+console.log(oscillators.length);
+
+
 const conf = {
   red_amount: 0.8,
   interval_render_ms: 0,

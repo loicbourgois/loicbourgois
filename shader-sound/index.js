@@ -3,20 +3,69 @@ const conf = {
   interval_render_ms: 0,
   interval_controls_ms: 10,
   interval_main_ms: 10,
+  interval_sound_loop_ms: 10,
   render: {
     last_time: null
   },
-  log_render_duration: true,
+  log_render_duration: false,
   zoom: 0.125,
   slider_count: 8,
   scale: 1,
-  buffer_columns: 2,
-  buffer_lines: 2,
+  buffer_columns: 1,
+  buffer_lines: 1,
   log_interval: 10,
 }
+const generate_sound_from_buffer = () => {
+  var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const duration_s = 3
+  const frequency = 55 // hz
+  const sample_rate = audioCtx.sampleRate
+  const channel_count = 2
+  const generateSample = (sampleNumber, frequency) => {
+    let sampleTime = sampleNumber / sample_rate;
+    const angular_frequency = frequency * 2 * Math.PI
+    let sampleAngle = sampleTime * angular_frequency;
+    return Math.sin(sampleAngle);
+  }
+  var myArrayBuffer = audioCtx.createBuffer(channel_count, sample_rate * duration_s, audioCtx.sampleRate);
+  for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
+    var nowBuffering = myArrayBuffer.getChannelData(channel);
+    for (var i = 0; i < myArrayBuffer.length; i++) {
+      nowBuffering[i] = generateSample(i, frequency)
+    }
+  }
+  var source = audioCtx.createBufferSource()
+  source.buffer = myArrayBuffer;
+  source.connect(audioCtx.destination);
+  source.start();
+}
+console.log('hello')
+const audio_context = new (window.AudioContext || window.webkitAudioContext)();
+const base_frequency = 22.5
+const octave_count = 5
+const oscillators_per_octave = 12
+const lines = octave_count * oscillators_per_octave
+const oscillators = []
+for (let i = 0 ; i < octave_count * oscillators_per_octave ; i +=1 ) {
+  const detune = i * 1200.0 / oscillators_per_octave
+  oscillators.push({
+    osc: audio_context.createOscillator(),
+    gain_node: audio_context.createGain()
+  })
+  oscillators[i].gain_node.gain.setValueAtTime(0.0, audio_context.currentTime)
+  oscillators[i].osc.type = 'sine'
+  oscillators[i].osc.frequency.setValueAtTime(base_frequency, audio_context.currentTime)
+  oscillators[i].osc.detune.setValueAtTime(detune, audio_context.currentTime)
+  oscillators[i].osc.connect(oscillators[i].gain_node)
+  oscillators[i].gain_node.connect(audio_context.destination)
+  oscillators[i].osc.start()
+}
+console.log(lines)
+console.log(oscillators.length);
+
+
 const state = {
   step: 0,
-
 }
 let logs = []
 const canvas_1 = document.querySelector('#canvas_1')
@@ -92,6 +141,7 @@ gl.vertexAttribPointer(
   position.parameters.stride,
   position.parameters.offset)
 resize_canvas(gl.canvas, conf.scale)
+gl.canvas.height = oscillators.length
 const uniforms = {
   time_ms: {
     value: 0,
@@ -209,12 +259,25 @@ const handle_controls = () => {
     update_uniform_slider_value(uniform_slider)
   });
 }
+const adjust_sound = () => {
+  for (let i = 0 ; i < oscillators.length ; i += 1) {
+    const pixel_r_index = 4 * gl.canvas.width * i + gl.canvas.width * 0.5 * 4
+    const v = textures.previous_image.buffer[pixel_r_index]/255
+    oscillators[i].gain_node.gain.setValueAtTime(v ? v : 0.0, audio_context.currentTime)
+  }
+}
 const render_loop = () => {
   render()
-  state.step +=1
+  state.step += 1
   setTimeout(() => {
     render_loop()
   }, conf.interval_render_ms)
+}
+const sound_loop = () => {
+  adjust_sound()
+  setTimeout(() => {
+    sound_loop()
+  }, conf.interval_sound_loop_ms)
 }
 const controls_loop = () => {
   conf.interval_controls_id = setInterval(handle_controls, conf.interval_controls_ms);
@@ -227,8 +290,8 @@ const main_loop = () => {
   conf.interval_main_id = setInterval(step, conf.interval_main_ms);
 }
 /*const canvas_2 = document.querySelector('#canvas_2')
-const gl_2 = canvas_2.getContext('webgl2', {preserveDrawingBuffer: true})
-resize_canvas(canvas_2, conf.scale)*/
+const gl_2 = canvas_2.getContext('webgl2', {preserveDrawingBuffer: true})*/
 controls_loop()
 main_loop()
 render_loop()
+sound_loop()
