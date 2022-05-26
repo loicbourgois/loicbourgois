@@ -1,0 +1,7 @@
+services:
+  front:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - $full_path:/usr/share/nginx/html:ro
