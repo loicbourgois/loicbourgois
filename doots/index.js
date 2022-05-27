@@ -1,3 +1,20 @@
+const DIAMETER = 0.05
+const SPEED = 0.001
+const DOOT_COUNT = 5
+const FACTORY_COUNT = 5
+const GOT_RATIO = 0.2
+let HISTORY = 0
+const DECREASE = 0.9998
+const MAX_SPEED = 1
+const SHOW_LINES = true
+const LOOP_COMPUTE = true
+const SPEEDS_HISTORY = 30
+const DEBUG_GRID = false
+const REFRESH_GRAPH_PERIOD = 60*2
+const ZOOM = 2
+const DRAW_FOLLOW = false
+
+
 import {
   rotate,
   beetween,
@@ -5,42 +22,17 @@ import {
   distance,
   collision_response,
 } from './math.js'
-
-
-const uuid = () => {
-  // https://stackoverflow.com/a/8809472
-  let
-    d = new Date().getTime(),
-    d2 = (performance && performance.now && (performance.now() * 1000)) || 0;
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    let r = Math.random() * 16;
-    if (d > 0) {
-      r = (d + r) % 16 | 0;
-      d = Math.floor(d / 16);
-    } else {
-      r = (d2 + r) % 16 | 0;
-      d2 = Math.floor(d2 / 16);
-    }
-    return (c == 'x' ? r : (r & 0x7 | 0x8)).toString(16);
-  });
-};
-
-
-const DIAMETER = 0.05
-const SPEED = 0.001
-const DOOT_COUNT = 10
-const FACTORY_COUNT = 5
-const GOT_RATIO = 0.25
-let HISTORY = 0
-const DECREASE = 0.9998
-const MAX_SPEED = 1
-const SHOW_LINES = true
-const LOOP_COMPUTE = true
-const SPEEDS_HISTORY = 30
+import {
+  add_doot,
+  add_doot_2,
+} from './doots.js'
+import {
+  uuid,
+} from './utils.js'
 
 
 const data = {
-  acceleration: 0.00002,
+  acceleration: 0.00004,
   acceleration_min: 0.00001,
   acceleration_max: 0.0001,
   mouse_x: 0.0,
@@ -54,9 +46,7 @@ const data = {
   fids_by_kind: {},
   resources: {},
   free_resources: {},
-
   free_spaces: {},
-
   diameter: DIAMETER,
   free_targets: {},
   grid: [],
@@ -84,17 +74,17 @@ const data = {
         precursors: ['plant'],
       }
     },
-      ore: {
-        color: "#880",
-        ids: {},
-        got: 0,
-        factory: {
-          label: 'Deposit',
-          color: "#440",
-          period: 200,
-          precursors: [],
-        }
-      },
+    ore: {
+      color: "#880",
+      ids: {},
+      got: 0,
+      factory: {
+        label: 'Deposit',
+        color: "#440",
+        period: 200,
+        precursors: [],
+      }
+    },
     plant: {
       color: "#0c0",
       ids: {},
@@ -111,7 +101,9 @@ const data = {
 const kinds = Object.keys(data.definitions)
 for (var kind of kinds) {
   data.fids_by_kind[kind] = {}
+  data.free_resources[kind] = {}
 }
+data.kinds = kinds
 
 
 const info = (m) => {
@@ -125,56 +117,48 @@ const info = (m) => {
 
 const go = () => {
   const size = Math.min(document.documentElement.clientHeight, document.documentElement.clientWidth)
+  const size_2 = Math.max(document.documentElement.clientHeight, document.documentElement.clientWidth)
   if (document.documentElement.clientHeight > document.documentElement.clientWidth) {
     document.body.style.flexDirection = 'column'
   } else {
     document.body.style.flexDirection = 'row'
   }
+  let tool_options = ''
+  for (var kv of Object.entries({
+    tool_none: '-',
+    add_tree_factory: 'Add forest',
+    add_ore_factory: 'Add ore deposit',
+    add_paper_factory: 'Add paper mill',
+    add_gold_factory: 'Add volcano',
+    tool_delete: 'Delete',
+  }) ) {
+    tool_options += `<option value="${kv[0]}" >${kv[1]}</option>`
+  }
   document.body.innerHTML = `
-    <canvas id="canvas" width="${size*2}px" height="${size*2}px"></canvas>
+    <canvas id="canvas" width="${size*ZOOM}px" height="${size*ZOOM}px"></canvas>
     <canvas id="dissalow_canvas" width="${size}px" height="${size}px"></canvas>
-    <div id="panel">
 
-          <canvas id="graph"></canvas>
-      <p id="max_happiness">max happiness: </p>
-      <p id="happiness">happiness: </p>
-      <p id="happiness_2">smoothed happiness: </p>
+    <canvas id="trace_canvas" width="${size}px" height="${size}px"></canvas>
 
-      <p>free_spaces paper: <span id="free_spaces_paper" ></span></p>
-
+    <div id="panel_2">
       <label>acceleration: <span id="acceleration_value"></span></label> <input type="range" min="0" max="100" value="${((data.acceleration-data.acceleration_min) / ( data.acceleration_max - data.acceleration_min))*100}" class="slider" id="acceleration">
       <p>x: <span id="mouse_x"></span></p>
       <p>y: <span id="mouse_y"></span></p>
-
+      <textarea id="logs"></textarea>
+    </div>
+    <div id="panel">
+      <p id="happiness_2">Happiness: </p>
+      <canvas id="graph" height="${size*0.2}px" width="${(size_2-size)}px"></canvas>
       <div id="tool_selection">
-        <p>Tool:</p>
-        <div>
-          <input type="radio" name="tool" value="tool_none" id="tool_none">
-          <label for="tool_none">-</label>
-        </div>
-        <div>
-          <input type="radio" name="tool" value="add_tree_factory" id="add_tree_factory">
-          <label for="add_tree_factory">Add forest</label>
-        </div>
-        <div>
-          <input type="radio" name="tool" value="add_ore_factory" id="add_ore_factory">
-          <label for="add_ore_factory">Add deposit</label>
-        </div>
-        <div>
-          <input type="radio" name="tool" value="add_paper_factory" id="add_paper_factory">
-          <label for="add_paper_factory">Add paper mill</label>
-        </div>
-        <div>
-          <input type="radio" name="tool" value="add_gold_factory" id="add_gold_factory">
-          <label for="add_gold_factory">Add volcano</label>
-        </div>
-        <div>
-          <input type="radio" name="tool" value="tool_delete" id="tool_delete">
-          <label for="tool_delete">Delete</label>
-        </div>
+        <span>Tool</span>
+        <select name="tool_select" id="tool_select">
+          ${tool_options}
+        </select>
       </div>
-
-      <textarea id="logs"></textarea
+      <span>Rules</span>
+      <div id="rules">
+      </div>
+      <button onclick="add_rule()">Add rule</button>
     </div>
   `
   init()
@@ -182,6 +166,7 @@ const go = () => {
   render(
     document.getElementById('canvas').getContext("2d"),
     document.getElementById('dissalow_canvas').getContext("2d"),
+    document.getElementById('trace_canvas').getContext("2d"),
   )
 }
 
@@ -209,8 +194,8 @@ const init = () => {
       )
     })
     const p = dissalow_context.getImageData((evt.x - rect.left), (evt.y - rect.top), 1, 1).data;
-    const tool = document.querySelector('input[name="tool"]:checked').value;
-    if (tool == 'tool_none') {
+    const tool = document.getElementById('tool_select')?.value;
+    if (tool == 'tool_none' || tool == undefined) {
 
     } else if (tool == 'tool_delete') {
       Object.entries(data.factories).forEach((item, i) => {
@@ -237,7 +222,7 @@ const init = () => {
     }
   }, false);
   for (var i = 0; i < DOOT_COUNT; i++) {
-    add_doot()
+    add_doot(data)
   }
   for (var kind of kinds) {
     data.free_spaces[kind] = new Map()
@@ -255,6 +240,7 @@ const init = () => {
       'resources': new Map(),
     };
   }
+  update_rules_ui()
 }
 
 
@@ -317,17 +303,19 @@ const delete_resource = (resource_id) => {
     delete data.factories[resource.factory_id].resources[resource.kind][resource_id]
   }
   delete data.resources[resource_id]
-  delete data.free_resources[resource_id]
+  delete data.free_resources[resource.kind][resource_id]
 }
 
 
 const factory_space_xy = (factory_id, space_id) => {
   const f = data.factories[factory_id]
-  return rotate(
-    [f.x+data.diameter,f.y],
-    [f.x,f.y],
-    space_id/6,
-  )
+  if (f) {
+    return rotate(
+      [f.x+data.diameter,f.y],
+      [f.x,f.y],
+      space_id/6,
+    )
+  }
 }
 
 
@@ -348,7 +336,7 @@ const add_resource_to_factory = (factory_id, kind, space_id) => {
     factory_id: k,
     space_id: space_id,
   }
-  data.free_resources[u] = true
+  data.free_resources[kind][u] = true
   data.free_spaces[ data.factories[k].kind ].delete(`${k}|${space_id}`)
 }
 
@@ -373,22 +361,12 @@ const update_grid = () => {
     const grid_x = beetween(0, data.grid_size-1, Math.floor(item.x * data.grid_size) )
     const grid_y =  beetween(0, data.grid_size-1, Math.floor(item.y * data.grid_size) )
     const grid_id_ = grid_id(grid_x, grid_y, data.grid_size)
-
     data.grid[grid_id_].resources.set(id, id)
-
-    // try {
-    //   data.grid[grid_id_].resources.set(id, id)
-    // } catch {
-    //   console.error("Error to set resource : grid_id_ =", grid_id_)
-    //   console.error("Error to set resource : grid_x =", grid_x)
-    //   console.error("Error to set resource : grid_y =", grid_y)
-    // }
   })
 }
 
 
 const grid_id = (x, y, size) => {
-
   return beetween(0, data.grid_size*data.grid_size-1, Math.floor(x + y * size))
 }
 
@@ -420,7 +398,6 @@ const compute = () => {
   Object.entries(data.doots).forEach((item, i) => {
     const k = item[0]
     const doot = item[1]
-
     const from = [ data.doots[k].x, data.doots[k].y ]
     let r
     let to = [ Math.random(), Math.random() ]
@@ -431,6 +408,10 @@ const compute = () => {
       to = factory_space_xy(doot.action.factory_id, doot.action.space_id)
     } else {
       new_action(k)
+    }
+    if (to?.length != 2) {
+      new_action(k)
+      return
     }
     const v = [to[0] - from[0], to[1] - from[1]]
     const d = Math.sqrt(v[0]*v[0] + v[1]*v[1])
@@ -453,11 +434,13 @@ const compute = () => {
     data.doots[k].y += data.doots[k].speed[1]
     if (d <= DIAMETER*0.5 ) {
       if (data.doots[k].action && data.doots[k].action.kind == 'take') {
-          const resource_kind = data.resources[data.doots[k].action.resource_id].kind
-          data.doots[k].got[resource_kind] += GOT_RATIO
-          data.definitions[resource_kind].got += GOT_RATIO;
-          delete_resource(doot.action.resource_id)
-          delete data.doots[k].action
+          const resource_kind = data.resources[data.doots[k].action.resource_id]?.kind
+          if (resource_kind) {
+            data.doots[k].got[resource_kind] += GOT_RATIO
+            data.definitions[resource_kind].got += GOT_RATIO;
+            delete_resource(doot.action.resource_id)
+            delete data.doots[k].action
+          }
       } else if (data.doots[k].action && data.doots[k].action.kind == 'give') {
           data.doots[k].got[doot.action.resource_kind] -= GOT_RATIO
           add_resource_to_factory(doot.action.factory_id, doot.action.resource_kind, doot.action.space_id )
@@ -468,11 +451,6 @@ const compute = () => {
       data.doots[k].got[kind] = Math.min( data.doots[k].got[kind] * DECREASE, 1.0)
     }
   })
-
-
-
-
-
   Object.entries(data.doots).forEach((item, i) => {
     const k = item[0]
     data.doots[k].collisions = 0
@@ -484,19 +462,14 @@ const compute = () => {
     const y_max = beetween(y_grid, data.grid_size-1, y_grid+1)
     data.doots[k].xnew = data.doots[k].x
     data.doots[k].ynew = data.doots[k].y
-
     data.doots[k].delta_collision_x = 0.0
     data.doots[k].delta_collision_y = 0.0
-
     for (var x = x_min; x <= x_max; x++) {
       for (var y = y_min; y <= y_max; y++) {
         const grid_id_ = grid_id(x, y, data.grid_size)
         for (const doot_id_2 of data.grid[grid_id_].doots.keys() ) {
           if (doot_id_2 != k) {
             const doot_2 = data.doots[doot_id_2]
-
-          //  console.log(k, distance(data.doots[k], doot_2)    )
-
             if ( distance(data.doots[k], doot_2) < DIAMETER ) {
               data.doots[k].collisions += 1
               const cr = collision_response({
@@ -525,8 +498,6 @@ const compute = () => {
       }
     }
   })
-
-
   Object.entries(data.doots).forEach((item, i) => {
     const k = item[0]
     data.doots[k].x = data.doots[k].xnew + data.doots[k].delta_collision_x
@@ -535,14 +506,17 @@ const compute = () => {
     data.doots[k].ox += data.doots[k].delta_collision_x
     data.doots[k].oy += data.doots[k].delta_collision_y
   })
-
-
   let happiness = 0.0
   Object.entries(data.doots).forEach((item, i) => {
+    const k = item[0]
     const doot = item[1]
     let h = 1.0
     for (var kind of kinds) {
       h *= doot.got[kind]
+      data.doots[k].got_history[kind].push(data.doots[k].got[kind])
+      if (data.doots[k].got_history[kind].length > HISTORY) {
+        data.doots[k].got_history[kind].shift()
+      }
     }
     happiness += h;
   });
@@ -558,42 +532,13 @@ const compute = () => {
   for (var i = 0; i < data.happinnesses.length; i++) {
     happiness_2 += data.happinnesses[i]
   }
-  data.happinnesses_2.push(happiness_2/data.happinnesses.length)
+  data.happinnesses_2.push(happiness_2 / data.happinnesses.length)
   if (data.happinnesses_2.length > HISTORY) {
     data.happinnesses_2.shift()
   }
   data.tick += 1;
   if (LOOP_COMPUTE) {
     setTimeout(compute, 0);
-  }
-}
-
-
-const add_doot = () => {
-  const x = Math.random() * 0.8 + 0.1
-  const y = Math.random() * 0.8 + 0.1
-  add_doot_2(x, y, 0.0, 0.0)
-}
-
-
-const add_doot_2 = (x, y, dx, dy) => {
-  const need = {}
-  const got = {}
-  for (var kind of kinds) {
-    need[kind] = 0.5
-    got[kind] = 0.1
-  }
-  data.doots[uuid()] = {
-    x: x,
-    y: y,
-    ox: x-dx,
-    oy: y-dy,
-    position: [x,y],
-    speed: [0,0],
-    diameter: data.diameter,
-    need: need,
-    got: got,
-    speeds: [],
   }
 }
 
@@ -628,7 +573,7 @@ const new_action = (doot_id) => {
   const action = new_action_1(doot_id)
   if (action && action.kind == 'take' && action.resource_id) {
     data.doots[doot_id].action = action
-    delete data.free_resources[action.resource_id]
+    delete data.free_resources[data.resources[action.resource_id].kind][action.resource_id]
   }
   if (action && action.kind == 'give' && action.factory_id) {
     data.doots[doot_id].action = action
@@ -652,7 +597,7 @@ const give_action = (kind_give, kind_factory, doot_id) => {
   for (var free_space_id of data.free_spaces[kind_factory].keys() ) {
     const new_fid = free_space_id.split('|')[0]
     const new_space_id = free_space_id.split('|')[1]
-    const is_free = data.factories[new_fid].free_spaces[new_space_id]
+    const is_free = data.factories[new_fid]?.free_spaces[new_space_id]
     const new_score = 1.0 / distance_to_factory(doot_id, new_fid) + new_space_id
     if (is_free && new_score > score &&  Object.keys(data.factories[new_fid].free_spaces).length >= 2  ) {
       score = new_score
@@ -672,50 +617,361 @@ const give_action = (kind_give, kind_factory, doot_id) => {
 }
 
 
-const new_action_1 = (doot_id) => {
-  const doot = data.doots[doot_id]
-  if ( doot.got['ore'] > GOT_RATIO*2 && doot.got['plant'] > GOT_RATIO*2 && doot.got['gold'] <= doot.got['paper'] ) {
-    const action = give_action('ore', 'gold', doot_id)
-    if (action) {
-      return action
+const take_action = (doot_id, kind) => {
+  if (kind && data.free_resources[kind]) {
+    const keys = Object.keys(data.free_resources[kind])
+    let resource_id
+    let score = 0
+    for (var i = 0; i < keys.length; i++) {
+      const new_resource_id = keys[i]
+      let distance = distance_to_target(doot_id, new_resource_id)
+      const resource = data.resources[new_resource_id]
+      const new_score = data.doots[doot_id].got[resource.kind] / distance
+      if (resource.kind == kind
+        && new_score >= score
+        && data.factories[resource.factory_id]
+        && resource.kind == data.factories[resource.factory_id]?.kind
+      ) {
+        score = new_score
+        resource_id = new_resource_id
+      }
     }
-  }
-  if ( doot.got['ore'] > GOT_RATIO*2 && doot.got['plant'] > GOT_RATIO*2 ) {
-    const action = give_action('plant', 'paper', doot_id)
-    if (action) {
-      return action
+    if (resource_id) {
+      return {
+        resource_id: resource_id,
+        kind: 'take',
+        resource_kind: kind,
+      }
     }
-  }
-  const keys = Object.keys(data.free_resources)
-  if (keys.length <= 0) {
-    return
-  }
-  let resource_id
-  let score = 0
-  for (var i = 0; i < keys.length; i++) {
-    const new_resource_id = keys[i]
-    let distance = distance_to_target(doot_id, new_resource_id)
-    const resource = data.resources[new_resource_id]
-    const new_score = (1.0 - doot.got[resource.kind]) / distance
-    if (new_score >= score && data.factories[resource.factory_id] && (
-        resource.kind == data.factories[resource.factory_id]?.kind
-        ||  Object.keys(data.factories[resource.factory_id].free_spaces) == 0
-      )  ) {
-      score = new_score
-      resource_id = new_resource_id
-    }
-  }
-  return {
-    resource_id: resource_id,
-    kind: 'take',
   }
 }
 
 
-const render = (context, dissalow_context) => {
-  context.fillStyle = "#111f"
-  context.fillRect(0,0,context.canvas.width, context.canvas.height)
-  const tool = document.querySelector('input[name="tool"]:checked')?.value;
+const conditions = {
+  '-': {
+    label: '-',
+    f: (doot_id) => {
+      return false
+    }
+  },
+  'low_resource': {
+    label: 'self resource < 20%',
+    f: (doot_id) => {
+      for (let kind of kinds) {
+        if ( data.doots[doot_id].got[kind] < 0.2 && Object.keys(data.free_resources[kind]).length ) {
+          return kind
+        }
+      }
+    }
+  },
+  'resource_not_full': {
+    label: 'self resource < 90%',
+    f: (doot_id) => {
+      for (let kind of kinds) {
+        if ( data.doots[doot_id].got[kind] < 0.9 && Object.keys(data.free_resources[kind]).length ) {
+          return kind
+        }
+      }
+    }
+  },
+  'resource_not_half': {
+    label: 'self resource < 50%',
+    f: (doot_id) => {
+      for (let kind of kinds) {
+        if ( data.doots[doot_id].got[kind] < 0.5 && Object.keys(data.free_resources[kind]).length ) {
+          return kind
+        }
+      }
+    }
+  }
+}
+const actions = {
+  'take_resource': {
+    label: 'take resource',
+    f: (doot_id, kind) => {
+      if (kind) {
+        return take_action(doot_id, kind)
+      }
+    }
+  },
+  '-': {
+    label: '-',
+    f: (doot_id, kind) => {}
+  }
+}
+for (let kind of kinds) {
+  conditions[`low_${kind}`] = {
+    label: `self ${kind} < 20%`,
+    f: (doot_id) => {
+      return data.doots[doot_id].got[kind] < 0.2
+    }
+  }
+  conditions[`last_action_take_${kind}`] = {
+    label: `last action == take ${kind}`,
+    f: (doot_id) => {
+      return data.doots[doot_id].last_action_id == `take_${kind}`
+    }
+  }
+  conditions[`${kind}_not_full`]= {
+    label: `self ${kind} < 90%`,
+    f: (doot_id) => {
+      return data.doots[doot_id].got[kind] < 0.9
+    }
+  }
+  conditions[`${kind}_half_full`]= {
+    label: `self ${kind} > 50%`,
+    f: (doot_id) => {
+      return data.doots[doot_id].got[kind] > 0.5
+    }
+  }
+  actions[`take_${kind}`] = {
+    label: `take ${kind}`,
+    f: (doot_id) => {
+      return take_action(doot_id, kind)
+    }
+  }
+  const factory_definition = data.definitions[kind].factory
+  for (let precursor of factory_definition.precursors) {
+    const action_id = `give_${precursor}_to_${factory_definition.label}`
+    const action_label = `give ${precursor} to ${factory_definition.label}`
+    actions[action_id] = {
+      label: action_label,
+      f: (doot_id) => {
+        const r = give_action(precursor, kind, doot_id)
+        return r
+      }
+    }
+    conditions[`last_action_${action_id}`] = {
+      label: `last action == ${action_label}`,
+      f: (doot_id) => {
+        return data.doots[doot_id].last_action_id == action_id
+      }
+    }
+  }
+}
+const operands = {
+  '-': {
+    label: '-',
+    f: (condition_1, condition_2) => {
+      return condition_1
+    }
+  },
+  and: {
+    label: 'and',
+    f: (condition_1, condition_2) => {
+      return condition_1 && condition_2
+    }
+  },
+  or: {
+    label: 'or',
+    f: (condition_1, condition_2) => {
+      return condition_1 || condition_2
+    }
+  }
+}
+
+
+const rules = [
+  {
+    condition_1: 'resource_not_half',
+    operand: '-',
+    condition_2: '-',
+    action: 'take_resource',
+  },
+  {
+    condition_1: 'plant_half_full',
+    operand: '-',
+    condition_2: '-',
+    action: 'give_plant_to_Paper mill',
+  },
+  {
+    condition_1: 'ore_half_full',
+    operand: '-',
+    condition_2: '-',
+    action: 'give_ore_to_Volcano',
+  },
+  {
+    condition_1: 'resource_not_full',
+    operand: '-',
+    condition_2: '-',
+    action: 'take_resource',
+  },
+]
+
+
+const encode_html = (htmlstring) => {
+	let textarea = document.createElement('textarea');
+	let text = document.createTextNode(htmlstring);
+	textarea.appendChild(text);
+	return textarea.innerHTML;
+}
+
+
+const update_rules_count = () => {
+  const counts = new Array(rules.length)
+  for (var i = 0; i < rules.length; i++) {
+    counts[i] = 0
+  }
+  Object.entries(data.doots).forEach((kv, i) => {
+    const doot = kv[1]
+    if (doot.rule_id != undefined) {
+      counts[doot.rule_id] += 1
+    }
+  })
+  for (var i = 0; i < rules.length; i++) {
+    document.getElementById(`rule-${i}-count`).innerHTML = counts[i] ? counts[i] : "-";
+  }
+}
+
+
+const add_rule = () => {
+  rules.push({
+      condition_1: '-',
+      operand: '-',
+      condition_2: '-',
+      action: '-',
+  })
+  update_rules_ui()
+}
+
+
+const delete_rule = (i) => {
+  rules.splice(i, 1)
+  update_rules_ui()
+}
+
+
+const move_rule_down = (i) => {
+  const rule_1 = JSON.stringify(rules[i+1])
+  const rule_2 = JSON.stringify(rules[i])
+  rules[i] = JSON.parse(rule_1)
+  rules[i+1] = JSON.parse(rule_2)
+  update_rules_ui()
+}
+
+const move_rule_up = (i) => {
+  const rule_1 = JSON.stringify(rules[i-1])
+  const rule_2 = JSON.stringify(rules[i])
+  rules[i] = JSON.parse(rule_1)
+  rules[i-1] = JSON.parse(rule_2)
+  update_rules_ui()
+}
+
+
+const update_c1 = (i) => {
+  console.log('aa')
+  console.log(document.getElementById(`rule-${i}-c1`).value)
+  rules[i].condition_1 = document.getElementById(`rule-${i}-c1`).value
+}
+
+
+const update_c2 = (i) => {
+  rules[i].condition_2 = document.getElementById(`rule-${i}-c2`).value
+}
+
+
+const update_operand = (i) => {
+  rules[i].operand = document.getElementById(`rule-${i}-operand`).value
+}
+
+
+const update_action = (i) => {
+  rules[i].action = document.getElementById(`rule-${i}-action`).value
+}
+
+
+const update_rules_ui = () => {
+  let html = ''
+  for (var i = 0; i < rules.length; i++) {
+    const rule = rules[i]
+    const up_disabled = i == 0 ? "disabled" : "";
+    const down_disabled = i == rules.length-1 ? "disabled" : "";
+    let c1_options = ''
+    let c2_options = ''
+    for (var k of Object.keys(conditions) ) {
+      const condition = conditions[k]
+      const selected = rule.condition_1 == k ? 'selected' : '';
+      c1_options += `<option value="${k}" ${selected}>${encode_html(conditions[k].label)}</option>`
+      const selected_2 = rule.condition_2 == k ? 'selected' : '';
+      c2_options += `<option value="${k}" ${selected_2}>${encode_html(conditions[k].label)}</option>`
+    }
+    let operand_options = ''
+    for (var k of Object.keys(operands) ) {
+      const operand = operands[k]
+      const selected = rule.operand == k ? 'selected' : '';
+      operand_options += `<option value="${k}" ${selected}>${encode_html(operands[k].label)}</option>`
+    }
+    let action_options = ''
+    for (var k of Object.keys(actions) ) {
+      const action = actions[k]
+      const selected = rule.action == k ? 'selected' : '';
+      action_options += `<option value="${k}" ${selected}>${encode_html(actions[k].label)}</option>`
+    }
+    html += `
+      <div class="rule">
+        <span class="rule-count" id="rule-${i}-count" >-</span>
+        <button ${up_disabled}    onclick="move_rule_up(${i})">↑</button>
+        <button ${down_disabled}  onclick="move_rule_down(${i})">↓</button>
+        <div class="expand conditions">
+          <select onchange="update_c1(${i})"  name="rule-${i}-c1" id="rule-${i}-c1">
+            ${c1_options}
+          </select>
+          <div class="flex">
+            <select onchange="update_operand(${i})" name="rule-${i}-operand" id="rule-${i}-operand">
+              ${operand_options}
+            </select>
+            <select onchange="update_c2(${i})" class="expand"  name="rule-${i}-c2" id="rule-${i}-c2">
+              ${c2_options}
+            </select>
+          </div>
+        </div>
+        <select onchange="update_action(${i})" name="rule-${i}-action" id="rule-${i}-action" class="expand">
+          ${action_options}
+        </select>
+        <button onclick="delete_rule(${i})">❌</button>
+      </div>
+    `
+  }
+  document.getElementById('rules').innerHTML = html
+}
+
+console.log(actions)
+
+const new_action_1 = (doot_id) => {
+  data.doots[doot_id].rule_id = undefined
+  for (var i = 0; i < rules.length; i++) {
+    const rule = rules[i]
+    const operand = operands[rule.operand].f
+    const c1 = conditions[rule.condition_1].f(doot_id)
+    const c2 = conditions[rule.condition_2].f(doot_id)
+    if ( operand(c1, c2)) {
+      const action = actions[rule.action].f(doot_id, c1)
+      if (action) {
+        data.doots[doot_id].last_action_id = rule.action.replaceAll('resource', action.resource_kind)
+        data.doots[doot_id].rule_id = i
+        return action
+      }
+    }
+  }
+}
+
+
+const render = (
+  context,
+  dissalow_context,
+  trace_context,
+  frame_id
+) => {
+  if (!frame_id) {
+    trace_context.fillStyle = "#161626ff"
+    trace_context.fillRect(0, 0, trace_context.canvas.width, trace_context.canvas.height)
+  }
+  frame_id = frame_id ? frame_id+1 : 1;
+  trace_context.fillStyle = "#16162610"
+  trace_context.fillRect(0, 0, trace_context.canvas.width, trace_context.canvas.height)
+  context.clearRect(0,0,context.canvas.width, context.canvas.height)
+  const tool = document.getElementById('tool_select')?.value;
+  update_rules_count()
   if (
     tool == 'add_tree_factory'
     || tool == 'add_ore_factory'
@@ -727,7 +983,7 @@ const render = (context, dissalow_context) => {
       fill_circle(
         context, factory.x, factory.y,
         factory.d*4.0,
-        "#f003"
+        "#600"
       )
     })
   }
@@ -757,6 +1013,8 @@ const render = (context, dissalow_context) => {
     const k = item[0]
     const doot = item[1]
     const d = doot.diameter
+
+
     let target
     if (SHOW_LINES) {
       if (doot.action && doot.action.kind == 'take') {
@@ -766,7 +1024,7 @@ const render = (context, dissalow_context) => {
         }
       }
       if (doot.action && doot.action.kind == 'give') {
-        const to =  factory_space_xy(doot.action.factory_id, doot.action.space_id) //data.factories[doot.action.factory_id]
+        const to = factory_space_xy(doot.action.factory_id, doot.action.space_id)
         if (to) {
           line(context, doot.x,doot.y, to[0],to[1])
         }
@@ -775,6 +1033,13 @@ const render = (context, dissalow_context) => {
     const x = doot.x
     const y = doot.y
     fill_circle(context, x, y, d, '#00aaaa')
+
+    if (DRAW_FOLLOW) {
+      fill_circle(trace_context, x, y, d*.5, '#00aaaa')
+    }
+
+    //
+
     for (let i = 0; i < kinds.length; i++) {
       const kind = kinds[i]
       // const y_ = y+0.15*d*i - 0.15*0.5*d*(kinds.length-1)
@@ -783,29 +1048,18 @@ const render = (context, dissalow_context) => {
       fill_circle(context, x, y, d*0.8-d*( (i+0)*0.2 - 0.2  )     , '#00aaaa')
       fill_circle(context, x, y, d*0.8-d*( (i+0)*0.2 - 0.2*doot.got[kind]  )     , data.definitions[kind].color)
     }
-
-
-
-
     const average_speed = [0.0, 0.0]
     for (var i = 0; i < doot.speeds.length; i++) {
       average_speed[0] += doot.speeds[i][0]
       average_speed[1] += doot.speeds[i][1]
     }
-
     average_speed[0] /= doot.speeds.length
     average_speed[1] /= doot.speeds.length
-
     // const v = [doot.speeds[i][0], doot.speeds[i][1]]
     // const distance = Math.sqrt(v[0]*v[0] + v[1]*v[1])
-
-    // console.log(doot.speeds.length)
-
-
     const v = [average_speed[0], average_speed[1]]
     const distance = Math.sqrt(v[0]*v[0] + v[1]*v[1])
     const nv = [v[0]/distance, v[1]/distance]
-
     data.doots[k].eyes = {
       left:rotate([
         x+nv[0]*d*0.45,
@@ -824,40 +1078,48 @@ const render = (context, dissalow_context) => {
   });
 
 
-  for (var i = 0; i < data.grid.length; i++) {
-    const y = Math.floor( i / data.grid_size) / data.grid_size +0.5/data.grid_size
-    const x = (i % data.grid_size) / data.grid_size +0.5/data.grid_size
-    fill_rect(context, x, y, 0.98/data.grid_size,0.98/data.grid_size, '#fff4')
-    const text = `${data.grid[i].doots.size}`
-    fill_text(context, text, x, y,)
+  if (DEBUG_GRID) {
+    for (var i = 0; i < data.grid.length; i++) {
+      const y = Math.floor( i / data.grid_size) / data.grid_size +0.5/data.grid_size
+      const x = (i % data.grid_size) / data.grid_size +0.5/data.grid_size
+      fill_rect(context, x, y, 0.98/data.grid_size,0.98/data.grid_size, '#fff4')
+      const text = `${data.grid[i].doots.size}`
+      fill_text(context, text, x, y,)
+    }
   }
 
 
   const graph_context = document.getElementById("graph").getContext("2d")
-  graph_context.clearRect(0,0,graph_context.canvas.width, graph_context.canvas.height)
-  HISTORY =  graph_context.canvas.width
-  line(graph_context, 0, data.max_hapinness/100, 1, data.max_hapinness/100, 1);
-  for (let i = 0; i < data.happinnesses.length; i++) {
-    line(graph_context, i/HISTORY, 0, i/HISTORY, data.happinnesses[i]/100, 1);
+  HISTORY = graph_context.canvas.width
+  if (frame_id % REFRESH_GRAPH_PERIOD == 0) {
+    graph_context.clearRect(0,0,
+      graph_context.canvas.width, graph_context.canvas.height)
+    for (let i = 0; i < data.happinnesses.length; i++) {
+      let v_min = 0.0
+      for (var kind of kinds) {
+        let value = 0.0
+        Object.keys(data.doots).forEach((k, _) => {
+          value += data.doots[k].got_history[kind][i]
+        })
+        value /= (Object.keys(data.doots).length * kinds.length)
+        line(graph_context, i/HISTORY, v_min, i/HISTORY, v_min+value, 1, data.definitions[kind].color);
+        v_min += value
+      }
+    }
+    for (let i = 0; i < data.happinnesses_2.length; i++) {
+      const value = data.happinnesses_2[i]/100
+      line(graph_context, i/HISTORY, value-0.01, i/HISTORY, value+0.01, 1, "#f0f");
+    }
   }
-  for (let i = 0; i < data.happinnesses_2.length; i++) {
-    line(graph_context, i/HISTORY, 0, i/HISTORY, data.happinnesses_2[i]/100, 1);
-  }
-  document.getElementById("max_happiness").innerHTML = `max happiness: ${data.max_hapinness.toFixed(1)}`
-  document.getElementById("happiness").innerHTML = `happiness: ${data.happiness.toFixed(1)}`
   if (data.happinnesses_2.length) {
     const last_happinnesses_2 = data.happinnesses_2[data.happinnesses_2.length-1]
-    //line(graph_context, 0, last_happinnesses_2/100, 1, last_happinnesses_2/100, 1);
-    document.getElementById("happiness_2").innerHTML = `smoothed happiness: ${last_happinnesses_2.toFixed(1)}`
+    document.getElementById("happiness_2").innerHTML = `Happiness: ${last_happinnesses_2.toFixed(1)}`
   }
   document.getElementById("acceleration_value").innerHTML = data.acceleration.toFixed(6)
   document.getElementById("mouse_x").innerHTML = data.mouse_x.toFixed(2)
   document.getElementById("mouse_y").innerHTML = data.mouse_y.toFixed(2)
-
-  document.getElementById("free_spaces_paper").innerHTML = data.free_spaces.paper.size
-
   requestAnimationFrame(() => {
-    render(context, dissalow_context)
+    render(context, dissalow_context, trace_context, frame_id)
   })
 }
 
@@ -872,13 +1134,13 @@ const fill_text = (context, text, x, y) => {
 }
 
 
-const line = (context, x1,y1,x2,y2,lineWidth) => {
+const line = (context, x1,y1,x2,y2,lineWidth, color) => {
   const xx1 = context.canvas.width * x1;
   const yy1 = context.canvas.height - context.canvas.height * y1;
   const xx2 = context.canvas.width * x2;
   const yy2 = context.canvas.height - context.canvas.height * y2;
   context.lineWidth = lineWidth?lineWidth:5;
-  context.strokeStyle = "#fff4";
+  context.strokeStyle = color ? color : "#fff4";
   context.beginPath()
   context.moveTo(xx1, yy1)
   context.lineTo(xx2, yy2)
@@ -909,5 +1171,13 @@ const fill_circle = (context, x, y, diameter, color) => {
 
 
 window.onload = async () => {
+  window.move_rule_down = move_rule_down
+  window.move_rule_up = move_rule_up
+  window.update_c1 = update_c1
+  window.update_c2 = update_c2
+  window.update_operand = update_operand
+  window.update_action = update_action
+  window.add_rule = add_rule
+  window.delete_rule = delete_rule
   go()
 }
