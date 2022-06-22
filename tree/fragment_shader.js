@@ -61,34 +61,45 @@ float ss (float a, float d, float s) {
 }
 
 
-struct HitColor {
+struct Object {
   vec3 c;
   float d;
 };
 
 
-HitColor object_0(vec2 p) {
+Object object_0(vec2 p) {
   vec2 q = p - vec2(0.0);
   float d = 1.0 - ss(dist(q), 0.5, 0.5);
-  vec3 c = vec3(d);
-  return HitColor (c,d);
+  vec3 c = vec3(d*0.2);
+  return Object (c,d);
 }
 
 
-HitColor object_1(vec2 p) {
+Object object_1(vec2 p) {
   vec2 q = p - vec2(0.0);
-  float d = 1.0 - ss(dist(q), 0.5, 0.1);
+  float d = 1.0 - ss(dist(q), 0.25, 0.1);
   vec3 c = vec3(0.0, 0.0, d);
-  return HitColor (c, d);
+  return Object (c, d);
 }
 
 
-HitColor object(int i, vec2 p) {
+Object object_2(vec2 p) {
+  vec2 q = p;
+  float d = 1.0 - abs( ss( abs(p.y)*0.99, 0.1, 0.01) );
+  d *= 1.0 - abs(p.x);
+  vec3 c = vec3(d, d, 0.0);
+  return Object (c, d);
+}
+
+
+Object object(int i, vec2 p) {
   switch (i) {
     case 0:
         return object_0(p);
     case 1:
         return object_1(p);
+    case 2:
+        return object_2(p);
   }
 }
 
@@ -102,23 +113,18 @@ void main() {
 
   // Point, in [-1,1] space
   vec2 p = position_varying.xy * vec2(buffer_dimensions.x / buffer_dimensions.y, 1.0 );
+   p.x += 0.5*sin(t*5.);
+  // p.y += 0.5*sin(t*3.);
   vec2 q = p.xy - vec2(0.0);
   color = pc;
   color = vec4(vec3(0.), 1.0);
 
-  vec3 colors[2];
-  colors[0] = vec3(1.0, 0.0, 0.0);
-  colors[1] = vec3(0.0, 0.0, 1.0);
-
-  float distances[2];
-  distances[0] = 1.0 - ss(dist(q), 0.5, 0.1);
-  distances[1] = 1.0 - ss(dist(q+vec2(sin(t*.0)*0.1)), 0.5, 0.01);
 
   // let
   //float c =
   float d = 0.0;
-  for (int i = 1 ; i >= 0 ; i-=1) {
-    HitColor r = object(i, p);
+  for (int i = 2 ; i >= 0 ; i-=1) {
+    Object r = object(i, p);
     d += r.d;
     color.rgb += r.c;
     if (d >= 1.0  ) {
@@ -140,6 +146,8 @@ void main() {
   //   color = pc;
   // }
   // color.b = slider_8;
+  vec4 pc_ = texelFetch(previous_image, ivec2(tex.xy+vec2(cos(t*5.0)*100.0, 100.0 + sin(t)*1.0)), 0);
+  color += pc_ * 0.7;
   color.a = 1.0;
 }`
 }
