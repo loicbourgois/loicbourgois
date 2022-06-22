@@ -1,6 +1,6 @@
 const DIAMETER = 0.05
 const SPEED = 0.001
-const DOOT_COUNT = 5
+const DOOT_COUNT = 10
 const FACTORY_COUNT = 5
 const GOT_RATIO = 0.2
 let HISTORY = 0
@@ -700,16 +700,16 @@ const actions = {
   }
 }
 for (let kind of kinds) {
-  conditions[`low_${kind}`] = {
+  conditions[`lower_${kind}`] = {
     label: `self ${kind} < 20%`,
     f: (doot_id) => {
       return data.doots[doot_id].got[kind] < 0.2
     }
   }
-  conditions[`last_action_take_${kind}`] = {
-    label: `last action == take ${kind}`,
+  conditions[`low_${kind}`] = {
+    label: `self ${kind} < 50%`,
     f: (doot_id) => {
-      return data.doots[doot_id].last_action_id == `take_${kind}`
+      return data.doots[doot_id].got[kind] < 0.5
     }
   }
   conditions[`${kind}_not_full`]= {
@@ -718,10 +718,28 @@ for (let kind of kinds) {
       return data.doots[doot_id].got[kind] < 0.9
     }
   }
+  conditions[`${kind}_barelly_full`]= {
+    label: `self ${kind} > 20%`,
+    f: (doot_id) => {
+      return data.doots[doot_id].got[kind] > 0.2
+    }
+  }
   conditions[`${kind}_half_full`]= {
     label: `self ${kind} > 50%`,
     f: (doot_id) => {
       return data.doots[doot_id].got[kind] > 0.5
+    }
+  }
+  conditions[`${kind}_almost_full`]= {
+    label: `self ${kind} > 90%`,
+    f: (doot_id) => {
+      return data.doots[doot_id].got[kind] > 0.9
+    }
+  }
+  conditions[`last_action_take_${kind}`] = {
+    label: `last action == take ${kind}`,
+    f: (doot_id) => {
+      return data.doots[doot_id].last_action_id == `take_${kind}`
     }
   }
   actions[`take_${kind}`] = {
@@ -935,7 +953,6 @@ const update_rules_ui = () => {
   document.getElementById('rules').innerHTML = html
 }
 
-console.log(actions)
 
 const new_action_1 = (doot_id) => {
   data.doots[doot_id].rule_id = undefined
@@ -1013,8 +1030,6 @@ const render = (
     const k = item[0]
     const doot = item[1]
     const d = doot.diameter
-
-
     let target
     if (SHOW_LINES) {
       if (doot.action && doot.action.kind == 'take') {
@@ -1033,18 +1048,11 @@ const render = (
     const x = doot.x
     const y = doot.y
     fill_circle(context, x, y, d, '#00aaaa')
-
     if (DRAW_FOLLOW) {
       fill_circle(trace_context, x, y, d*.5, '#00aaaa')
     }
-
-    //
-
     for (let i = 0; i < kinds.length; i++) {
       const kind = kinds[i]
-      // const y_ = y+0.15*d*i - 0.15*0.5*d*(kinds.length-1)
-      // fill_rect(context, x, y_, d*0.75, d*0.125, '#fa0')
-      // fill_rect(context, x, y_, d*0.75*doot.got[kind], d*0.125, '#0f0')
       fill_circle(context, x, y, d*0.8-d*( (i+0)*0.2 - 0.2  )     , '#00aaaa')
       fill_circle(context, x, y, d*0.8-d*( (i+0)*0.2 - 0.2*doot.got[kind]  )     , data.definitions[kind].color)
     }
@@ -1055,8 +1063,6 @@ const render = (
     }
     average_speed[0] /= doot.speeds.length
     average_speed[1] /= doot.speeds.length
-    // const v = [doot.speeds[i][0], doot.speeds[i][1]]
-    // const distance = Math.sqrt(v[0]*v[0] + v[1]*v[1])
     const v = [average_speed[0], average_speed[1]]
     const distance = Math.sqrt(v[0]*v[0] + v[1]*v[1])
     const nv = [v[0]/distance, v[1]/distance]
@@ -1070,14 +1076,12 @@ const render = (
         y+nv[1]*d*0.45,
       ], [x,y], -0.07)
     }
-      const eye_color = data.doots[k].collisions ? '#fff' : '#fff'
-      fill_circle(context, data.doots[k].eyes.left[0], data.doots[k].eyes.left[1], d*0.35, eye_color)
-      fill_circle(context, data.doots[k].eyes.left[0], data.doots[k].eyes.left[1], d*0.15, '#111')
-      fill_circle(context, data.doots[k].eyes.right[0], data.doots[k].eyes.right[1], d*0.35, eye_color)
-      fill_circle(context, data.doots[k].eyes.right[0], data.doots[k].eyes.right[1], d*0.15, '#111')
+    const eye_color = data.doots[k].collisions ? '#fff' : '#fff'
+    fill_circle(context, data.doots[k].eyes.left[0], data.doots[k].eyes.left[1], d*0.35, eye_color)
+    fill_circle(context, data.doots[k].eyes.left[0], data.doots[k].eyes.left[1], d*0.15, '#111')
+    fill_circle(context, data.doots[k].eyes.right[0], data.doots[k].eyes.right[1], d*0.35, eye_color)
+    fill_circle(context, data.doots[k].eyes.right[0], data.doots[k].eyes.right[1], d*0.15, '#111')
   });
-
-
   if (DEBUG_GRID) {
     for (var i = 0; i < data.grid.length; i++) {
       const y = Math.floor( i / data.grid_size) / data.grid_size +0.5/data.grid_size
@@ -1087,8 +1091,6 @@ const render = (
       fill_text(context, text, x, y,)
     }
   }
-
-
   const graph_context = document.getElementById("graph").getContext("2d")
   HISTORY = graph_context.canvas.width
   if (frame_id % REFRESH_GRAPH_PERIOD == 0) {
