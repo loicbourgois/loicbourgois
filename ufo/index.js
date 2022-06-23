@@ -1,13 +1,49 @@
+import {
+  create_program_from_strs,
+  triangles_positions,
+  resize_canvas,
+  set_uniform1f,
+  set_uniform2f,
+  set_uniform4f,
+  set_uniforms,
+  load_texture,
+} from './gl.js'
+import {
+  vertex_shader,
+} from './vertex_shader.js'
+import {
+  fragment_shader,
+} from './fragment_shader.js'
+
+
 const conf = {
-  red_amount: 0.8,
   interval_render_ms: 10,
   interval_controls_ms: 10,
   interval_main_ms: 10,
   render: {
     last_time: null
   },
-  log_render_duration: false
+  log_render_duration: false,
+  sliders_count: 10,
 }
+
+
+const sliders = []
+for (let i = 0; i < conf.sliders_count; i++) {
+  sliders.push({
+    id: `slider_${i}`,
+    index: i,
+  })
+}
+const sliders_str = sliders.map(x => `<input type="range" min="0" max="1000" value="${1000-x.index/(conf.sliders_count-1)*1000}" class="slider" id="${x.id}">` ).join("")
+document.querySelector("body").innerHTML = `
+  <canvas id='canvas'></canvas>
+  <div id="sliders">
+    ${sliders_str}
+  </div>
+`
+
+
 const canvas = document.querySelector('#canvas', {preserveDrawingBuffer: true})
 const gl = canvas.getContext('webgl2')
 gl.imageSmoothingEnabled = false
@@ -15,14 +51,11 @@ const program = create_program_from_strs(
   gl,
   {
     vertex: vertex_shader,
-    fragment: fragment_shader
+    fragment: fragment_shader({
+      sliders: sliders
+    })
   },
-  [
-    {
-      placeholder: '{RED_AMOUNT}',
-      value: conf.red_amount
-    },
-  ]
+  []
 )
 const position = {
   attrib_location: gl.getAttribLocation(program, 'position'),
@@ -56,15 +89,12 @@ gl.vertexAttribPointer(
   position.parameters.stride,
   position.parameters.offset)
 resize_canvas(gl.canvas)
+
+
 const uniforms = {
   time_ms: {
     value: 0,
     uniform_location: gl.getUniformLocation(program, 'time_ms'),
-    setter: set_uniform1f,
-  },
-  circle_diameter: {
-    value: 1,
-    uniform_location: gl.getUniformLocation(program, 'circle_diameter'),
     setter: set_uniform1f,
   },
   buffer_dimensions: {
@@ -78,6 +108,15 @@ const uniforms = {
     setter: set_uniform4f,
   },
 }
+for (let slider of sliders) {
+  uniforms[slider.id] = {
+    value: 0.0,
+    uniform_location: gl.getUniformLocation(program, slider.id),
+    setter: set_uniform1f,
+  }
+}
+
+
 const textures = {
   previous_image: {
     buffer: new Uint8Array(gl.canvas.width * gl.canvas.height * 4),
@@ -102,6 +141,8 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.useProgram(program)
+
+
 const render = () => {
   const start_time_ms = Date.now()
   uniforms.seeds.values = [Math.random(), Math.random(), Math.random(), Math.random()]
@@ -109,7 +150,6 @@ const render = () => {
   gl.uniform1i(textures.previous_image.uniform_location, textures.previous_image.texture_id)
   load_texture(gl, textures.previous_image)
   gl.bindVertexArray(position.vao)
-  // gl.bindFramebuffer(gl.FRAMEBUFFER, null)
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
   gl.vertexAttribPointer(
     position.attrib_location,
@@ -118,8 +158,6 @@ const render = () => {
     position.parameters.normalize,
     position.parameters.stride,
     position.parameters.offset)
-  // gl.bindBuffer(gl.ARRAY_BUFFER, position.buffer)
-  // clear_buffer(gl)
   gl.drawArrays(
     position.draw_parameters.primitiveType,
     position.draw_parameters.offset,
@@ -130,26 +168,40 @@ const render = () => {
     console.log(`b: ${Date.now() - conf.render.last_time}`)
   }
   conf.render.last_time = Date.now()
+  window.requestAnimationFrame(render)
 }
-const handle_controls = () => {
-  const slider = document.querySelector('#slider_1')
-  uniforms.circle_diameter.value = 1 + slider.value / (slider.max - slider.min)
-}
-const render_loop = () => {
-  conf.start_render_loop_ms = Date.now()
-  conf.interval_render_id = setInterval(render, conf.interval_render_ms);
-}
-const controls_loop = () => {
-  conf.interval_controls_id = setInterval(handle_controls, conf.interval_controls_ms);
-}
+
+
 const step = () => {
   uniforms.time_ms.value = Date.now() - conf.start_ms
 }
-const main_loop = () => {
+
+
+const handle_controls = () => {
+  for (let slider of sliders) {
+    const slider_element = document.querySelector(`#${slider.id}`)
+    uniforms[slider.id].value =  slider_element.value / (slider_element.max - slider_element.min)
+  }
+}
+
+
+const start_render_loop = () => {
+  conf.start_render_loop_ms = Date.now()
+  render()
+}
+
+
+const start_controls_loop = () => {
+  conf.interval_controls_id = setInterval(handle_controls, conf.interval_controls_ms);
+}
+
+
+const start_main_loop = () => {
   conf.start_ms = Date.now()
   conf.interval_main_id = setInterval(step, conf.interval_main_ms);
 }
-render_loop()
-controls_loop()
-main_loop()
-render()
+
+
+start_render_loop()
+start_controls_loop()
+start_main_loop()
