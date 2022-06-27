@@ -23,7 +23,10 @@ const g = {
   step: 0,
   parts: [],
   diameter: 0.01,
-  parts_count: 500,
+  parts_count: 100,
+  bottom: -0.0,
+  start_bottom: -0.0,
+  leaves: 0.2,
 }
 
 
@@ -89,12 +92,6 @@ const new_p = () => {
   return np
 }
 
-// start_bottom: -0.75,
-// bottom: -0.75 + 10 * 0.01,
-// leaves: -0.75 + 30 * 0.01,
-
-// const new_tre
-
 
 const tick = () => {
   g.step += 1
@@ -103,13 +100,17 @@ const tick = () => {
     y: g.start_bottom,
   }
   range(0, g.parts_count).map(i=>{
+    let leaves
+    if (p.y > 0.1 + g.leaves * Math.random()) {
+      leaves = (Math.random()*10 + 5)*g.diameter
+    }
     g.parts.push({
       p: {
         x: p.x,
         y: p.y,
       },
-      c: '#4f3b27',
       idx: i,
+      leaves: leaves,
     })
     p = new_p()
   })
@@ -118,16 +119,13 @@ const tick = () => {
 
 const render = (context) => {
   for (let part of g.parts) {
-    if (part.p.y > + g.bottom) {
-      fill_circle(context, part.p, g.diameter*2.2, "#4f3b27aa")
-      stroke_circle(context, part.p, g.diameter*2.2, "#4f3b27", 2)
-    }
+    fill_circle(context, part.p, g.diameter*2.2, "#4f3b27aa")
+    stroke_circle(context, part.p, g.diameter*2.2, "#4f3b27", 2)
   }
   for (let part of g.parts) {
-    if (part.p.y > + g.leaves * Math.random()){
-      const aa = Math.random()*g.diameter*15
-      stroke_circle(context, part.p, aa, "#0c01", 3)
-      fill_circle(context, part.p, aa, "#0c0d")
+    if (part.leaves) {
+      stroke_circle(context, part.p, part.leaves, "#0c01", 3)
+      fill_circle(context, part.p, part.leaves, "#0c0d")
     }
   }
   // window.requestAnimationFrame(()=>{
