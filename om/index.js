@@ -1,3 +1,15 @@
+const key_pressed = {}
+
+const sliders = document.getElementById("sliders")
+sliders.innerHTML = "";
+const alpha = Array.from(Array(26)).map((e, i) => i + 65+26+6);
+const alphabet = alpha.map((x) => String.fromCharCode(x));
+for (var letter of alphabet) {
+  sliders.innerHTML += `<input type="range" min="0" max="1000" value="0" class="slider" id="slider_${letter}">`;
+}
+
+console.log(sliders)
+
 const conf = {
   red_amount: 0.8,
   interval_render_ms: 10,
@@ -78,6 +90,15 @@ const uniforms = {
     setter: set_uniform4f,
   },
 }
+
+for (var letter of alphabet) {
+  uniforms[letter] = {
+    value: 0.0,
+    uniform_location: gl.getUniformLocation(program, `uni_${letter}`),
+    setter: set_uniform1f,
+  }
+}
+
 const textures = {
   previous_image: {
     buffer: new Uint8Array(gl.canvas.width * gl.canvas.height * 4),
@@ -109,7 +130,6 @@ const render = () => {
   gl.uniform1i(textures.previous_image.uniform_location, textures.previous_image.texture_id)
   load_texture(gl, textures.previous_image)
   gl.bindVertexArray(position.vao)
-  // gl.bindFramebuffer(gl.FRAMEBUFFER, null)
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
   gl.vertexAttribPointer(
     position.attrib_location,
@@ -118,8 +138,6 @@ const render = () => {
     position.parameters.normalize,
     position.parameters.stride,
     position.parameters.offset)
-  // gl.bindBuffer(gl.ARRAY_BUFFER, position.buffer)
-  // clear_buffer(gl)
   gl.drawArrays(
     position.draw_parameters.primitiveType,
     position.draw_parameters.offset,
@@ -132,9 +150,20 @@ const render = () => {
   conf.render.last_time = Date.now()
 }
 const handle_controls = () => {
-  const slider = document.querySelector('#slider_1')
-  uniforms.circle_diameter.value = slider.value / (slider.max - slider.min)
-  console.log(uniforms.circle_diameter.value)
+  for (var letter of alphabet) {
+    const slider = document.querySelector(`#slider_${letter}`)
+    if (key_pressed[letter] === true) {
+      slider.value = parseInt(slider.value)-500;
+    } else {
+      slider.value = parseInt(slider.value)+200;
+    }
+    //slider.value = 1
+    uniforms[letter].value = slider.value / (slider.max - slider.min)
+  }
+
+
+  // uniforms.circle_diameter.value = slider.value / (slider.max - slider.min)
+  // console.log(uniforms.circle_diameter.value)
 }
 const render_loop = () => {
   conf.start_render_loop_ms = Date.now()
@@ -150,6 +179,22 @@ const main_loop = () => {
   conf.start_ms = Date.now()
   conf.interval_main_id = setInterval(step, conf.interval_main_ms);
 }
+
+
+window.addEventListener("keydown", (e) => {
+  key_pressed[e.key] = true
+  // if (e.key === 'a') {
+  //   console.log("bob")
+  // }
+});
+window.addEventListener("keyup", (e) => {
+  key_pressed[e.key] = false
+});
+
+
+
+
+
 render_loop()
 controls_loop()
 main_loop()

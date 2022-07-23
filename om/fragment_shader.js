@@ -1,8 +1,14 @@
+const alpha_ = Array.from(Array(26)).map((e, i) => i + 65+26+6);
+const alphabet_ = alpha_.map((x) => String.fromCharCode(x));
+let uni_leters = ""
+for (var letter of alphabet_) {
+  uni_leters += `uniform float uni_${letter};`;
+}
 const fragment_shader = `#version 300 es
 precision highp float;
 uniform float time_ms;
 uniform float circle_diameter;
-uniform float uni_a;
+${uni_leters}
 uniform vec2 buffer_dimensions;
 uniform sampler2D previous_image;
 uniform vec4 seeds;
@@ -31,22 +37,56 @@ void main() {
   vec4 f = gl_FragCoord;
   vec4 previous_f_color     = texelFetch(previous_image, ivec2(f.xy), 0);
   vec4 previous_f_color_up  = texelFetch(previous_image, ivec2(f.x, f.y*0.1), 0);
+  vec4 previous_f_color_right  = texelFetch(previous_image, ivec2(f.x+10.0, f.y), 0);
   vec4 p = position_varying;
   color = vec4(0.0, 0.0, 0.0, 1.0);
   color.r = decimal_part(previous_f_color.r + 0.01 * f.r) ;
   color.g = decimal_part(previous_f_color.r + 0.02 * f.g) ;
   color.b = decimal_part(previous_f_color_up.b + 0.1 * f.g) ;
-
   if (f.x < buffer_dimensions.x * 0.5) {
-    color.rgb = vec3(0.0, 0.0, 0.0);
+
+    color.r = previous_f_color_right.r;
+  } else {
+    //color.r = previous_f_color_right.r;
   }
   float max_dim = max(buffer_dimensions.x, buffer_dimensions.y);
-
-  if (distance(f.xy, buffer_dimensions.xy*0.5) < 100.0) {
+  if (distance(f.xy, buffer_dimensions.xy*0.5) < 500.0 * sin(uni_z) ) {
     color.rgb *= vec3(0.5, 0.5, 0.5) * uni_a;
+    color.b = 0.5 * uni_z;
+  }
+  color.r *= uni_a + previous_f_color.r;
+
+  color.b += previous_f_color_up.b*uni_e;
+
+  if (distance(f.xy, buffer_dimensions.xy*0.5) < 100.0 * sin(uni_r) ) {
+    color.rgb *= vec3(0.5, 0.5, 0.15) * uni_a;
+    color.b = 0.5 * uni_z;
   }
 
-  color.r = uni_a;
+  if (  abs(sin(f.x + f.y)) < 0.1*uni_e ) {
+    color.rgb = vec3(1.0, 1.0, 0.0);
+  }
+
+  vec2 bd = buffer_dimensions;
+
+  if (distance(f.xy, vec2(
+      bd.x*(0.5+0.25*sin(t*1.7)),
+      bd.y*(0.5+0.25*sin(t*1.0)))
+    ) < 30.0 * sin(uni_t) * (2.0+sin(t*1.3))  ) {
+    color.rgb *= vec3(0.5, 0.5, 0.5) * uni_t;
+    color.b = 0.5 * uni_z;
+  }
+
+
+  if (distance(f.xy, vec2(
+      bd.x*(0.5+0.25*sin(t*2.7)),
+      bd.y*(0.5+0.25*sin(t*2.0)))
+    ) < 30.0 * sin(uni_i) * (2.0+sin(t*1.23))  ) {
+    color.rgb *= vec3(0.5, 0.5, 0.5) * uni_u;
+    color.b = 0.5 * uni_u;
+  }
+
+  color.b *= 1.0 * uni_o;
 
   return;
 
