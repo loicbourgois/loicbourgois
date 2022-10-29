@@ -1,0 +1,118 @@
+* {
+  font-family: monospace;
+  background: #0000;
+  color: #eee;
+  margin: 0;
+  border: none;
+  decoration: none;
+}
+
+
+body {
+  background: #181818;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+
+/*
+#tool_selection {
+  margin-top: 1em;
+}
+
+#tool_selection input {
+  margin-left: 1em;
+}
+
+#panel {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+
+#logs {
+  width: 100%;
+  flex-grow: 1;
+  border: none;
+}
+
+
+#dissalow_canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  pointer-events: none;
+  display: none;
+}
+
+#canvas {
+  z-index: 2;
+}
+
+#trace_canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.flex {
+  display: flex;
+}
+.rule {
+  display: flex;
+  align-items: center;
+}
+
+.expand {
+  flex-grow: 1;
+  width: 0;
+}
+
+.conditions {
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  padding: 0.75em;
+  background: #444;
+  border: solid 1px black;
+  align-self: stretch;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #666;
+}
+
+#rules button:disabled {
+  background: #222;
+  color: #888;
+}
+
+select {
+  background: #444;
+  border: solid 1px black;
+  padding: 0.5em;
+}
+
+.rule-count {
+  padding: 0.5em;
+  width: 2em;
+  text-align: center;
+}
+
+#panel_2 {
+  display: none;
+}
+
+#rules {
+  height: 0;
+  flex-grow: 1;
+  overflow: scroll;
+} */
