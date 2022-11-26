@@ -1,0 +1,42 @@
+Vector = std.Vector
+vector = std.vector
+f32 = std.f32
+usize = std.usize
+print = std.print
+
+
+data = matrice (
+    columns = 12
+    rows = 10
+    generator = random (
+        min = 0.0
+        max = 100.0
+    )
+)
+
+
+random = (
+    min: f32
+    max: f32
+) -> f32 {
+    ( max - min ) * std.random() + min
+}
+
+
+Matrice = Vector<Vector<f32>>
+matrice = (
+    columns: usize
+    rows: usize
+    generator: function
+) -> Matrice {
+    vector (
+        size = rows
+        generator = vector (
+            size = columns
+            generator = generator
+        )
+    )
+}
+
+
+print(data)

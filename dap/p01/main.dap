@@ -1,0 +1,5 @@
+# A comment
+std.println( 1 )
+std.println( "Hello" )
+std.println( "Hello" , "World" )
+std.log( "Hello" , "World" )
