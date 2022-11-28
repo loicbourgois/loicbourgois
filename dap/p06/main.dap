@@ -1,0 +1,14 @@
+distance (
+    start: f32
+    end: f32
+) f32 {
+    return x.end - x.start
+}
+main () {
+    std.println(
+        distance (
+            start = 1.0
+            end = 3.6
+        )
+    )
+}

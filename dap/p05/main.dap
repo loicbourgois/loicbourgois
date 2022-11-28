@@ -1,0 +1,30 @@
+mul (
+    a: f32
+    b: f32
+) f32 {
+    return a * b
+}
+dist (
+    a: f32
+    b: f32
+) f32 {
+    return b - a
+}
+random_ranged (
+    min: f32
+    max: f32
+) f32 {
+    return mul(
+        std.random()
+        dist (
+            min
+            max
+        )
+    )
+}
+std.println(
+    random_ranged(
+        1.0
+        2.0
+    )
+)
