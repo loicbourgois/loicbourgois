@@ -1,0 +1,31 @@
+new_vec (
+    size: usize
+) Vec<f32> {
+    vec![0.0;size]
+}
+new_matrice (
+    width: usize
+    height: usize
+) Matrice {
+    Matrice {
+        columns: width,
+        row: height,
+        data: vec![ 0.0 ; width*height]
+    }
+}
+main () {
+    std.println(
+        new_matrice(
+            width = 2
+            height = 3
+        )
+    )
+}
+struct Matrice {
+    columns: usize,
+    row: usize,
+    data: Vec<f32>
+}
+# [RAW] {
+# 
+# }

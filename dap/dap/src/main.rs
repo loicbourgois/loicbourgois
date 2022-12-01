@@ -129,7 +129,11 @@ impl std::str::FromStr for Node {
         if close_parenthese.is_some() {
             args_str = &str_[open_parenthese.unwrap() + 1..close_parenthese.unwrap()];
         }
-        if open_bracket.is_some() && close_bracket.is_some() {
+        if open_bracket.is_some()
+            && close_bracket.is_some()
+            && open_parenthese.is_some()
+            && close_parenthese.is_some()
+        {
             let body_str = &str_[open_bracket.unwrap() + 1..close_bracket.unwrap()];
             let mut nodes = Vec::new();
             let mut start = 0;
@@ -179,18 +183,12 @@ impl std::str::FromStr for Node {
                 return_type,
             }));
         }
-
+        if open_bracket.is_some() && close_bracket.is_some() {
+            return Ok(Node::Line(Line {
+                line: str_.to_string(),
+            }));
+        }
         println!("#### {}", args_str.replace('\n', "").trim());
-
-        // let args: CallArguments = args_str
-        //     .split(',')
-        //     .map(Node::from_str)
-        //     .filter(std::result::Result::is_ok)
-        //     .map(std::result::Result::unwrap)
-        //     .collect();
-
-        // let args = Node::from_str(args_str).unwrap();
-
         let mut args = Vec::new();
         {
             let mut start = 0;
@@ -239,7 +237,6 @@ impl std::str::FromStr for Node {
                 }
             }
         }
-
         let name = match prename {
             "std.println" => {
                 return Ok(Node::StdCallPrintln(StdCallPrintln {
@@ -376,18 +373,13 @@ impl Node {
                     .collect::<Vec<String>>()
                     .join(";")
                     + ";";
-
                 if !x.nodes.is_empty() {
                     body = "return ".to_owned() + &body;
                 }
-
-                // println!("{:?}", x.arguments);
-
                 for x in &x.arguments {
                     let aa = format!("x.{}", x.name);
                     body = body.replace(&x.name, &aa);
                 }
-
                 format!(
                     "{} fn {}({}) {} {{ {} }}",
                     args_struct, x.name, args, return_type, body,
@@ -398,7 +390,7 @@ impl Node {
                     "println!(\"{}\", {})",
                     x.arguments
                         .iter()
-                        .map(|_| "{}".to_string())
+                        .map(|_| "{:?}".to_string())
                         .collect::<Vec<String>>()
                         .join(" "),
                     x.arguments
@@ -484,6 +476,7 @@ fn transpile(program_str_: &str) -> String {
                 if depth == 0 {
                     match Node::from_str(&program_str[start..pos]).unwrap() {
                         Node::Function(x) => program.program().nodes.push(Node::Function(x)),
+                        Node::Line(x) => program.program().nodes.push(Node::Line(x)),
                         x => todo!("{:?}", x),
                     }
                     start = pos;
