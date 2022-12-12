@@ -1,0 +1,14 @@
+* {
+  font-family: monospace;
+  background: #111;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+#canvas {
+  image-rendering: pixelated;
+  background: #111;
+  width: 100vh;
+  height: 100vh;
+}
