@@ -18,10 +18,10 @@ resize_square(canvas, 1)
 const dim = canvas.width
 
 
-const draw_circle = (x, y, c) => {
-  let x_ = Math.round(x*dim);
-  let y_ = Math.round(y*dim);
-  const aa = 8
+const aa = 5
+const draw_circle = (c) => {
+  let x_ = aa;
+  let y_ = aa;
   const aaaa = aa*aa
   for ( let a = x_ - aa ; a <= x_ + aa ; a ++) {
     for ( let b = y_ - aa ; b <= y_ + aa ; b ++) {
@@ -30,12 +30,15 @@ const draw_circle = (x, y, c) => {
       if (dx*dx+dy*dy < aaaa) {
         draw_pixel_2(a,b,c)
       }
+      //  else {
+      //   draw_pixel_2(a,b,[0,0,0,0])
+      // }
     }
   }
 }
 
 const draw_pixel_2 = (roundedX, roundedY, c) => {
-  let index = 4 * (canvas.width * roundedY + roundedX);
+  let index = 4 * parseInt(aa*2 * roundedY + roundedX );
   image_data[index + 0] = c[0];
   image_data[index + 1] = c[1];
   image_data[index + 2] = c[2];
@@ -75,7 +78,7 @@ const cell_a = {
   dy: 0.0,
 }
 
-const WIDTH = 64
+const WIDTH = 64 
 const HEIGHT = WIDTH
 const D = 1/WIDTH
 
@@ -92,7 +95,7 @@ const world = {
     data: []
   },
   ngids: [],
-  max_particles: 10000,
+  max_particles: WIDTH*WIDTH/2,
   free_particles: new Set(),
 }
 for (let x = 0; x < world.width; x++) {
@@ -126,10 +129,8 @@ for (let y = 0; y < world.grid.height; y++) {
     } 
     world.ngids.push(ngids)
     world.ngids[gid] = ngids
-    // console.log(world.ngids[gid])
   }
 }
-// console.log(world.ngids)
 
 
 for (let i = 0; i < world.max_particles; i++) {
@@ -268,72 +269,21 @@ const actions = {
   },
 }
 
+let image = context.createImageData(aa*2, aa*2);
+image_data = image.data;
+let color = "#dd8"
+const c = to_rgb(color)
+draw_circle( c )
 
 
 const draw = () => {
+  const start = performance.now()
   clear(context)
-  // for (const particle of world.particles) {
-  //   if (particle.live) {
-  //     let color = "#dd8"
-  //     if (particle.collisions) {
-  //       color = "#d88"
-  //     }
-  //     fill_circle({
-  //       context: context,
-  //       // p: {
-  //       //   x:(particle.p.x + particle.pp.x + particle.ppp.x + particle.pppp.x) * 0.25,
-  //       //   y:(particle.p.y + particle.pp.y + particle.ppp.y + particle.pppp.y) * 0.25,
-  //       // },
-  //       p:particle.p,
-  //       diameter: D,
-  //       color: color
-  //     })
-  //     // fill_text(
-  //     //   context,
-  //     //   // p: {
-  //     //   //   x:(particle.p.x + particle.pp.x + particle.ppp.x + particle.pppp.x) * 0.25,
-  //     //   //   y:(particle.p.y + particle.pp.y + particle.ppp.y + particle.pppp.y) * 0.25,
-  //     //   // },
-  //     //   {
-  //     //     x:(particle.p.x),
-  //     //     y:(particle.p.y),
-  //     //   }, `${particle.n } `)
-  //   }
-  // }
-  // for (let x = 0; x < world.grid.width; x++) {
-  //   for (let y = 0; y < world.grid.height; y++) {
-  //     const gid = x + y * world.grid.width
-  //     const cell = world.grid.data[gid]
-  //     // if (cell.size) {
-  //       // fill_text(context, {
-  //       //   x:(x+0.5)/world.grid.width,
-  //       //   y:(y+0.5)/world.grid.height
-  //       // }, `${x + y * world.grid.width } . ${cell.size} `)
-  //     // }
-  //   }
-  // }
-  let image = context.createImageData(canvas.width, canvas.height);
-  image_data = image.data;
-  
-  
-  
   for (const p1 of world.particles) {
     if (p1.live) {
-      let color = "#dd8"
-      if (p1.collisions) {
-        color = "#d88"
-      }
-      const c = to_rgb(color)
-      draw_circle(p1.p.x, 1.0-p1.p.y, c)
-      // fill_circle({
-      //   context: context,
-      //   p: p1.p,
-      //   diameter: D,
-      //   color: color
-      // })
+      context.putImageData(image, (p1.p.x-D/2)*canvas.width, (1.0-p1.p.y+D/2)*canvas.width);
     }
   }
-  context.putImageData(image, 0, 0);
   window.requestAnimationFrame(draw)
 }
 
