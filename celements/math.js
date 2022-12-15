@@ -68,8 +68,8 @@ const dot = (a,b) => {
 }
 
 
-const are_colliding = (p1, p2) => {
-  let diams = (p1.d + p2.d) * 0.5
+const are_colliding = (p1, p2, ratio=1.0) => {
+  let diams = (p1.d + p2.d) * 0.5 * ratio
   return (distance_sqrd(p1.p, p2.p) < diams*diams)
 }
 

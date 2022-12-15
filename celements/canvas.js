@@ -16,6 +16,17 @@ const min_dim = (context) => {
 }
 
 
+const draw_pixel = (x, y, c) => {
+  let roundedX = Math.round(x*dim);
+  let roundedY = Math.round(y*dim);
+  let index = 4 * (canvas.width * roundedY + roundedX);
+  image_data[index + 0] = c[0];
+  image_data[index + 1] = c[1];
+  image_data[index + 2] = c[2];
+  image_data[index + 3] = c[3];
+}
+
+
 const fill_text = (context, p, text, size=14, color="#fff") => {
   text = ""+`${text}`
   const cc = context_coordinates(context, p)
@@ -31,8 +42,10 @@ const fill_text = (context, p, text, size=14, color="#fff") => {
 const fill_circle = ({context, p, diameter, color}) => {
   const cc = context_coordinates(context, p)
   const radius = diameter * min_dim(context) * 0.5;
+  const r = context.canvas.width / context.canvas.height
+  // console.log(r)
   context.beginPath();
-  context.arc(cc.x, cc.y, radius, 0, 2 * Math.PI, false);
+  context.arc(cc.x+(context.canvas.width-context.canvas.height)*0.5, cc.y, radius, 0, 2 * Math.PI, false);
   context.fillStyle = color;
   context.fill();
 }

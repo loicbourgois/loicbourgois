@@ -3,5 +3,9 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - $full_path:/usr/share/nginx/html:ro
+      - $full_path/default-ssl.conf:/etc/nginx/conf.d/default-ssl.conf:rw
+      - $HOME/github.com/loicbourgois/loicbourgois_local/localhost.pem:/etc/nginx/certs/nginx-selfsigned.crt:ro
+      - $HOME/github.com/loicbourgois/loicbourgois_local/localhost-key.pem:/etc/nginx/certs/nginx-selfsigned.key:ro
