@@ -53,6 +53,10 @@ const colors = [
         [K_DEFAULT]: '#ff08',
         [K_WATER]: '#0ff8',
     }, .75],
+    // [{
+    //     [K_DEFAULT]: '#fff8',
+    //     [K_WATER]: '#fff8',
+    // }, .25],
 ]
 
 
@@ -67,7 +71,7 @@ const draw_world = ({
         context: context, 
         p: {x:0.5,y:0.5} , 
         diameter: 5, 
-        color: '#1014'
+        color: '#1013'
     })
     for (const color of colors) {
         for (let i = 0 ; i < world.buffer.byteLength ; i += world.particle.size) {
