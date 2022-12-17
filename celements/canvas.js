@@ -44,8 +44,15 @@ const fill_circle = ({context, p, diameter, color}) => {
   const radius = diameter * min_dim(context) * 0.5;
   const r = context.canvas.width / context.canvas.height
   // console.log(r)
+  let x = cc.x
+  let y = cc.y 
+  if (r > 1) {
+    x = cc.x+(context.canvas.width-context.canvas.height)*0.5
+  } else {
+    y = cc.y+(context.canvas.width-context.canvas.height)*0.5
+  }
   context.beginPath();
-  context.arc(cc.x+(context.canvas.width-context.canvas.height)*0.5, cc.y, radius, 0, 2 * Math.PI, false);
+  context.arc(x, y, radius, 0, 2 * Math.PI, false);
   context.fillStyle = color;
   context.fill();
 }

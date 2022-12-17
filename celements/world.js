@@ -25,48 +25,71 @@ const I_VX =    13*4
 const I_VY =    14*4
 const I_LIVE =  15*4
 
-const cr_ratio = 0.13215
-const interd_ratio = 0.04
-
 
 const K_DEFAULT = 1;
+const K_WATER = 2;
+
+
+const key_downs = {}
+const key_press = {}
+const down_key = (k) => {
+    if (!key_downs[k]) {
+        if (!key_press[k]) {
+            key_press[k] = 0
+        }
+        key_press[k] += 1
+    }
+    key_downs[k] = true
+}
+const up_key = (k) => {
+    key_downs[k] = false
+}
+const colors = [
+    [{
+        [K_DEFAULT]: '#f008',
+        [K_WATER]: '#08f4',
+    }, 1.5],
+    [{
+        [K_DEFAULT]: '#ff08',
+        [K_WATER]: '#0ff8',
+    }, .75],
+]
 
 
 const draw_world = ({
     world,
     context,
 }) => {
+    const n_last_draw = world.last_draw
+    world.last_draw = performance.now()
+    world.fps = 1000 / (world.last_draw - n_last_draw)
     fill_circle({
         context: context, 
         p: {x:0.5,y:0.5} , 
-        diameter: world.d*2000, 
+        diameter: 5, 
         color: '#1014'
     })
-    for (let i = 0 ; i < world.buffer.byteLength ; i += world.particle.size) {
-        const live = world.view.getUint8( i + I_LIVE )
-        if (live) {
-            const x = world.view.getFloat32( i + I_X )
-            const y = world.view.getFloat32( i + I_Y )
-            fill_circle({
-                context: context, 
-                p: {x:x,y:y} , 
-                diameter: world.d*1.5, 
-                color: '#d00'
-            })
-            fill_circle({
-                context: context, 
-                p: {x:x,y:y} , 
-                diameter: world.d*0.5, 
-                color: '#ffff'
-            })
-            fill_circle({
-                context: context, 
-                p: {x:x,y:y} , 
-                diameter: world.d*2, 
-                color: '#ff4d'
-            })
+    for (const color of colors) {
+        for (let i = 0 ; i < world.buffer.byteLength ; i += world.particle.size) {
+            const live = world.view.getUint8( i + I_LIVE )
+            if (live) {
+                const x = world.view.getFloat32( i + I_X )
+                const y = world.view.getFloat32( i + I_Y )
+                const k = world.view.getUint32( i + I_K )
+                fill_circle({
+                    context: context, 
+                    p: {x:x,y:y} , 
+                    diameter: world.d * color[1], 
+                    color: color[0][k]
+                })
+            }
         }
     }
+    document.querySelector("#fps").innerHTML = `FPS: ${parseInt(world.fps)}`
+    document.querySelector("#draw").innerHTML = `graphics: ${parseInt(world.draw_duration)}ms`
+    document.querySelector("#particles_count").innerHTML = `Particles: ${parseInt(world.particle.count)}`
+    document.querySelector("#compute").innerHTML = `physics: ${parseInt(world.compute_duration)}ms`
+    world.draw_duration = performance.now() - world.last_draw
 }
 
 
@@ -77,7 +100,6 @@ const gid_ = (x,y,w) => {
     y = Math.min(Math.max(0,y),w-1)
     return x + y * w
 }
-
 
 
 const update_grid = ({
@@ -142,6 +164,7 @@ const add_particle = ({
     world.view.setUint8(bid + I_LIVE, 1)
     world.view.setFloat32(bid + I_D, world.d)
     world.view.setFloat32(bid + I_M, 1.0)
+    return bid
 }
 
 
@@ -155,10 +178,21 @@ const are_colliding = (x,y,d,x2,y2,d2) => {
 let steps = 0
 const start = performance.now()
 
+
 const tick = ({
     world,
 }) => {
     const start_ = performance.now()
+    for (let index = 0; index < world.ticks; index++) {
+        tick_inner({world:world})
+    }
+    world.compute_duration = performance.now() - start_
+}
+
+
+const tick_inner = ({
+    world,
+}) => {
     update_grid({
         world: world,
     })
@@ -167,29 +201,90 @@ const tick = ({
         if (live) {
             const x = world.view.getFloat32( i + I_X )
             const y = world.view.getFloat32( i + I_Y )
-
-            const n = normalize({
+            let n = normalize({
                 x: 0.5-x,
                 y: 0.5-y,
             })
-
-            // let dx = 0.0001
-            // let dy = 0.0001
-            // if (x > 0.5) {
-            //     dx = -dx
-            // }
-            // if (y > 0.5) {
-            //     dy = -dy
-            // }
-
-            world.view.setFloat32( i + I_C_X, n.x * 0.0002)
-            world.view.setFloat32( i + I_C_Y, n.y * 0.0002)
-            // world.view.setFloat32( i + I_C_Y, 0.0 )
+            // n.x = 0.5 - n.x*0.25
+            // n.y = 0.5 - n.y*0.25
+            // n = normalize({
+            //     x: n.x-x,
+            //     y: n.y-y,
+            // })
+            if (!isNaN(n.x*n.y)) {
+                world.view.setFloat32( i + I_C_X, n.x * world.gravity)
+                world.view.setFloat32( i + I_C_Y, n.y * world.gravity)
+            } else {
+                world.view.setFloat32( i + I_C_X, (Math.random()-0.5) * world.gravity)
+                world.view.setFloat32( i + I_C_Y, (Math.random()-0.5) * world.gravity)
+            }
             const px = world.view.getFloat32( i + I_PX )
             const py = world.view.getFloat32( i + I_PY )
             world.view.setFloat32( i + I_VX, x-px )
             world.view.setFloat32( i + I_VY, y-py )
         }
+    }
+    if (key_press[world.players[0].up]) {
+        key_press[world.players[0].up] -= 1;
+        const bid = world.players[0].bid
+        const cx = world.view.getFloat32( bid + I_C_X)
+        const cy = world.view.getFloat32( bid + I_C_Y)
+        const x = world.view.getFloat32( bid + I_X )
+        const y = world.view.getFloat32( bid + I_Y )
+        let n = normalize({
+            x: 0.5-x,
+            y: 0.5-y,
+        })
+        world.view.setFloat32( bid + I_C_X, cx - n.x * world.acceleration.y)
+        world.view.setFloat32( bid + I_C_Y, cy - n.y * world.acceleration.y)
+    }
+    if (key_press[world.players[0].down]) {
+        key_press[world.players[0].down] -= 1;
+        const bid = world.players[0].bid
+        const cx = world.view.getFloat32( bid + I_C_X)
+        const cy = world.view.getFloat32( bid + I_C_Y)
+        const x = world.view.getFloat32( bid + I_X )
+        const y = world.view.getFloat32( bid + I_Y )
+        let n = normalize({
+            x: 0.5-x,
+            y: 0.5-y,
+        })
+        world.view.setFloat32( bid + I_C_X, cx + n.x * world.acceleration.y)
+        world.view.setFloat32( bid + I_C_Y, cy + n.y * world.acceleration.y)
+    }
+    if (key_press[world.players[0].right]) {
+        key_press[world.players[0].right] -= 1;
+        const bid = world.players[0].bid
+        const cx = world.view.getFloat32( bid + I_C_X)
+        const cy = world.view.getFloat32( bid + I_C_Y)
+        const x = world.view.getFloat32( bid + I_X )
+        const y = world.view.getFloat32( bid + I_Y )
+        let n = normalize({
+            x: 0.5-x,
+            y: 0.5-y,
+        })
+        const aa = n.x
+        n.x = -n.y
+        n.y = aa
+        world.view.setFloat32( bid + I_C_X, cx + n.x * world.acceleration.x)
+        world.view.setFloat32( bid + I_C_Y, cy + n.y * world.acceleration.x)
+    }
+    if (key_press[world.players[0].left]) {
+        key_press[world.players[0].left] -= 1;
+        const bid = world.players[0].bid
+        const cx = world.view.getFloat32( bid + I_C_X)
+        const cy = world.view.getFloat32( bid + I_C_Y)
+        const x = world.view.getFloat32( bid + I_X )
+        const y = world.view.getFloat32( bid + I_Y )
+        let n = normalize({
+            x: 0.5-x,
+            y: 0.5-y,
+        })
+        const aa = n.x
+        n.x = -n.y
+        n.y = aa
+        world.view.setFloat32( bid + I_C_X, cx - n.x * world.acceleration.x)
+        world.view.setFloat32( bid + I_C_Y, cy - n.y * world.acceleration.x)
     }
     for (let i = 0 ; i < world.buffer.byteLength ; i += world.particle.size) {
         const live = world.view.getUint8( i + I_LIVE )
@@ -202,7 +297,6 @@ const tick = ({
             const d = world.view.getFloat32( i + I_D )
             const pid1 = world.view.getUint32( i + I_PID )
             const gid = gid_(x,y,world.grid.width)
-            // const gid = parseInt(x * world.grid.width) + parseInt(y * world.grid.height) * world.grid.width
             for (const ngid of world.ngids[gid] ) {
                 for (const pid2 of world.grid.cells[ngid]) {
                     if (pid1 < pid2) {
@@ -244,49 +338,41 @@ const tick = ({
                                 if (!isNaN(cr.x * cr.y)) {
                                     world.view.setFloat32(
                                         i + I_C_X, 
-                                        world.view.getFloat32(i + I_C_X) - cr.x * cr_ratio
+                                        world.view.getFloat32(i + I_C_X) - cr.x * world.cr_ratio
                                     )
                                     world.view.setFloat32(
                                         i + I_C_Y, 
-                                        world.view.getFloat32(i + I_C_Y) - cr.y * cr_ratio
+                                        world.view.getFloat32(i + I_C_Y) - cr.y * world.cr_ratio
                                     )
 
                                     world.view.setFloat32(
                                         j + I_C_X, 
-                                        world.view.getFloat32(j + I_C_X) + cr.x * cr_ratio
+                                        world.view.getFloat32(j + I_C_X) + cr.x * world.cr_ratio
                                     )
                                     world.view.setFloat32(
                                         j + I_C_Y, 
-                                        world.view.getFloat32(j + I_C_Y) + cr.y * cr_ratio
+                                        world.view.getFloat32(j + I_C_Y) + cr.y * world.cr_ratio
                                     )
                                 }
                                 const interd = intersection_delta(p1, p2)
                                 if (!isNaN(interd.x * interd.y)) {
-                                    // console.log("ee")
                                     world.view.setFloat32(
                                         i + I_C_X, 
-                                        world.view.getFloat32(i + I_C_X) + interd.x * interd_ratio
+                                        world.view.getFloat32(i + I_C_X) + interd.x * world.interd_ratio
                                     )
                                     world.view.setFloat32(
                                         i + I_C_Y, 
-                                        world.view.getFloat32(i + I_C_Y) + interd.y * interd_ratio
+                                        world.view.getFloat32(i + I_C_Y) + interd.y * world.interd_ratio
                                     )
 
                                     world.view.setFloat32(
                                         j + I_C_X, 
-                                        world.view.getFloat32(j + I_C_X) - interd.x * interd_ratio
+                                        world.view.getFloat32(j + I_C_X) - interd.x * world.interd_ratio
                                     )
                                     world.view.setFloat32(
                                         j + I_C_Y, 
-                                        world.view.getFloat32(j + I_C_Y) - interd.y * interd_ratio
+                                        world.view.getFloat32(j + I_C_Y) - interd.y * world.interd_ratio
                                     )
-
-                                //     p1.compute.intersects += 1.0
-                                //     p2.compute.intersects += 1.0
-                                //     p1.compute.p.x += interd.x * interd_ratio
-                                //     p1.compute.p.y += interd.y * interd_ratio
-                                //     p2.compute.p.x -= interd.x * interd_ratio
-                                //     p2.compute.p.y -= interd.y * interd_ratio
                                 }
                             }
                         }
@@ -302,51 +388,33 @@ const tick = ({
             const px = world.view.getFloat32( i + I_X )
             let dx = px - ppx + world.view.getFloat32( i + I_C_X )
             const x = dx + px
-            // const nx = Math.min(Math.max(
-            //     x,
-            //     world.d * 0.5
-            // ), 1.0 - world.d * 0.5)
             const nx = x
-            if (x != nx) {
-                dx = -dx*(0.5+cr_ratio)
-            }
-            const npx = nx - dx;
-
+            const npx = nx - dx*world.drag;
             const ppy = world.view.getFloat32( i + I_PY )
             const py = world.view.getFloat32( i + I_Y )
             let dy = py - ppy + world.view.getFloat32( i + I_C_Y )
             const y = dy + py
-            // const ny = Math.min(Math.max(
-            //     y,
-            //     world.d * 0.5
-            // ), 1.0 - world.d * 0.5)
             const ny = y
-            if (y != ny) {
-                dy = -dy*(0.5+cr_ratio)
-            }
-            const npy = ny - dy;
-
+            const npy = ny - dy*world.drag;
             world.view.setFloat32( i + I_X, nx )
             world.view.setFloat32( i + I_Y, ny )
             world.view.setFloat32( i + I_PX, npx)
             world.view.setFloat32( i + I_PY, npy )
         }
     }
-    // console.log( )
-    // const ups = 1000/()
-    const compute_duration = performance.now() - start_
-    steps += 1
-    let avg_ups = 1000 / (performance.now() - start) * steps
-    document.querySelector("#avg_ups").innerHTML = `AVG UPS: ${parseInt(avg_ups)}`
-    document.querySelector("#compute").innerHTML = `Compute duration: ${parseInt(compute_duration)}ms`
-    document.querySelector("#ups").innerHTML = `UPS: ${parseInt(ups)}`
-    document.querySelector("#particles_count").innerHTML = `Parts: ${parseInt(world.particle.count)}`
 }
 
 
 const new_world = ({
     width,
     height,
+    cr_ratio,
+    interd_ratio,
+    gravity,
+    acceleration,
+    drag,
+    ticks,
+    players,
 }) => {
     const world = {
         buffer: new ArrayBuffer(0),
@@ -356,15 +424,31 @@ const new_world = ({
                 + Uint8Array.BYTES_PER_ELEMENT * 1,
             count: 0
         },
+        cr_ratio: cr_ratio,
+        interd_ratio: interd_ratio,
+        gravity: gravity,
+        acceleration:acceleration,
         d: 1/width,
         width: width,
+        ticks:ticks,
         height: height,
+        drag: drag,
+        fps: 0,
+        last_draw: performance.now(),
         grid: {
             cells: [],
             width: width,
             height: height,
             cs: 1/width, // center spacing
         },
+        players: [{
+            up: 'z',
+            down: 's',
+            right: 'd',
+            left: 'q',
+        }, {
+            up: 'o',
+        }],
         ngids: [],
         free_pids: new Set(),
     }
@@ -373,7 +457,6 @@ const new_world = ({
             world.grid.cells.push(new Set())
         }
     }
-
     for (let y = 0; y < world.grid.height; y++) {
         for (let x = 0; x < world.grid.width; x++) {
           const gid = x + y * world.grid.width
@@ -392,59 +475,35 @@ const new_world = ({
             world.ngids[gid] = ngids
         }
     }
-
-
-    for (let x = 0.1; x < 0.9; x+=world.d*1.25) {
-        for (let y = 0.1 ; y < 0.9; y+=world.d*1.25) {
-          add_particle({
-            world: world,
-            x: x + Math.random() * world.d*0.1,
-            y: y,
-            k: K_DEFAULT,
-            dx: 0,
-            dy: 0,
-          })
+    for (let x = 0.25; x < 0.75; x+=world.d) {
+        for (let y = 0.25 ; y < 0.75; y+=world.d) {
+            add_particle({
+                world: world,
+                x: x,
+                y: y,
+                k: K_DEFAULT,
+                dx: 0,
+                dy: 0,
+            })
         }
-      }
-
-
-    // add_particle({
-    //     world: world,
-    //     x: 0.25,
-    //     y: 0.25,
-    //     dx: 0.0,
-    //     dy: 0.0,
-    //     k: K_DEFAULT,
-    // })
-    // add_particle({
-    //     world: world,
-    //     x: 0.5,
-    //     y: 0.25,
-    //     dx: -0.001,
-    //     dy: 0.0,
-    //     k: K_DEFAULT,
-    // })
-
-    // add_particle({
-    //     world: world,
-    //     x: 0.75,
-    //     y: 0.25,
-    //     dx: 0.0,
-    //     dy: 0.0,
-    //     k: K_DEFAULT,
-    // })
-    // add_particle({
-    //     world: world,
-    //     x: 0.75,
-    //     y: 0.15,
-    //     dx: 0.0,
-    //     dy: 0.01,
-    //     k: K_DEFAULT,
-    // })
-
-    update_grid({
-        world: world,
-    })
+    }
+    if (players > 0) {
+        world.players[0].bid = add_particle({
+            world: world,
+            x: 0.5,
+            y: 0.9,
+            dx: 0.0,
+            dy: 0.0,
+            k: K_WATER,
+        })
+    }
+    document.addEventListener("keydown", (e) => {
+        console.log("ee")
+        down_key(e.key)
+    });
+    document.addEventListener("keyup", (e) => {
+        up_key(e.key)
+    });
     return world
 }
 
