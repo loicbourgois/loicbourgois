@@ -1,0 +1,62 @@
+* {
+  font-family: monospace;
+  background: #0000;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #ddd;
+}
+
+/* #canvas {
+  image-rendering: pixelated;
+  background: #ff10;
+  width: 100vh;
+  height: 100vh;
+  width: 20rem;
+  height: 20rem;
+} */
+
+#three_render_wrapper {
+  background: #122;
+  width: 100vh;
+  height: 100vh;
+}
+
+body {
+  display: flex;
+}
+
+#canvas {
+  /* border: solid #444 1px; */
+  image-rendering: pixelated;
+  margin-top: 10vh;
+  width: 80vh;
+  height: 80vh;
+}
+
+
+/* Element | http://localhost/celements/ */
+
+#left {
+  flex-grow: 1;
+  /* width: 10rem; */
+  position: absolute;
+  background: #0000;
+}
+
+/* Element | http://localhost/celements/ */
+
+#right {
+  flex-grow: 1;
+  width: 0;
+}
+
+
+/* Element | http://localhost/celements/ */
+
+#canvas {
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  /* cursor: none; */
+}

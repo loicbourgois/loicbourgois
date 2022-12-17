@@ -419,7 +419,6 @@ const new_world = ({
     drag,
     ticks,
     players,
-    max_particles,
 }) => {
     const world = {
         buffer: new ArrayBuffer(0),
@@ -480,19 +479,16 @@ const new_world = ({
             world.ngids[gid] = ngids
         }
     }
-    
+    for (let x = 0.25; x < 0.75; x+=world.d) {
         for (let y = 0.25 ; y < 0.75; y+=world.d) {
-            for (let x = 0.25; x < 0.75; x+=world.d) {
-            if (world.particle.count < max_particles) {
-                add_particle({
-                    world: world,
-                    x: x,
-                    y: y,
-                    k: K_DEFAULT,
-                    dx: 0,
-                    dy: 0,
-                })
-            }
+            add_particle({
+                world: world,
+                x: x,
+                y: y,
+                k: K_DEFAULT,
+                dx: 0,
+                dy: 0,
+            })
         }
     }
     if (players > 0) {
@@ -520,8 +516,4 @@ export {
     new_world,
     draw_world,
     tick,
-    I_X,
-    I_Y,
-    I_PX,
-    I_PY,
 }

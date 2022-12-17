@@ -2,5 +2,5 @@
 
 ```sh
 $HOME/github.com/loicbourgois/loicbourgois/_go.sh
-open http://0.0.0.0
+/Applications/Chromium.app/Contents/MacOS/Chromium --autoplay-policy=no-user-gesture-required https://localhost/celements/
 ```
