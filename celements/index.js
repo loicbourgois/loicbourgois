@@ -20,7 +20,7 @@ const world = new_world([{
     y: 0.002,
     x: 0.00125,
   },
-  drag: 0.97,
+  drag: .97,
   ticks: 1,
   players: 0,
   max_particles: 1024,
@@ -37,6 +37,7 @@ const world = new_world([{
   drag: 0.99,
   ticks: 2,
   players: 1,
+  max_particles: 1024,
 }][0])
 const canvas = document.querySelector("#canvas")
 const context = canvas.getContext('2d')
@@ -46,7 +47,7 @@ resize(canvas)
 const audio_nodes = []
 const audio_context = new (window.AudioContext || window.webkitAudioContext)();  
 const init = () => {
-  for (let i = 0; i < world.particle.count; i++) {
+  for (let i = 0; i < world.particle.count ; i++) {
     audio_nodes.push({
       oscillator: audio_context.createOscillator(),
       gain: audio_context.createGain(),
@@ -85,13 +86,14 @@ const run = () => {
 
     const v2 = Math.sqrt(dx2*dx2+dy2*dy2)  + 0.00001
 
-    const v = Math.sqrt(dx*dx+dy*dy) * 2  
+    const v = Math.sqrt(dx*dx+dy*dy) * 2 
     const gain = Math.min(0.125*0.25, v  )
     // audio_nodes[pid].gain.gain.value = 
 
     audio_nodes[pid].gain.gain.linearRampToValueAtTime(gain, audio_context.currentTime+0.001)
 
-    audio_nodes[pid].oscillator.frequency.setValueAtTime(64*0.25+v*512, audio_context.currentTime+0.001)
+    // audio_nodes[pid].oscillator.frequency.setValueAtTime(64*0.25+v*512, audio_context.currentTime+0.001)
+    audio_nodes[pid].oscillator.detune.setValueAtTime(50000*gain, audio_context.currentTime+0.001)
 
   }
   // throw "z"

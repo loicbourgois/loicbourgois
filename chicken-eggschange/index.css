@@ -4,7 +4,7 @@
   color: #eee;
   margin: 0;
   border: none;
-  decoration: none;
+  text-decoration: none;
 }
 
 
@@ -13,6 +13,13 @@ body {
   display: flex;
   height: 100vh;
   overflow: hidden;
+}
+
+#canvas {
+  width: 100vw;
+  height: 100vh;
+  image-rendering: pixelated;
+  background: #1f527a;
 }
 
 
