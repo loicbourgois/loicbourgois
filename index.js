@@ -93,6 +93,5 @@ let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
 let rMax = Math.min(imageData.width, imageData.height) * CONF.R_MAX_START_RATIO;
 
-//run();
 setupwebgl(canvas);
 loop();
