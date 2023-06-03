@@ -1,6 +1,6 @@
 [loicbourgois.com](https://loicbourgois.com)
 
 ```sh
-$HOME/github.com/loicbourgois/loicbourgois/_go.sh
-open http://0.0.0.0
+$HOME/github.com/loicbourgois/loicbourgois/go.sh
+open http://localhost
 ```
