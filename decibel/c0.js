@@ -8,96 +8,77 @@ const c0 = {
         "top": 0,
         "right": 0
     },
-    "fg1": {
+    "cosc1": {
+        "kind": "custom_osc",
+        "top": 0,
+        "right": 5,
+        "destinations": [
+            "cosc1_fg",
+            "cosc1_og",
+            "g6.g",
+            "g6_2"
+        ],
+        "frequency": 0.5
+    },
+    "cosc1_fg": {
         "kind": "frequency_graph",
-        "bars": 100,
+        "bars": 2048,
+        "zoom": 8,
+        "top": 0,
+        "right": 6
+    },
+    "cosc1_og": {
+        "kind": "osc_graph",
         "top": 1,
-        "right": 1
+        "right": 6
     },
-    "fg2": {
-        "kind": "frequency_graph",
-        "bars": 100,
-        "top": 2,
-        "right": 1
+    "osc6": {
+        "kind": "osc",
+        "destinations": [
+            "g6"
+        ],
+        "frequency": 0,
+        "detune": 0,
+        "top": 1,
+        "right": 4
     },
-    "g1": {
+    "g6": {
         "kind": "gain",
         "gain": 0,
         "destinations": [
-            "s1"
+            "low6"
         ],
-        "top": 0,
-        "right": 1
-    },
-    "osc1": {
-        "kind": "osc",
-        "destinations": [
-            "low1",
-            "fg2"
-        ],
-        "frequency": 200,
-        "detune": 0,
-        "top": 1,
-        "right": 2
-    },
-    "low1": {
-        "kind": "lowpass",
-        "destinations": [
-            "g1",
-            "fg1"
-        ],
-        "frequency": 120,
-        "peak": 0,
-        "top": 0,
-        "right": 2
-    },
-    "g2": {
-        "kind": "gain",
-        "gain": 100,
-        "destinations": [
-            "osc1.f"
-        ],
-        "top": 0,
-        "right": 3
-    },
-    "osc2": {
-        "kind": "osc",
-        "destinations": [
-            "g2"
-        ],
-        "frequency": 100,
-        "detune": 0,
         "top": 0,
         "right": 4
     },
-    "osc3": {
-        "kind": "osc",
-        "destinations": [
-            "g2"
-        ],
-        "frequency": 1000,
-        "detune": 0,
-        "top": 1,
-        "right": 4
-    },
-    "g4": {
+    "g6_2": {
         "kind": "gain",
-        "gain": 1000,
+        "gain": 500,
         "destinations": [
-            "osc3.frequency"
+            "osc6.f"
         ],
         "top": 1,
         "right": 5
     },
-    "osc4": {
-        "kind": "osc",
+    "low6": {
+        "kind": "lowpass",
         "destinations": [
-            "g4"
+            "low62"
         ],
-        "frequency": 4,
-        "detune": 0,
-        "top": 1,
-        "right": 6
+        "frequency": 42,
+        "peak": 16,
+        "top": 0,
+        "right": 3
+    },
+    "low62": {
+        "kind": "lowpass",
+        "destinations": [
+            "s1"
+        ],
+        "frequency": 200,
+        "peak": 10,
+        "top": 0,
+        "right": 2
     }
 }
 

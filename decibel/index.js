@@ -1,6 +1,9 @@
 import {
   c0
 } from "./c0.js"
+import {
+  wave_1,
+} from "./wavetables.js"
 
 
 let started = false
@@ -51,6 +54,11 @@ const show_config = () => {
         case 'frequency_graph':
           fields += `<canvas id="${k}_canvas" class="frequency_graph_canvas"></canvas>`
           break
+        case 'osc_graph':
+          fields += `<canvas id="${k}_canvas" class="osc_graph_canvas"></canvas>`
+          break
+        case 'custom_osc':
+          break
         default:
           throw `Missing case in show_config: ${v.kind}`
       }
@@ -91,21 +99,33 @@ const json_id_to_html_id = (x) => {
   if (Array.isArray(x)) {
     return `${x[0]}_${x[1]}`
   }
-  const splitted = x.split(".")
+  let splitted = x.split(".")
   if (splitted.length == 2) {
-    switch (splitted[1]) {
-      case "f":
-        splitted[1] = "frequency"
-        break
-      case "d":
-        splitted[1] = "detune"
-        break
-      default:
-        break
-    }
+    splitted = translate_splitted(splitted)
     return `${splitted[0]}_${splitted[1]}`
   }
   return `${x}`
+}
+
+
+const translate_splitted = (splitted) => {
+  switch (splitted[1]) {
+    case "f":
+      splitted[1] = "frequency"
+      break
+    case "frequency":
+      splitted[1] = "frequency"
+      break
+    case "d":
+      splitted[1] = "detune"
+      break
+    case "g":
+      splitted[1] = "gain"
+      break
+    default:
+      throw `not handled: ${splitted[1]}`
+  }
+  return splitted
 }
 
 
@@ -148,6 +168,10 @@ const add_events = () => {
           break
         case 'frequency_graph':
           break
+        case 'osc_graph':
+          break
+        case 'custom_osc':
+          break
         default:
           throw `Missing case in add_events: ${v.kind}`
       }
@@ -157,11 +181,16 @@ const add_events = () => {
 
 
 const get_elem_center = (id) => {
-  var element = document.getElementById(id);
-  var elementRect = element.getBoundingClientRect();
-  var centerX = elementRect.left + elementRect.width / 2;
-  var centerY = elementRect.top + elementRect.height / 2;
-  return {x:centerX,y:centerY}
+  try {
+    var element = document.getElementById(id);
+    var elementRect = element.getBoundingClientRect();
+    var centerX = elementRect.left + elementRect.width / 2;
+    var centerY = elementRect.top + elementRect.height / 2;
+    return {x:centerX,y:centerY}
+  } catch (error) {
+    console.log(id)
+    throw error
+  }
 }
 
 
@@ -195,12 +224,33 @@ const start = () => {
           break
         case 'frequency_graph':
           v.node = audioCtx.createAnalyser()
-          v.node.fftSize = 256
+          v.node.fftSize = parseInt(v.bars)
           v.bufferLength = v.node.frequencyBinCount
           v.dataArray = new Uint8Array(v.bufferLength)
           v.canvas = document.getElementById(`${k}_canvas`)
           v.canvas.height = 100
           v.context = v.canvas.getContext('2d')
+          break
+        case 'osc_graph':
+          v.node = audioCtx.createAnalyser()
+          v.node.fftSize = 256//parseInt(v.bars)
+          v.bufferLength = v.node.frequencyBinCount
+          v.dataArray = new Uint8Array(v.bufferLength)
+          v.datapoints = []
+          v.canvas = document.getElementById(`${k}_canvas`)
+          v.context = v.canvas.getContext('2d')
+          break
+        case 'custom_osc':
+          const real = new Float32Array(wave_1.real)
+          const imag = new Float32Array(wave_1.imag)
+          v.node = audioCtx.createOscillator()
+          const wave = audioCtx.createPeriodicWave(
+            real, imag, 
+            //{ disableNormalization: true }
+          )
+          v.node.setPeriodicWave(wave)
+          v.node.frequency.setValueAtTime(v.frequency, audioCtx.currentTime);
+          v.node.start()
           break
         default:
           throw `Missing case in build audio network: ${v.kind}`
@@ -218,18 +268,9 @@ const start = () => {
           if (dest == 'AUDIO_CONTEXT') {
             v.node.connect(audioCtx.destination)
           } else {
-            const splitted = dest.split(".")
+            let splitted = dest.split(".")
             if (splitted.length == 2) {
-              switch (splitted[1]) {
-                case "f":
-                  splitted[1] = "frequency"
-                  break
-                case "d":
-                  splitted[1] = "detune"
-                  break
-                default:
-                  break
-              }
+              splitted = translate_splitted(splitted)
               v.node.connect(config[splitted[0]].node[splitted[1]])
             } else {
                 v.node.connect(config[dest].node)
@@ -249,7 +290,7 @@ const draw = () => {
     if (Object.hasOwnProperty.call(config, k)) {
       const v = config[k];
       switch (v.kind) {
-        case 'frequency_graph':
+        case 'frequency_graph': {
           if (!v.context) {
             continue
           }
@@ -258,16 +299,54 @@ const draw = () => {
           const W = v.canvas.width
           const H = v.canvas.height
           v.context.fillRect(0, 0, W, H)
-          const barWidth = (W / v.bufferLength) * 3.0;
+          const barWidth = (W / v.bufferLength) * v.zoom;
           let barHeight;
           let x = 0;
           for (let i = 0; i < v.bufferLength; i++) {
             barHeight = v.dataArray[i] / 2;
             v.context.fillStyle = `rgb(100, 50, 50)`;
             v.context.fillRect(x, H - barHeight * 0.8, barWidth, barHeight);
+            if (x > W) {
+              break
+            }
             x += barWidth-1;
           }
           break
+        }
+        case 'osc_graph': {
+          if (!v.context) {
+            continue
+          }
+          const WIDTH = v.canvas.width
+          const HEIGHT = v.canvas.height
+          v.node.getByteTimeDomainData(v.dataArray);
+          v.context.fillStyle = "#220";
+          v.context.fillRect(0, 0, WIDTH, HEIGHT);
+          v.context.lineWidth = 2;
+          v.context.strokeStyle = `rgb(100, 50, 50)`;
+          let x = 0;
+          v.context.beginPath();
+          // const aa = v.dataArray[0] / 128.0
+          // const y = (aa * HEIGHT) / 2;
+          v.datapoints.push(v.dataArray[0])
+          while (v.datapoints.length > 256) {
+            v.datapoints.shift()
+          }
+          const sliceWidth = (WIDTH * 1.0) / v.datapoints.length
+          // console.log( aa )
+          let y 
+          for (let i = 0; i < v.datapoints.length; i++) {
+            y = (v.datapoints[i] / 128.0 * HEIGHT) / 2
+            if (i === 0) {
+              v.context.moveTo(x, y);
+            } else {
+              v.context.lineTo(x, y);
+            }
+            x += sliceWidth;
+          }
+          v.context.lineTo(WIDTH, y);
+          v.context.stroke();
+        }
         default:
           continue
       }
@@ -284,6 +363,9 @@ const restart_2 = () => {
       const v = config_[k];
       if (v.dataArray) {
         delete v.dataArray
+      }
+      if (v.datapoints) {
+        delete v.datapoints
       }
       if (v.node) {
         delete v.node
@@ -319,9 +401,9 @@ const restart = () => {
       setTimeout(() => {
         old_audio_context.close()
       }, 500)
-      config.g1.node.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1);
-      config.g1.node.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.2);
-      config.g1.node.gain.linearRampToValueAtTime(0.00001, audioCtx.currentTime + 0.45);
+      // config.g1.node.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1);
+      // config.g1.node.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.2);
+      // config.g1.node.gain.linearRampToValueAtTime(0.00001, audioCtx.currentTime + 0.45);
     }
   } catch (error) {
     console.error(error)
