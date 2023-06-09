@@ -18,19 +18,20 @@ const get_base_colors = (count) => {
     ]
   );
   for (let i = 0 ; i < count ; i++) {
+    const ouia = 128
     if (i>0) {
       baseColors.push(
         [
-          baseColors[i-1][0] + getRandomInt(0, 64),
-          baseColors[i-1][1] + getRandomInt(0, 64),
-          baseColors[i-1][2] + getRandomInt(0, 64)
+          baseColors[i-1][0] + getRandomInt(0, ouia),
+          baseColors[i-1][1] + getRandomInt(0, ouia),
+          baseColors[i-1][2] + getRandomInt(0, ouia)
         ]
       );
     }
     let max = Math.max(Math.max(baseColors[i][0], baseColors[i][1]), baseColors[i][2]);
-    baseColors[i][0] = baseColors[i][0] / max * 255;
-    baseColors[i][1] = baseColors[i][1] / max * 255;
-    baseColors[i][2] = baseColors[i][2] / max * 255;
+    baseColors[i][0] = baseColors[i][0] / max * 200;
+    baseColors[i][1] = baseColors[i][1] / max * 200;
+    baseColors[i][2] = baseColors[i][2] / max * 200;
   }
   return baseColors
 }
@@ -57,9 +58,11 @@ const canvas = document.getElementById("canvas")
 const context = canvas.getContext("2d")
 context.imageSmoothingEnabled= false
 context.mozImageSmoothingEnabled = false;
-// const dividers = [64, 64, 64]
-const noise_ratio = 2;
-const speed_ratio = 0.0125;
+const segments = 13;
+const dim = Math.min(window.innerWidth, window.innerHeight)
+const div = parseInt(dim*0.85/13)
+const dividers = [div, div, div]
+const noise_ratio = 0.5;
 // const dividers = [100, 50, 50, 50]
 // const dividers = [128, 32, 32, 32, 32]
 // const dividers = [64, 8, 1]
@@ -68,7 +71,7 @@ const speed_ratio = 0.0125;
 // const dividers = [64, 8, 64, 2, 64, 1]
 // const dividers = [64, 64, 64, 8, 2, 1]
 // const dividers = [100, 100, 100, 20, 4, 1]
-const dividers = [90, 90, 90, 90/5, 5, 1]
+// const dividers = [90, 90, 90, 90/5, 5, 1]
 
 // const dividers = [
 //   64,
@@ -82,7 +85,7 @@ const dividers = [90, 90, 90, 90/5, 5, 1]
 // }
 
 document.body.style.background = '#111'
-resize_square(canvas, 0.9, dividers[0], 1)
+resize_square(canvas, 0.85, dividers[0], 1)
 const image_data = context.getImageData(0, 0, canvas.width, canvas.height)
 const data = image_data.data
 const fill_data = () => {
@@ -129,25 +132,25 @@ const fill_data = () => {
   return data_
 }
 
-let data_0 =  fill_data()
+
 let data_1 =  fill_data()
 let data_2 =  fill_data()
 for (let i = 0; i < image_data.data.length; i+=4) {
-  // data[i + 0] = 16
-  // data[i + 1] = 16
-  // data[i + 2] = 16
-  // data[i + 3] = 255
-  data[i + 0] = data_0[i + 0]
-  data[i + 1] = data_0[i + 1]
-  data[i + 2] = data_0[i + 2]
-  data[i + 3] = data_0[i + 3]
+  data[i + 0] = 16
+  data[i + 1] = 16
+  data[i + 2] = 16
+  data[i + 3] = 255
+  data[i + 0] = data_1[i + 0]
+  data[i + 1] = data_1[i + 1]
+  data[i + 2] = data_1[i + 2]
+  data[i + 3] = data_1[i + 3]
 }
 context.putImageData(image_data, 0, 0);
 
 
 const draw = () => {
-  const speed = image_data.data.length*speed_ratio
-  const noise = noise_ratio*speed
+  const speed = 1024*4
+  const noise = noise_ratio*speed*10.0*  ( 2.0 - (( performance.now() - last_update ) / update_period ) )
   for (let index = 0; index < noise; index++) {
     const x = parseInt(Math.random() * canvas.width)
     let y = parseInt(Math.random() * canvas.height)
@@ -156,30 +159,30 @@ const draw = () => {
     // }
     if (
       x < dividers[0] 
-      || x > canvas.width - dividers[0] - 1
-      || y < dividers[0] +1
-      ||  y > canvas.width - dividers[0] -3 
+      || x > canvas.width - dividers[0]
+      || y < dividers[0]
+      ||  y > canvas.width - dividers[0] 
     ) {
       continue
     } 
     let x2 = x
     let y2 = y
-    // if (y2 == dividers[0]) {
-    //   y2 += canvas.width - dividers[0]*2-2
-    // }
+    if (y2 == dividers[0]) {
+      y2 += canvas.width - dividers[0]*2-2
+    }
     
     const uu = getRandomInt(0, 3)
-    if (uu == 0 && x > canvas.width * 0.5) {
-      x2 = (x2 - 1 + canvas.width) % canvas.width
-    }
-    if (uu == 1 && x < canvas.width * 0.5 ) {
-      x2 = (x2 + 1 + canvas.width) % canvas.width
-    }
-    if (uu == 2) {
-      y2 = (y2 - 1 + canvas.height) % canvas.height
-    }
+    // if (uu == 0 && x > canvas.width * 0.5) {
+    //   x2 = (x2 - 1 + canvas.width) % canvas.width
+    // }
+    // if (uu == 1 && x < canvas.width * 0.5 ) {
+    //   x2 = (x2 + 1 + canvas.width) % canvas.width
+    // }
+    // if (uu == 2) {
+    //   y2 = (y2 - 1 + canvas.height) % canvas.height
+    // }
     if (uu == 3) {
-      y2 = (y2 + 1 + canvas.height) % canvas.height
+      y2 = (y2 - 1 + canvas.height) % canvas.height
     }
     const i1 = (y * canvas.width + x)*4
     const i2 = (y2 * canvas.width + x2)*4
@@ -214,7 +217,7 @@ const draw = () => {
 }
 
 let last_update = performance.now()
-let update_period = 10000
+let update_period = 20000
 const update = () => {
   last_update = performance.now()
   data_1 = new Uint8ClampedArray(data_2)
