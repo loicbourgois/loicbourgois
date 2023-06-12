@@ -53,16 +53,23 @@ struct MasksMeta {
     || f32(y) > f32(m.canvas.y) - f32(m.canvas.y) / f32(masks_1_meta.dims[0]) - 1.0 
   ;
   if border {
-    cid = 3;
+    cid = 1 ;
   }
   var color = colors[cid];
   var DIM = u32(m.canvas.x);
+  // var pp = vec2u(
+  //   x,
+  //   u32(i32(y) - 1 + i32(DIM))%DIM
+  // );
   var pp = vec2u(
-    x,
-    u32(i32(y) - 1 + i32(DIM))%DIM
+    u32(i32(x) - 1 + i32(DIM))%DIM,
+    y,
   );
   if f32(pp.y) < f32(m.canvas.x) / f32(masks_1_meta.dims[0]) && !border {
     pp.y = DIM - u32(f32(m.canvas.x) / f32(masks_1_meta.dims[0])) - 1;  
+  }
+  if f32(pp.x) < f32(m.canvas.x) / f32(masks_1_meta.dims[0]) && !border {
+    pp.x = DIM - u32(f32(m.canvas.x) / f32(masks_1_meta.dims[0])) - 1;  
   }
   var pid = i32((x + y * DIM)*u32(3));
   var pid2 = i32((pp.x + pp.y * DIM)*u32(3));
@@ -70,8 +77,8 @@ struct MasksMeta {
   var r = img[ pid + 0 ];
   var g = img[ pid + 1 ];
   var b =  img[ pid + 2 ];
-  var fall = m.speed * 0.0125 ;
-  var change = m.speed * 0.005 * (0.25+m.noise_ratio) ;
+  var fall = m.speed * 0.5 ;
+  var change = m.speed * 1.5 * (0.25+m.noise_ratio) ;
   var r_ = rand( vec2f(m.r, vsOut.position.x) ) * rand( vec2f(m.r, vsOut.position.y+vsOut.position.y) );
   if r_ < fall {
     if !border {

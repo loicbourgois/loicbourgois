@@ -58,7 +58,7 @@ const setup_webgpu = async (
         size: uniformBufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    const dim = 13
+    const dim = 15 
     const layers = 3
     const uniformValues = new Float32Array(uniformBufferSize / 4);
     const storage_buffer_a_size = dim * dim * 4 * 3;
@@ -173,7 +173,6 @@ function render(x) {
         noise_ratio,
         x.speed,
     ]);
-    
     x.device.queue.writeBuffer(x.uniformBuffer, 0, x.uniformValues);
     x.device.queue.writeBuffer(x.storage_buffer_a, 0, x.storage_buffer_a_data);
     x.device.queue.writeBuffer(x.storage_buffer_a2, 0, x.storage_buffer_a2_data);

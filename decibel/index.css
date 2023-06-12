@@ -65,6 +65,7 @@ input {
   width: 24vw;
   background: none;
   display: flex;
+  flex-direction: column;
   align-items: stretch;
   align-content: stretch;
   z-index: 2;
@@ -74,6 +75,14 @@ input {
   background: #fff1;
   width: 100%;
   color: #ffa;
+  flex-grow: 1;
+}
+#left button {
+  background: #222;
+  padding: 1rem;
+}
+#left button:hover {
+  cursor: pointer;
 }
 .block {
   display: flex;

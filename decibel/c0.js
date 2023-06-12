@@ -15,7 +15,7 @@ const c0 = {
     },
     "g1": {
         "kind": "gain",
-        "gain": 0,
+        "gain": 0.5,
         "destinations": [
             "s1"
         ],
@@ -80,71 +80,6 @@ const c0 = {
         "top": 1,
         "right": 2
     },
-
-
-    "const_1": {
-        "kind": "const",
-        "top": 4,
-        "right": 5,
-        "destinations": [
-            "const_1_og",
-            "add_1",
-        ]
-    },
-    "const_1_og": {
-        "kind": "osc_graph",
-        "top": 4,
-        "right": 4
-    },
-
-
-    "const_2": {
-        "kind": "const",
-        "top": 5,
-        "right": 5,
-        "destinations": [
-            "const_2_og",
-            "add_1",
-        ]
-    },
-    "const_2_og": {
-        "kind": "osc_graph",
-        "top": 5,
-        "right": 4
-    },
-
-
-    "add_1": {
-        "kind": "add",
-        "top": 5,
-        "right": 3,
-        "destinations": [
-            "add_1_og"
-        ]
-    },
-    "add_1_og": {
-        "kind": "osc_graph",
-        "top": 5,
-        "right": 2
-    },
-
-
-    "clock": {
-        "kind": "clock",
-        "top": 7,
-        "right": 3,
-        "bpm": 60*2,
-        "destinations": [
-            "clock_og",
-        ]
-    },
-    "clock_og": {
-        "kind": "osc_graph",
-        "top": 7,
-        "right": 4,
-    },
-
-
     "asdr": {
         "kind": "asdr",
         "top": 0,
@@ -153,11 +88,6 @@ const c0 = {
             "g6.g",
             "g6_2",
         ]
-    },
-    "asdr_og": {
-        "kind": "osc_graph",
-        "top": 6,
-        "right": 2,
     },
 
     "bl1": {
@@ -181,7 +111,7 @@ const c0 = {
 
     "bl2": {
         "kind": "beat_line",
-        "top": 0.25,
+        "top": 2,
         "right": 7,
         "line": lines[1],
         "destinations": [
@@ -204,11 +134,6 @@ const c0 = {
             "2_g.g",
             "2_g2",
         ]
-    },
-    "2_asdr_og": {
-        "kind": "osc_graph",
-        "top": 4,
-        "right": 2,
     },
     "2_g": {
         "kind": "gain",
@@ -273,7 +198,7 @@ const c0 = {
     },
     "2_gf": {
         "kind": "gain",
-        "gain": 0,
+        "gain": 0.5,
         "destinations": [
             "s1"
         ],
