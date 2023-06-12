@@ -1,7 +1,7 @@
 import {
     translate_splitted,
 } from "./utils.js"
-import { nodes } from "./nodes/_main.js"
+import { nodes } from "./nodes/m.js"
 
 
 const show_config = (config) => {

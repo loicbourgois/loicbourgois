@@ -10,7 +10,7 @@ import {
 import {
   translate_splitted,
 } from "./utils.js"
-import { nodes } from "./nodes/_main.js"
+import { nodes } from "./nodes/m.js"
 
 
 let started = false
