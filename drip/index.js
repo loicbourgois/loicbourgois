@@ -20,7 +20,6 @@ const new_geometry_wrapper = (x) => {
     new_geometry_wrapper(x)
   }, 30000/x.speed);
 }
-
 const main = async () => {
   document.body.style.background = '#111'
   const canvas = document.getElementById("canvas")
