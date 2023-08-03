@@ -4,7 +4,7 @@ const base_url_client = `${window.location.origin}/downtowhat`
 
 const base_html = `
     <div id="header">
-        <a id="random" href="/">Get lucky</a>
+        <a id="random" href="${base_url_client}">Get lucky</a>
         <input id="search" placeholder="Search" onchange="trigger_search()"></input>
     </div>
 `
