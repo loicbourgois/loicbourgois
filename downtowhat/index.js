@@ -1,4 +1,4 @@
-const base_url = "http://136.243.64.165:9000"
+const base_url = "https://api.loicbourgois.com:9000"
 const base_url_client = `${window.location.origin}/downtowhat`
 
 
