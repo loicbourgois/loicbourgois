@@ -35,8 +35,23 @@ struct Metadata {
   var pid = mid*u32(3);
   var pid2 = mid*u32(3);
   var rnd = rand( vec2f(m.r, vsOut.position.x) ) * rand( vec2f(m.time%10.0, vsOut.position.y) );
+  var rnd_2 = rand( vec2f(m.r, vsOut.position.y) ) * rand( vec2f(m.time%3.0, vsOut.position.x) );
+  var x2 = x;
+  var y2 = y;
+  if 0.0 < rnd_2 && rnd_2 < 0.25 {
+    x2 += u32(1);
+  }
+  if 0.25 < rnd_2 && rnd_2 < 0.5 {
+    x2 -= u32(1);
+  }
+  if 0.5 < rnd_2 && rnd_2 < 0.75 {
+    y2 += u32(1);
+  }
+  if 0.75 < rnd_2 && rnd_2 < 1.0 {
+    y2 -= u32(1);
+  }
   if rnd < 0.09 {
-    pid2 = (x + (y-u32(1)) * u32(m.canvas.x))*u32(3);
+    pid2 = (x2 + y2 * u32(m.canvas.x))*u32(3);
   }
   var v = mask[mid]*mask[mid]*10.0;
   var r_a = 0.001;
@@ -44,9 +59,9 @@ struct Metadata {
   var r = (v*r_a + img[ pid2 ]*r_b ) / (r_a+r_b);
   var g = (v*r_a + img[ pid2 ]*r_b ) / (r_a+r_b);
   var b = 0.0;
-  r = mask[mid];
-  g = mask[mid];
-  b = mask[mid];
+  // r = mask[mid];
+  // g = mask[mid];
+  // b = mask[mid];
   img[ pid ] = r;
   img[ pid + u32(1)] = g;
   img[ pid + u32(2)] = b;
