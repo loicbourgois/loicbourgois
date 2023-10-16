@@ -38,7 +38,35 @@ document.onmousemove=function(e) {
   lastx = x
   lasty = y
 };
+const uuid = () => {
+  // https://stackoverflow.com/a/8809472
+  let
+    d = new Date().getTime(),
+    d2 = (performance && performance.now && (performance.now() * 1000)) || 0;
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    let r = Math.random() * 16;
+    if (d > 0) {
+      r = (d + r) % 16 | 0;
+      d = Math.floor(d / 16);
+    } else {
+      r = (d2 + r) % 16 | 0;
+      d2 = Math.floor(d2 / 16);
+    }
+    return (c == 'x' ? r : (r & 0x7 | 0x8)).toString(16);
+  });
+};
+let saving = false
 const save = () => {
+  if (saving) {
+    return
+  }
+  saving = true
+  console.log("saving")
+  // const id = uuid()
+  // document.getElementById("bar").innerHTML += `<p id="${id}">Saving</p>`
+  // setTimeout(() => {
+  //   document.getElementById(id).remove()
+  // }, 1000);
   const canvas = document.getElementById("canvas-2")
   const dim = Math.sqrt(wgpu.mask_data.length)
   canvas.width = dim
@@ -57,6 +85,12 @@ const save = () => {
   link.setAttribute('download', 'draw-save.png');
   link.setAttribute('href', canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"));
   link.click();
+  // document.getElementById("bar").innerHTML += `<p id="${id}-done">Saving done</p>`
+  // setTimeout(() => {
+  //   document.getElementById(`${id}-done`).remove()
+  // }, 1000);
+  console.log("saving done")
+  saving = false
 }
 const main = async () => {
   window.save = save
