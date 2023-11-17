@@ -96,6 +96,7 @@ const main = async () => {
   window.save = save
   window.choose_pic = choose_pic
   window.load_file = load_file
+  window.openFullscreen = openFullscreen
   wgpu = await setup_webgpu(canvas)
   for (let index = 0; index < 1000; index++) {
     wgpu.mask_data[parseInt(Math.random()*canvas.width*canvas.height)] = Math.random()
@@ -103,6 +104,31 @@ const main = async () => {
   render(wgpu)
   // load_file_2("http://0.0.0.0/draw-2/draw-save.png")
   // load_file_2("http://localhost/draw-2/corgi_high.jpg")
+
+}
+
+/* View in fullscreen */
+function openFullscreen() {
+  var elem = document.documentElement;
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.webkitRequestFullscreen) { /* Safari */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE11 */
+    elem.msRequestFullscreen();
+  }
+}
+
+/* Close fullscreen */
+function closeFullscreen() {
+  var elem = document.documentElement;
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) { /* Safari */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE11 */
+    document.msExitFullscreen();
+  }
 }
 
 

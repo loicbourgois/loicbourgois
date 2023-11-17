@@ -46,3 +46,8 @@ canvas {
 #link {
   margin-top: 40vh;
 }
+
+button {
+  background: #ffff;
+  border: none;
+}

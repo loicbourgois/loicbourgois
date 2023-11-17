@@ -1,0 +1,9 @@
+version: '3'
+services:
+  lint:
+    build:
+      context: $HOME/github.com/loicbourgois/loicbourgois/takana
+      dockerfile: $HOME/github.com/loicbourgois/loicbourgois/takana/lint/Dockerfile
+    command: /root/github.com/loicbourgois/loicbourgois/takana/lint/go_inner.sh
+    volumes:
+      - $HOME/github.com/loicbourgois/loicbourgois/takana:/root/github.com/loicbourgois/loicbourgois/takana:ro

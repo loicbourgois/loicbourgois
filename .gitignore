@@ -46,3 +46,4 @@ testem.log
 Thumbs.db
 
 mnist/mnist_png
+takana/wasm/target
