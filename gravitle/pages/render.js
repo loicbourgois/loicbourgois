@@ -2,12 +2,9 @@ import {
   colors,
 } from './colors.js'
 import {
-  resize_square,
-  stroke_circle,
   stroke_circle_2,
   fill_circle_2,
   clear,
-  line,
   fill_text,
 } from "./canvas.js"
 import {

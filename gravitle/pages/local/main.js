@@ -1,12 +1,7 @@
 import {
   resize_square,
-  stroke_circle,
-  stroke_circle_2,
   fill_circle_2,
-  fill_circle,
   clear,
-  line,
-  fill_text,
 } from "../canvas.js"
 import {
   colors,
@@ -21,7 +16,6 @@ import {
   add,
   del,
   mul,
-  mod,
 } from "../math.js"
 import {
   get_fps,
@@ -31,9 +25,8 @@ import {
   get_ups_avg_delta,
 } from "../perf.js"
 import {
-  ship_0,
-  ship_2,
   ship_1,
+  ship_2,
   emerald,
 } from "../ship.js"
 
@@ -60,8 +53,8 @@ const html = () => {
       <p><span id="score_player_1"></span></p>
       <p id="move_with_instructions" class="disappearable disappear">Loading...</p>
       <p class="disappearable disappear"> <a href="garage">Go to Garage</a> </p>
-      <p class="disappearable disappear"> <a href="journey">Journey</a> </p>
-      <p class="disappearable disappear"> <a href="https://github.com/loicbourgois/gravitle">Github</a> </p>
+      <p class="disappearable disappear">  </p>
+      <p class="disappearable disappear"> <a href="https://github.com/loicbourgois/loicbourgois/gravitle">Github</a> </p>
     </div>
     <canvas id="canvas"></canvas>
     <div class="bob">
@@ -419,24 +412,24 @@ const add_ship = async (ship, x, y) => {
 }
 
 
-const average_color = (c1,c2) => {
-  c1 = {
-    r: parseInt(c1[1], 16),
-    g: parseInt(c1[2], 16),
-    b: parseInt(c1[3], 16),
-  }
-  c2 = {
-    r: parseInt(c2[1], 16),
-    g: parseInt(c2[2], 16),
-    b: parseInt(c2[3], 16),
-  }
-  const c3 = {
-    r: (c1.r+c2.r)*0.5*17,
-    g: (c1.g+c2.g)*0.5*17,
-    b: (c1.b+c2.b)*0.5*17,
-  }
-  return `rgb(${c3.r},${c3.g},${c3.b})`
-}
+// const average_color = (c1,c2) => {
+//   c1 = {
+//     r: parseInt(c1[1], 16),
+//     g: parseInt(c1[2], 16),
+//     b: parseInt(c1[3], 16),
+//   }
+//   c2 = {
+//     r: parseInt(c2[1], 16),
+//     g: parseInt(c2[2], 16),
+//     b: parseInt(c2[3], 16),
+//   }
+//   const c3 = {
+//     r: (c1.r+c2.r)*0.5*17,
+//     g: (c1.g+c2.g)*0.5*17,
+//     b: (c1.b+c2.b)*0.5*17,
+//   }
+//   return `rgb(${c3.r},${c3.g},${c3.b})`
+// }
 
 
 const render = (context) => {
@@ -662,7 +655,7 @@ const winning_condition = () => {
   if (winner != undefined) {
     return
   }
-  let time_limit = Infinity
+  // let time_limit = Infinity
   let score_limit = Infinity
   if (document.querySelector('#select_mode').value == 'first_16') {
     score_limit = 16
