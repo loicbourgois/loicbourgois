@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Draw</title>
+    <link rel="stylesheet" href="./index.css">
+    <script type="module" src="./index.js"></script>
+  </head>
+  <body>
+    <div id="panel-left">
+      <canvas id="canvas"></canvas>
+    </div>
+    <canvas id="canvas-2"></canvas>
+    <p id="cursor"></p>
+    <div id="bar">
+      <button class="picture_button" onclick="openFullscreen()">Fullscreen</button>
+      <a id="link" onclick="save()">Save</a>
+      <div>
+        <button class="picture_button" onclick="choose_pic()">Load</button>
+        <input id="demo" type="file" onchange="load_file()">
+      </div>
+    </div>
+  </body>
+</html>
