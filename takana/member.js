@@ -24,7 +24,7 @@ const setup_member = (member) => {
     for (const k of ['max_life', 'max_mana']) {
         member.level += member[k] / 100
     }
-    for (const k of ['strength', 'intelligence']) {
+    for (const k of ['strength', 'intelligence', 'magic']) {
         member.level += member[k]
     }
     member.level = parseInt(Math.sqrt(member.level))

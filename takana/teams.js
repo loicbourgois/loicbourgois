@@ -16,6 +16,7 @@ const get_teams = () => {
                     },
                     size: 0.1,
                     strength: 20,
+                    magic: 20,
                     // dead: true,
                     decision_makers: [
                         {
@@ -23,11 +24,11 @@ const get_teams = () => {
                             action: action.heal,
                             target: target.ally_lowest_health,
                         },
-                        {
-                            conditions: [condition.self_mana_less_than_10],
-                            action: action.meditate,
-                            target: target.self,
-                        }, 
+                        // {
+                        //     conditions: [condition.self_mana_less_than_10],
+                        //     action: action.meditate,
+                        //     target: target.self,
+                        // }, 
                         {
                             conditions: [],
                             action: action.attack,
@@ -45,17 +46,18 @@ const get_teams = () => {
                     },
                     size: 0.1,
                     strength: 20,
+                    magic: 20,
                     decision_makers: [
                         {
                             conditions: [condition.ally_health_less_than_50],
                             action: action.heal,
                             target: target.ally_lowest_health,
                         },
-                        {
-                            conditions: [condition.self_mana_less_than_10],
-                            action: action.meditate,
-                            target: target.self,
-                        }, 
+                        // {
+                        //     conditions: [condition.self_mana_less_than_10],
+                        //     action: action.meditate,
+                        //     target: target.self,
+                        // }, 
                         {
                             conditions: [],
                             action: action.attack,
@@ -73,6 +75,7 @@ const get_teams = () => {
                     },
                     size: 0.1,
                     strength: 20,
+                    magic: 20,
                     decision_makers: [
                         {
                             conditions: [],
@@ -95,18 +98,19 @@ const get_teams = () => {
                         y: 0.0,
                     },
                     size: 0.3,
-                    strength: 40,
+                    strength: 30,
+                    magic: 30,
                     decision_makers: [
                         {
                             conditions: [condition.ally_health_less_than_50],
                             action: action.heal,
                             target: target.ally_lowest_health,
                         },
-                        {
-                            conditions: [condition.self_mana_less_than_10],
-                            action: action.meditate,
-                            target: target.self,
-                        }, 
+                        // {
+                        //     conditions: [condition.self_mana_less_than_10],
+                        //     action: action.meditate,
+                        //     target: target.self,
+                        // }, 
                         {
                             conditions: [],
                             action: action.attack,

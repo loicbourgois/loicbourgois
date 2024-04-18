@@ -26,10 +26,10 @@ const heal = {
     mana_need: 10,
     function: (teams, smid, target, action) => {
         const self = get_member(teams, smid)
-        if ( self.mana >= action.mana_need) {
+        if ( self.mana >= action.mana_need ) {
             self.mana -= action.mana_need
             target.life = Math.min(
-                target.life + action.mana_need*10,
+                target.life + self.magic,
                 target.max_life
             )
         }
