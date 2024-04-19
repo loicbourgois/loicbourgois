@@ -1,5 +1,5 @@
 const base_url = "https://api.loicbourgois.com:9000"
-const base_url_client = `${window.location.origin}/downtowhat`
+const base_url_client = `${window.location.origin}/movie-finder`
 
 
 const base_html = `
@@ -208,7 +208,7 @@ const show_random_movie = async () => {
 
 const trigger_search = () => {
     console.log(document.getElementById("search").value )
-    window.location.href = window.location.origin + "/downtowhat?search=" + document.getElementById("search").value;
+    window.location.href = window.location.origin + "/movie-finder?search=" + document.getElementById("search").value;
 }
 
 
