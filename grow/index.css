@@ -10,7 +10,7 @@ body {
   overflow: hidden;
 }
 canvas {
-  background: #111;
+  background: #000;
   margin: auto;
   image-rendering: pixelated;
 }
