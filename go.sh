@@ -1,5 +1,5 @@
 #!/bin/sh
-# $HOME/github.com/loicbourgois/loicbourgois/_go.sh
+# $HOME/github.com/loicbourgois/loicbourgois/go.sh
 full_path=$HOME/github.com/loicbourgois/loicbourgois/
 echo "Frontend at http://localhost"
 full_path=$full_path \

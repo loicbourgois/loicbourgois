@@ -17,13 +17,10 @@ const zoom = () => {
     context.mozImageSmoothingEnabled = false;
     context.webkitImageSmoothingEnabled = false;
     context.msImageSmoothingEnabled = false;
-
     context2.drawImage(canvas, 0, 0, canvas.width, canvas.height);
-
     if (conf.clear_on_zoom) {
       context.clearRect(0, 0, canvas.width, canvas.height);
     }
-
     context.drawImage(
       canvas2,
       conf.zoom_rate,
