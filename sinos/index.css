@@ -36,6 +36,8 @@ canvas {
 .node {
   display: flex;
   flex-direction: column;
+  border: solid 1px #0000;
+  background: #203;
 }
 .clock_canvas, .clock_mult_canvas, .shaper_canvas {
   /* height: 100%;
@@ -43,4 +45,8 @@ canvas {
   flex-grow: 1;
     height: 0;
     width: 100%;
+}
+.focused {
+  background: #960;
+  border-color: #440;
 }
