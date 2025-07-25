@@ -20,7 +20,7 @@ const context = {
     node_ids_by_coords: {},
     midi_values: {},
 }
-let midi = null;
+// let midi = null;
 
 
 const get_new_node = (kind, a, b) => {
@@ -73,7 +73,7 @@ const connect = (a,b) => {
         n[id_b].getx = (time) => {
             return (n[id_a].getx(time) * n[id_b].mult) % 1
         }
-    } else if (n[id_a] && n[id_a].kind == "clock_mult" && n[id_b].kind == "shaper") {
+    } else if (n[id_a] && (n[id_a].kind == "clock_mult" ||  n[id_a].kind=="clock") && n[id_b].kind == "shaper") {
         n[id_b].getx = (time) => {
             return n[id_a].getx(time)
         }
@@ -91,15 +91,24 @@ const connect = (a,b) => {
         }
     } else {
         todos.push(() => {
-            if (b_field) {
-                n[id_a].node.connect(n[id_b].node[b_field])
-            } else {
-                n[id_a].node.connect(n[id_b].node)
+            try {
+                if (b_field) {
+                    n[id_a].node.connect(n[id_b].node[b_field])
+                } else {
+                    n[id_a].node.connect(n[id_b].node)
+                }
+            } catch (error) {
+                console.log(id_a, id_b, b_field)
+                console.log(n[id_a])
+                console.log(n[id_b])
+                throw error
             }
         })
     }
     const ea = document.getElementById(id_a)
     const eb = document.getElementById(id_b)
+    console.assert(ea, `invalid element: ${id_a}`)
+    console.assert(eb, `invalid element: ${id_b}`)
     const pa = get_middle(ea) 
     const pb = get_middle(eb)
     lines.push({
@@ -111,9 +120,12 @@ const connect = (a,b) => {
 
 
 const add_node = (x, y, name, kind, a, b, c) => {
+    if (context.node_ids_by_coords[[x,y]]) {
+        throw Error(`emplacement already used: ${x},${y} | ${context.node_ids_by_coords[[x,y]]} | ${name}`)
+    }
     context.node_ids_by_coords[[x,y]] = name
     if (kind == "osc2") {
-        context.node_ids_by_coords[[x+1,y]] = name + "/2"
+        context.node_ids_by_coords[[x,y+1]] = name + "/2"
         n[name + "/2"] = {
             ref: name,
             kind: "osc2/2",
@@ -174,13 +186,19 @@ const add_node = (x, y, name, kind, a, b, c) => {
         todos.push(() => {
             n[name].node = get_new_node(kind, a, b)
         })
-    } else {
+    } else if (kind == "osc") { 
         n[name] = {
             kind: kind,
+            freq: b,
+            get_freq: (t) => {
+                return n[name].freq
+            }
         }
         todos.push(() => {
             n[name].node = get_new_node(kind, a, b)
         })
+    } else {
+        throw `not implemented: ${kind}`
     }
     let node_fields = ""
     if (kind == "gain") {
@@ -202,7 +220,11 @@ const add_node = (x, y, name, kind, a, b, c) => {
             </div>
             <div>
                 <span>freq:</span>
-                <span id="${name}.frequency">${b}</span>
+                <span id="${name}.frequency">-</span>
+            </div>
+            <div>
+                <span>l freq:</span>
+                <span id="${name}.lf">-</span>
             </div>
         `
     } else if (kind == "osc2") {
@@ -228,7 +250,7 @@ const add_node = (x, y, name, kind, a, b, c) => {
         node_fields = `
             <div>
                 <span>bpm:</span>
-                <span id="${name}.bpm">${a}</span>
+                <span id="${name}.bpm">-</span>
             </div>
             <div>
                 <span>x:</span>
@@ -244,7 +266,7 @@ const add_node = (x, y, name, kind, a, b, c) => {
         node_fields = `
             <div>
                 <span>mult:</span>
-                <span id="${name}.multiplier">${a}</span>
+                <span id="${name}.multiplier">-</span>
             </div>
             <div>
                 <span>x:</span>
@@ -276,8 +298,9 @@ const add_node = (x, y, name, kind, a, b, c) => {
         throw new Error(`invalid kind: ${kind}`);
     }
     let width = 100
+    let height = 100
     if (kind == "osc2") {
-        width = 220
+        height = 220
     }
     document.body.insertAdjacentHTML('beforeend', `
         <div id="${name}" class="node" style="
@@ -285,7 +308,7 @@ const add_node = (x, y, name, kind, a, b, c) => {
             top: ${y*120 + 20}px;
             left: ${x*120 + 20}px;
             width: ${width}px;
-            height: 100px;
+            height: ${height}px;
         ">
             <div class="node_title">
                 <span class="node_kind">${kind}</span>
@@ -381,10 +404,28 @@ const draw = () => {
             }
         }
         if (node.kind == "osc2") {
-            const l_gain = node.get_freq(current_time)
-            document.getElementById(`${k}.lf`).innerHTML = l_gain.toFixed(2)
+            const lf = node.get_freq(current_time)
+            document.getElementById(`${k}.lf`).innerHTML = lf.toFixed(2)
             document.getElementById(`${k}.f1`).innerHTML = node.f1.toFixed(2)
             document.getElementById(`${k}.f2`).innerHTML = node.f2.toFixed(2)
+            if (audio_context) {
+                for (let i = 0; i < resolution; i++) {
+                    node.node.frequency.linearRampToValueAtTime(
+                        node.get_freq(current_time + i*unit), current_time + i*unit
+                    );
+                }
+            }
+        }
+        if (node.kind == "clock_mult") {
+            document.getElementById(`${k}.multiplier`).innerHTML = node.mult.toFixed(2)
+        }
+        if (node.kind == "clock") {
+            document.getElementById(`${k}.bpm`).innerHTML = node.bpm.toFixed(2)
+        }
+        if (node.kind == "osc") {
+            const lf = node.get_freq(current_time)
+            document.getElementById(`${k}.lf`).innerHTML = lf.toFixed(2)
+            document.getElementById(`${k}.frequency`).innerHTML = node.freq.toFixed(2)
             if (audio_context) {
                 for (let i = 0; i < resolution; i++) {
                     node.node.frequency.linearRampToValueAtTime(
@@ -413,8 +454,6 @@ const start = async () => {
     }
     n.gA.node.connect(analyser);
     n.gD.node.connect(audio_context.destination);
-    // n.gA.node.gain.setValueCurveAtTime([0.0, 1], audio_context.currentTime, 0.1);
-    // n.gD.node.gain.setValueCurveAtTime([0.0, 0.005], audio_context.currentTime, 0.1);
 }
 
 let started = false
@@ -454,11 +493,19 @@ const roll_up = (nid) => {
     if (w.kind == "osc2") {
         w.f1 = w.f1 * roll
     } else if (w.kind == "shaper") {
-        w.a = w.a * roll
+        w.a = w.a / roll
     } else if (w.kind == "osc2/2") {
         n[w.ref].f2 = n[w.ref].f2 * roll
     } else if (w.kind == "gain") {
         w.gain = w.gain * roll
+    } else if (w.kind == "clock_mult") {
+        w.mult = w.mult + 0.5
+    } else if (w.kind == "clock") {
+        w.bpm = w.bpm + 1
+    } else if (w.kind == "osc") {
+        w.freq = w.freq * roll
+    } else {
+        console.warn(`not implemented: ${w.kind}`)
     }
 }
 
@@ -471,29 +518,19 @@ const roll_down = (nid) => {
     if (w.kind == "osc2") {
         w.f1 = w.f1 / roll
     } else if (w.kind == "shaper") {
-        w.a = w.a / roll
+        w.a = w.a * roll
     } else if (w.kind == "osc2/2") {
         n[w.ref].f2 = n[w.ref].f2 / roll
     } else if (w.kind == "gain") {
         w.gain = w.gain / roll
-    }
-}
-
-const set_value = (x, y, value) => {
-    const nid = context.node_ids_by_coords[[x-1,y-1]]
-    const w = n[nid]
-    if (! w) {
-        console.error(`set_value - invalid nid: ${nid}`)
-        return
-    }
-    if (w.kind == "osc2") {
-        w.f1 = value / (128*128-1) * 10000
-    } else if (w.kind == "shaper") {
-        w.a = value / (128*128-1) * 100
-    } else if (w.kind == "osc2/2") {
-        n[w.ref].f2 = value / (128*128-1) * 10000
-    } else if (w.kind == "gain") {
-        // w.gain = w.gain / roll
+    } else if (w.kind == "clock_mult") {
+        w.mult = w.mult - 0.5
+    } else if (w.kind == "clock") {
+        w.bpm = w.bpm - 1.0
+    } else if (w.kind == "osc") {
+        w.freq = w.freq / roll
+    } else {
+        console.warn(`not implemented: ${w.kind}`)
     }
 }
 
@@ -503,8 +540,6 @@ const test_1 = async () => {
     roll_up("o5")
     roll_up("s1")
     roll_up_2(2,0)
-    // set_value(2,0, 10)
-    // roll_up("s1")
 }
 
 const process_keys = () => {
@@ -565,8 +600,6 @@ const process_keys = () => {
         if (k == "b") {
             roll_down_2(4,1)
         }
-
-
     }
     setTimeout(process_keys, 0)
 }
@@ -580,52 +613,73 @@ const main = async () => {
     dataArray = new Uint8Array(0);
     add_node(3, 5, "gA", "gain", 1)
     add_node(6, 5, "gD", "gain", 0.05)
-    add_node(6, 1, "o1", "osc", "sine", 55*4)
-    add_node(7, 1, "g1", "gain", 0)
-    add_node(5, 2, "o2", "osc", "sine", 55)
-    add_node(5, 1, "g2", "gain", 1200/2)
-    // add_node(6, 1, "o3", "osc", "sin", 55*2)
-    add_node(1, 2, "c1", "clock", 60)
-    add_node(1, 0, "m1", "clock_mult", 2)
-    add_node(2, 0, "s1", "shaper", 26)
-    add_node(3, 0, "s2", "shaper", 2.5)
 
-    add_node(2, 3, "o4", "osc", "sine", 55*2)
-    add_node(3, 3, "g4", "gain", 20)
+    add_node(0, 3, "gf1", "gain", 0.05)
+    add_node(1, 3, "gf2", "gain", 0.05)
+    add_node(2, 3, "gf3", "gain", 0.05)
+    add_node(3, 3, "gf4", "gain", 0.05)
+    add_node(4, 3, "gf5", "gain", 0.05)
+    add_node(5, 3, "gf6", "gain", 0.05)
+    add_node(6, 3, "gf7", "gain", 0.05)
+    add_node(7, 3, "gf8", "gain", 0.05)
 
 
-    add_node(2, 1, "o5", "osc2", "sine", 40, 55*5)
-    add_node(4, 1, "g5", "gain", 20)
+    add_node(4, 0, "o3", "osc", "sine", 719.15)
+    add_node(4, 1, "g3", "gain", 91.53)
+    add_node(5, 0, "o2", "osc", "sine", 669.95)
+    add_node(5, 1, "g2", "gain", 1487.21)
+    add_node(6, 0, "o1", "osc", "sine", 194.22)
+    add_node(6, 1, "g1", "gain", 31.04)
+    add_node(6, 2, "s8", "shaper", 3.78)
+
+    add_node(5, 2, "m3", "clock_mult", 1.0)
 
 
-    add_node(1, 4, "gf1", "gain", 0.05)
-    add_node(2, 4, "gf2", "gain", 1)
-    add_node(3, 4, "gf3", "gain", 1)
-    add_node(4, 4, "gf4", "gain", 1)
-    add_node(5, 4, "gf5", "gain", 0.05)
-    add_node(6, 4, "gf6", "gain", 1)
-    add_node(7, 4, "gf7", "gain", 1)
-    add_node(8, 4, "gf8", "gain", 1)
-    // add_node(2, 2, "o4", "osc", "sin", 55*2)
-    // add_node(2, 1, "g4", "gain", 20)
+    add_node(1, 0, "c1", "clock", 140)
+
+    add_node(0, 1, "o5", "osc2", "sine", 40, 55*5)
+    add_node(1, 2, "g5", "gain", 20)
+    add_node(0, 0, "s1", "shaper", 26)
+    add_node(1, 1, "s2", "shaper", 2.5)
+    connect("g5", "gf2")
+
+
+
+    add_node(2, 0, "m2", "clock_mult", -516.5)
+    add_node(2, 1, "snare/s2", "shaper", 0.68)
+    add_node(2, 2, "snare/g", "gain", 0.6)
+    add_node(3, 0, "snare/s1", "shaper", 4.41)
+    add_node(3, 1, "snare/o", "osc2", "sine", 770.76, 192.03)
+    connect("m2", "snare/s1")
+    connect("m2", "snare/s2")
+    connect("snare/s1", "snare/o")
+    connect("snare/s2", "snare/g")
+    connect("snare/o", "snare/g")
+    connect("snare/g", "gf3")
+
+
     connect("o1", "g1")
     connect("g1", "gf8")
     connect("gf8", "gA")
     connect("o2", "g2")
     connect("gA", "gD")
     connect("g2", "o1.detune")
-    connect("c1", "m1")
-    connect("m1", "s1")
-    connect("m1", "s2")
-    connect("o4", "g4")
-    // connect("s1", "g4")
+    connect("c1", "m2")
+    connect("c1", "s1")
+    connect("c1", "s2")
+    connect("c1", "m3")
+    connect("m3", "s8")
+    connect("s8", "g2")
+    connect("s8", "g1")
     connect("s2", "g5")
-    connect("g4", "gf4")
     connect("s1", "o5")
     connect("o5", "g5")
-    connect("g5", "gf5")
-    // connect("gf4", "gA")
+    connect("o3", "g3")
+    connect("g3", "o2.detune")
+    connect("gf2", "gA")
+    connect("gf3", "gA")
     connect("gf5", "gA")
+    connect("gf6", "gA")
 
 
     document.addEventListener('keydown', function(event) {
@@ -637,20 +691,7 @@ const main = async () => {
     start_midi()
     draw()
     process_keys()
-    test_1()
-}
-
-const test_usb = async () => {
-    const aa = navigator.usb.getDevices()
-    console.log(aa)
-    const bb = await aa
-    console.log(bb)
-    // navigator.usb.getDevices().then((devices) => {
-    //   devices.forEach((device) => {
-    //     console.log(device.productName); // "Arduino Micro"
-    //     console.log(device.manufacturerName); // "Arduino LLC"
-    //   });
-    // });
+    // test_1()
 }
 
 const start_midi = () => {
@@ -663,60 +704,44 @@ const start_midi = () => {
             console.log("error")
         }
     });
-    function onMIDISuccess(midiAccess) {
+    const onMIDISuccess = async (midiAccess) => {
+        console.log("MIDI ready!");
         // console.log(midiAccess.outputs);
         // for (const element of midiAccess.outputs) {
         //     console.log(element)
         // }
-        // const oo = midiAccess.outputs.get("-631276577");
-        // oo.send([176,1,118]);
-        // const oo2 = midiAccess.outputs.get("967857578");
-        // oo2.send([176,1,118]);
-        console.log("MIDI ready!");
-        midi = midiAccess;
+        const midi_output_id = "967857578"
+        const midi_output = midiAccess.outputs.get(midi_output_id);
+        console.assert(midi_output, `midi output not found: ${midi_output_id}`)
+        midi_output.send([159,12,127]); // enable daw mode
+        midi_output.send([182,69,127]); // switch relative mode on
+        midi_output.send([182,72,127]); // switch relative mode on
+        midi_output.send([182,73,127]); // switch relative mode on
         startLoggingMIDIInput(midiAccess)
     }
     function onMIDIFailure(msg) {
         console.error(`Failed to get MIDI access - ${msg}`);
     }
     function onMIDIMessage(event) {
-        // let str = `MIDI message received at timestamp ${event.timeStamp.toFixed(2)}[${event.data.length} bytes]: `;
-        // for (const character of event.data) {
-        //     // str += `0x${character.toString(16)} `;
-        //     str += `${character} `;
-        // }
-        // console.log(str)
-        const column = event.data[0] - 175
-        const row = event.data[1] % 32
-        const part = parseInt(event.data[1] / 32)
-        const value = event.data[2]
-        // console.log(row, column, part, value);
-        if (part === 0) {
-            context.midi_values[[row, column, part]] = value * 128
-            context.midi_values[[row, column, 1]] = null
-        } else {
-            context.midi_values[[row, column, part]] = value
+        // console.log(event.data)
+        const column = (event.data[1] - 77)%8
+        const row = parseInt((event.data[1] - 77)/8)
+        const value = event.data[2] - 64
+        // console.log(column, row, value);
+        for (let _ = 0; _ < Math.abs(value); _++) {
+            if (value > 0) {
+                roll_up_2(column, row)
+            } else {
+                roll_down_2(column, row)
+            }
         }
-        if (context.midi_values[[row, column, 1]] !== null) {
-            // const previous_value = context.midi_values[[row, column, 2]]
-            context.midi_values[[row, column, 2]] = context.midi_values[[row, column, 0]] + context.midi_values[[row, column, 1]]
-            // console.log(row, column, context.midi_values[[row, column, 2]])
-            // if (previous_value !== null && previous_value < context.midi_values[[row, column, 2]]) {
-            //     roll_up_2(row-1, column-1)
-            // } else if (previous_value !== null && previous_value > context.midi_values[[row, column, 2]]) {
-            //     roll_down_2(row-1, column-1)
-            // }
-            set_value(row, column, context.midi_values[[row, column, 2]])
-        }
-        
     }
     function startLoggingMIDIInput(midiAccess) {
         midiAccess.inputs.forEach((entry) => {
+            // console.log(entry)
             entry.onmidimessage = onMIDIMessage;
         });
     }
     navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
 }
-
-// test_usb()
 main()
