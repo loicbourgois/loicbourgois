@@ -2,7 +2,35 @@ import {
     resize,
     line_simple,
     clear,
- } from "./canvas.js"
+} from "./canvas.js"
+import {
+    patch_01
+} from "./patch_01.js"
+import {
+    patch_02
+} from "./patch_02.js"
+import {
+    patch_03
+} from "./patch_03.js"
+import {
+    patch_04
+} from "./patch_04.js"
+import {
+    patch_05
+} from "./patch_05.js"
+import {
+    patch_06
+} from "./patch_06.js"
+import {
+    patch_07
+} from "./patch_07.js"
+import {
+    sleep
+} from "./time.js"
+import {
+    get_middle
+} from "./ui.js"
+
 
 const n = {}
 let audio_context = null
@@ -20,7 +48,7 @@ const context = {
     node_ids_by_coords: {},
     midi_values: {},
 }
-// let midi = null;
+const roll = 1.005
 
 
 const get_new_node = (kind, a, b) => {
@@ -50,14 +78,6 @@ const get_new_node = (kind, a, b) => {
 }
 
 
-const get_middle = (e) => {
-    const rect = e.getBoundingClientRect();
-    const middleX = rect.left + rect.width / 2;
-    const middleY = rect.top + rect.height / 2;
-    return {x:middleX,y:middleY}
-}
-
-
 const connect = (a,b) => {
     const bs = b.split(".")
     let id_a = a
@@ -66,6 +86,9 @@ const connect = (a,b) => {
     if (bs.length == 2 && bs[1] == "detune") {
         id_b = bs[0]
         b_field = "detune"
+    } else if (bs.length == 2 && bs[1] == "gain") {
+        id_b = bs[0]
+        b_field = "gain"
     } else {
         // pass
     }
@@ -190,6 +213,7 @@ const add_node = (x, y, name, kind, a, b, c) => {
         n[name] = {
             kind: kind,
             freq: b,
+            shape: a,
             get_freq: (t) => {
                 return n[name].freq
             }
@@ -330,6 +354,8 @@ const add_node = (x, y, name, kind, a, b, c) => {
         n[name].canvas = document.getElementById(`${name}.canvas`)
         n[name].context = n[name].canvas.getContext("2d");
     }
+    n[name].x = x
+    n[name].y = y
 }
 
 
@@ -438,40 +464,10 @@ const draw = () => {
     requestAnimationFrame(draw);
 }
 
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-
-const start = async () => {
-    audio_context = new AudioContext();
-    analyser = audio_context.createAnalyser();
-    analyser.fftSize = 2048*2;
-    bufferLength = analyser.frequencyBinCount;
-    dataArray = new Uint8Array(bufferLength);
-    while (todos.length) {
-        const f = todos.shift()
-        f()
-    }
-    n.gA.node.connect(analyser);
-    n.gD.node.connect(audio_context.destination);
-}
-
-let started = false
-
-document.body.addEventListener("click", () => {
-    if (!started) {
-        start()
-        started = true
-    }
-})
-
 const set_focus = (eid) => {
     context.focused.add(eid)
     document.getElementById(eid).classList.add("focused")
 }
-
-
-const roll = 1.005
 
 
 const roll_up_2 = (x,y) => {
@@ -604,95 +600,38 @@ const process_keys = () => {
     setTimeout(process_keys, 0)
 }
 
-const main = async () => {
-    const canvas = document.getElementById("canvas")
-    resize(canvas, window.innerWidth, window.innerHeight)
-    freqs_context = canvas.getContext("2d");
-    WIDTH = canvas.width;
-    HEIGHT = canvas.height;
-    dataArray = new Uint8Array(0);
-    add_node(3, 5, "gA", "gain", 1)
-    add_node(6, 5, "gD", "gain", 0.05)
 
-    add_node(0, 3, "gf1", "gain", 0.05)
-    add_node(1, 3, "gf2", "gain", 0.05)
-    add_node(2, 3, "gf3", "gain", 0.05)
-    add_node(3, 3, "gf4", "gain", 0.05)
-    add_node(4, 3, "gf5", "gain", 0.05)
-    add_node(5, 3, "gf6", "gain", 0.05)
-    add_node(6, 3, "gf7", "gain", 0.05)
-    add_node(7, 3, "gf8", "gain", 0.05)
-
-
-    add_node(4, 0, "o3", "osc", "sine", 719.15)
-    add_node(4, 1, "g3", "gain", 91.53)
-    add_node(5, 0, "o2", "osc", "sine", 669.95)
-    add_node(5, 1, "g2", "gain", 1487.21)
-    add_node(6, 0, "o1", "osc", "sine", 194.22)
-    add_node(6, 1, "g1", "gain", 31.04)
-    add_node(6, 2, "s8", "shaper", 3.78)
-
-    add_node(5, 2, "m3", "clock_mult", 1.0)
-
-
-    add_node(1, 0, "c1", "clock", 140)
-
-    add_node(0, 1, "o5", "osc2", "sine", 40, 55*5)
-    add_node(1, 2, "g5", "gain", 20)
-    add_node(0, 0, "s1", "shaper", 26)
-    add_node(1, 1, "s2", "shaper", 2.5)
-    connect("g5", "gf2")
-
-
-
-    add_node(2, 0, "m2", "clock_mult", -516.5)
-    add_node(2, 1, "snare/s2", "shaper", 0.68)
-    add_node(2, 2, "snare/g", "gain", 0.6)
-    add_node(3, 0, "snare/s1", "shaper", 4.41)
-    add_node(3, 1, "snare/o", "osc2", "sine", 770.76, 192.03)
-    connect("m2", "snare/s1")
-    connect("m2", "snare/s2")
-    connect("snare/s1", "snare/o")
-    connect("snare/s2", "snare/g")
-    connect("snare/o", "snare/g")
-    connect("snare/g", "gf3")
-
-
-    connect("o1", "g1")
-    connect("g1", "gf8")
-    connect("gf8", "gA")
-    connect("o2", "g2")
-    connect("gA", "gD")
-    connect("g2", "o1.detune")
-    connect("c1", "m2")
-    connect("c1", "s1")
-    connect("c1", "s2")
-    connect("c1", "m3")
-    connect("m3", "s8")
-    connect("s8", "g2")
-    connect("s8", "g1")
-    connect("s2", "g5")
-    connect("s1", "o5")
-    connect("o5", "g5")
-    connect("o3", "g3")
-    connect("g3", "o2.detune")
-    connect("gf2", "gA")
-    connect("gf3", "gA")
-    connect("gf5", "gA")
-    connect("gf6", "gA")
-
-
-    document.addEventListener('keydown', function(event) {
-        context.keydowns.add(event.key)
-    });
-    document.addEventListener('keyup', function(event) {
-        context.keydowns.delete(event.key)
-    });
-    start_midi()
-    draw()
-    process_keys()
-    // test_1()
+const print_config = () => {
+    let lines = []
+    for (const k in n) {
+        if (Object.prototype.hasOwnProperty.call(n, k)) {
+            const e = n[k];
+            if (e.kind == 'osc') {
+                lines.push(`add_node(${e.x}, ${e.y}, "${k}", "${e.kind}", "${e.shape}", ${e.freq})`)
+            }
+            else if (e.kind == 'gain') {
+                lines.push(`add_node(${e.x}, ${e.y}, "${k}", "${e.kind}", ${e.gain})`)
+            } 
+            else if (e.kind == 'shaper') {
+                lines.push(`add_node(${e.x}, ${e.y}, "${k}", "${e.kind}", ${e.a})`)
+            } 
+            else if (e.kind == 'clock_mult') {
+                lines.push(`add_node(${e.x}, ${e.y}, "${k}", "${e.kind}", ${e.mult})`)
+            } 
+            else if (e.kind == 'osc2') {
+                lines.push(`add_node(${e.x}, ${e.y}, "${k}", "${e.kind}", "${e.type}", ${e.f1}, ${e.f2})`)
+            } 
+            else if (e.kind == 'clock') {
+                lines.push(`add_node(${e.x}, ${e.y}, "${k}", "${e.kind}", ${e.bpm})`)
+            } 
+            // else {
+            //     console.error(e)
+            // }
+        }
+    }
+    console.log(lines.join("\n"))
 }
+
 
 const start_midi = () => {
     navigator.permissions.query({ name: "midi", sysex: true }).then((result) => {
@@ -735,6 +674,7 @@ const start_midi = () => {
                 roll_down_2(column, row)
             }
         }
+        print_config()
     }
     function startLoggingMIDIInput(midiAccess) {
         midiAccess.inputs.forEach((entry) => {
@@ -744,4 +684,52 @@ const start_midi = () => {
     }
     navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
 }
+
+
+const start = async () => {
+    audio_context = new AudioContext();
+    analyser = audio_context.createAnalyser();
+    analyser.fftSize = 2048*4*2;
+    bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+    while (todos.length) {
+        const function_ = todos.shift()
+        function_()
+    }
+    n.gA.node.connect(analyser);
+    n.gD.node.connect(audio_context.destination);
+}
+
+
+let started = false
+
+
+const main = async () => {
+    document.body.addEventListener("click", () => {
+        if (!started) {
+            start()
+            started = true
+        }
+    })
+    const canvas = document.getElementById("canvas")
+    resize(canvas, window.innerWidth , window.innerHeight)
+    freqs_context = canvas.getContext("2d")
+    WIDTH = canvas.width
+    HEIGHT = canvas.height
+    console.log(WIDTH)
+    dataArray = new Uint8Array(0)
+    patch_01(add_node, connect)
+    document.addEventListener('keydown', function(event) {
+        context.keydowns.add(event.key)
+    });
+    document.addEventListener('keyup', function(event) {
+        context.keydowns.delete(event.key)
+    });
+    start_midi()
+    draw()
+    process_keys()
+    print_config()
+}
+
+
 main()
