@@ -21,9 +21,11 @@ import {
 import {
     patch_06
 } from "./patch_06.js"
-import {
-    patch_07
-} from "./patch_07.js"
+import {patch_07} from "./patch_07.js"
+import {patch_08} from "./patch_08.js"
+import {patch_09} from "./patch_09.js"
+import {patch_10} from "./patch_10.js"
+import {get_node_fields} from "./get_node_fields.js"
 import {
     sleep
 } from "./time.js"
@@ -72,8 +74,12 @@ const get_new_node = (kind, a, b) => {
         // pass
     } else if (kind == "clock_mult") {
         // pass
+    } else if (kind == "delay") {
+        const n = audio_context.createDelay(a);
+        n.delayTime.setValueAtTime(a, audio_context.currentTime)
+        return n
     } else {
-        throw `invalid kind: ${kind}`
+        throw `get_new_node invalid kind: ${kind}`
     }
 }
 
@@ -92,6 +98,8 @@ const connect = (a,b) => {
     } else {
         // pass
     }
+    console.assert(n[id_a], `${id_a} not found`)
+    console.assert(n[id_b], `${id_b} not found`)
     if (n[id_a] && n[id_a].kind == "clock" && n[id_b].kind == "clock_mult") {
         n[id_b].getx = (time) => {
             return (n[id_a].getx(time) * n[id_b].mult) % 1
@@ -146,7 +154,11 @@ const add_node = (x, y, name, kind, a, b, c) => {
     if (context.node_ids_by_coords[[x,y]]) {
         throw Error(`emplacement already used: ${x},${y} | ${context.node_ids_by_coords[[x,y]]} | ${name}`)
     }
-    context.node_ids_by_coords[[x,y]] = name
+    if (kind == "kick") {
+        // pass
+    } else { 
+        context.node_ids_by_coords[[x,y]] = name
+    }
     if (kind == "osc2") {
         context.node_ids_by_coords[[x,y+1]] = name + "/2"
         n[name + "/2"] = {
@@ -221,105 +233,31 @@ const add_node = (x, y, name, kind, a, b, c) => {
         todos.push(() => {
             n[name].node = get_new_node(kind, a, b)
         })
+    } else if (kind == "kick") { 
+        add_node(x+0, y+1, name+"/o", "osc2", "sine", 38, 233)
+        add_node(x+1, y+2, name+"/g", "gain", 202)
+        add_node(x+0, y+0, name+"/s1", "shaper", 14)
+        add_node(x+1, y+1, name+"/s2", "shaper", 5)
+        add_node(x+1, y+0, name+"/m", "clock_mult", 1)
+        connect(name+"/s2", name+"/g")
+        connect(name+"/s1", name+"/o")
+        connect(name+"/o", name+"/g")
+        connect(name+"/m", name+"/s1")
+        connect(name+"/m", name+"/s2")
+        return
+    } else if (kind == "delay") { 
+        n[name] = {
+            kind: kind,
+            delay: a,
+            get_delay: (t) => {
+                return n[name].delay
+            }
+        }
+        todos.push(() => {
+            n[name].node = get_new_node(kind, a)
+        })
     } else {
-        throw `not implemented: ${kind}`
-    }
-    let node_fields = ""
-    if (kind == "gain") {
-        node_fields = `
-            <div>
-                <span>gain:</span>
-                <span id="${name}.gain">-</span>
-            </div>
-            <div>
-                <span>l gain:</span>
-                <span id="${name}.l_gain">-</span>
-            </div>
-        `
-    } else if (kind == "osc") {
-        node_fields = `
-            <div>
-                <span>type:</span>
-                <span id="${name}.type">${a}</span>
-            </div>
-            <div>
-                <span>freq:</span>
-                <span id="${name}.frequency">-</span>
-            </div>
-            <div>
-                <span>l freq:</span>
-                <span id="${name}.lf">-</span>
-            </div>
-        `
-    } else if (kind == "osc2") {
-        node_fields = `
-            <div>
-                <span>type:</span>
-                <span id="${name}.type">${a}</span>
-            </div>
-            <div>
-                <span>f1:</span>
-                <span id="${name}.f1">-</span>
-            </div>
-            <div>
-                <span>f2:</span>
-                <span id="${name}.f2">-</span>
-            </div>
-            <div>
-                <span>l freq:</span>
-                <span id="${name}.lf">-</span>
-            </div>
-        `
-    } else if (kind == "clock") { 
-        node_fields = `
-            <div>
-                <span>bpm:</span>
-                <span id="${name}.bpm">-</span>
-            </div>
-            <div>
-                <span>x:</span>
-                <span id="${name}.x">-</span>
-            </div>
-            <div>
-                <span>y:</span>
-                <span id="${name}.y">-</span>
-            </div>
-            <canvas  id="${name}.canvas" class="clock_canvas"></canvas>
-        `
-    } else if (kind == "clock_mult") { 
-        node_fields = `
-            <div>
-                <span>mult:</span>
-                <span id="${name}.multiplier">-</span>
-            </div>
-            <div>
-                <span>x:</span>
-                <span id="${name}.x">0</span>
-            </div>
-            <div>
-                <span>y:</span>
-                <span id="${name}.y">0</span>
-            </div>
-            <canvas  id="${name}.canvas" class="clock_mult_canvas"></canvas>
-        `
-    } else if (kind == "shaper") {
-        node_fields = `
-            <div>
-                <span>a:</span>
-                <span id="${name}.a">-</span>
-            </div>
-            <div>
-                <span>x:</span>
-                <span id="${name}.x">-</span>
-            </div>
-            <div>
-                <span>y:</span>
-                <span id="${name}.y">-</span>
-            </div>
-            <canvas  id="${name}.canvas" class="shaper_canvas"></canvas>
-        `
-    } else {
-        throw new Error(`invalid kind: ${kind}`);
+        throw `add_node not implemented: ${kind}`
     }
     let width = 100
     let height = 100
@@ -339,7 +277,7 @@ const add_node = (x, y, name, kind, a, b, c) => {
                 <span class="node_name">${name}</span>
             </div>
             <div class="node_fields">
-                ${node_fields}
+                ${get_node_fields(kind, name, a)}
             </div>
         </div>
     `)
@@ -410,9 +348,6 @@ const draw = () => {
                 line_simple(w.context, {x:i,y:j+2}, {x:i,y:j}, "#ddd", 2)
             }
         }
-        if (w.kind == "shaper") {
-            document.getElementById(`${n_id}.a`).innerHTML = w.a.toFixed(2)
-        }
     }
     const resolution = 20
     const duration = 1/60 * 3
@@ -428,8 +363,7 @@ const draw = () => {
                     node.node.gain.linearRampToValueAtTime(node.get_gain(current_time + i*unit), current_time + i*unit);
                 }
             }
-        }
-        if (node.kind == "osc2") {
+        } else if (node.kind == "osc2") {
             const lf = node.get_freq(current_time)
             document.getElementById(`${k}.lf`).innerHTML = lf.toFixed(2)
             document.getElementById(`${k}.f1`).innerHTML = node.f1.toFixed(2)
@@ -441,14 +375,11 @@ const draw = () => {
                     );
                 }
             }
-        }
-        if (node.kind == "clock_mult") {
+        } else if (node.kind == "clock_mult") {
             document.getElementById(`${k}.multiplier`).innerHTML = node.mult.toFixed(2)
-        }
-        if (node.kind == "clock") {
+        } else if (node.kind == "clock") {
             document.getElementById(`${k}.bpm`).innerHTML = node.bpm.toFixed(2)
-        }
-        if (node.kind == "osc") {
+        } else if (node.kind == "osc") {
             const lf = node.get_freq(current_time)
             document.getElementById(`${k}.lf`).innerHTML = lf.toFixed(2)
             document.getElementById(`${k}.frequency`).innerHTML = node.freq.toFixed(2)
@@ -459,6 +390,14 @@ const draw = () => {
                     );
                 }
             }
+        } else if (node.kind == "shaper") {
+            document.getElementById(`${k}.a`).innerHTML = node.a.toFixed(2)
+        } else if (node.kind == "osc2/2") {
+            // pass
+        } else if (node.kind == "delay") {
+            document.getElementById(`${k}.delay`).innerHTML = node.delay.toFixed(2)
+        } else {
+            throw `draw: kind not implemented: ${node.kind}`
         }
     }
     requestAnimationFrame(draw);
@@ -495,7 +434,7 @@ const roll_up = (nid) => {
     } else if (w.kind == "gain") {
         w.gain = w.gain * roll
     } else if (w.kind == "clock_mult") {
-        w.mult = w.mult + 0.5
+        // w.mult = w.mult + 0.5
     } else if (w.kind == "clock") {
         w.bpm = w.bpm + 1
     } else if (w.kind == "osc") {
@@ -520,7 +459,7 @@ const roll_down = (nid) => {
     } else if (w.kind == "gain") {
         w.gain = w.gain / roll
     } else if (w.kind == "clock_mult") {
-        w.mult = w.mult - 0.5
+        // w.mult = w.mult - 0.5
     } else if (w.kind == "clock") {
         w.bpm = w.bpm - 1.0
     } else if (w.kind == "osc") {
@@ -718,7 +657,7 @@ const main = async () => {
     HEIGHT = canvas.height
     console.log(WIDTH)
     dataArray = new Uint8Array(0)
-    patch_01(add_node, connect)
+    patch_10(add_node, connect)
     document.addEventListener('keydown', function(event) {
         context.keydowns.add(event.key)
     });
