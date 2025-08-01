@@ -75,7 +75,7 @@ const get_new_node = (kind, a, b) => {
     } else if (kind == "clock_mult") {
         // pass
     } else if (kind == "delay") {
-        const n = audio_context.createDelay(a);
+        const n = audio_context.createDelay(100);
         n.delayTime.setValueAtTime(a, audio_context.currentTime)
         return n
     } else {
@@ -395,7 +395,10 @@ const draw = () => {
         } else if (node.kind == "osc2/2") {
             // pass
         } else if (node.kind == "delay") {
-            document.getElementById(`${k}.delay`).innerHTML = node.delay.toFixed(2)
+            if (audio_context) {
+                node.node.delayTime.setValueAtTime(node.delay, audio_context.currentTime)
+            }
+            document.getElementById(`${k}.delay`).innerHTML = node.delay.toFixed(4)
         } else {
             throw `draw: kind not implemented: ${node.kind}`
         }
@@ -439,8 +442,10 @@ const roll_up = (nid) => {
         w.bpm = w.bpm + 1
     } else if (w.kind == "osc") {
         w.freq = w.freq * roll
+    } else if (w.kind == "delay") {
+        w.delay = w.delay * roll
     } else {
-        console.warn(`not implemented: ${w.kind}`)
+        console.warn(`roll_up: not implemented: ${w.kind}`)
     }
 }
 
@@ -464,6 +469,8 @@ const roll_down = (nid) => {
         w.bpm = w.bpm - 1.0
     } else if (w.kind == "osc") {
         w.freq = w.freq / roll
+    } else if (w.kind == "delay") {
+        w.delay = w.delay / roll
     } else {
         console.warn(`not implemented: ${w.kind}`)
     }

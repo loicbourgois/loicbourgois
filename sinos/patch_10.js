@@ -21,7 +21,7 @@ const patch_10 = (add_node, connect) => {
     add_node(0, 0, "k1", "kick")
     add_node(4, 2, "d", "delay", 0.02)
     
-    add_node(5, 2, "g8", "gain", 0.8)
+    add_node(5, 2, "g8", "gain", 0.85)
 
     add_node(6, 0, "k2", "kick")
 
