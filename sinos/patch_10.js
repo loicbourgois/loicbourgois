@@ -1,6 +1,6 @@
 const patch_10 = (add_node, connect) => {
     add_node(3, 5, "gA", "gain", 1)
-    add_node(6, 5, "gD", "gain", 0.05)
+    add_node(6, 5, "gD", "gain", 0.05*0.1)
     add_node(0, 3, "gf1", "gain", 0.05)
     add_node(1, 3, "gf2", "gain", 0.05)
     add_node(2, 3, "gf3", "gain", 0.05)
@@ -20,15 +20,11 @@ const patch_10 = (add_node, connect) => {
     add_node(2, 0, "c1", "clock", 138)
     add_node(0, 0, "k1", "kick")
     add_node(4, 2, "d", "delay", 0.02)
-    
     add_node(5, 2, "g8", "gain", 0.85)
-
     add_node(6, 0, "k2", "kick")
-
     connect("c1", "k1/m")
     connect("c1", "k2/m")
     connect("k1/g", "gf2")
-    // connect("k2/g", "gf8")
     connect("o1", "g1")
     connect("g1", "gf4")
     connect("gf8", "gA")
@@ -46,15 +42,13 @@ const patch_10 = (add_node, connect) => {
     connect("gf4", "gA")
     connect("gf5", "gA")
     connect("gf6", "gA")
-
     connect("g1", "d")
     connect("d", "gf5")
-
     connect("d", "gf5")
     connect("d", "g8")
-
     connect("g8", "d")
 }
+
 
 export {
     patch_10

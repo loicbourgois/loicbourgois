@@ -49,6 +49,7 @@ const context = {
     keydowns: new Set(),
     node_ids_by_coords: {},
     midi_values: {},
+    node_name_evented: null,
 }
 const roll = 1.005
 
@@ -259,6 +260,7 @@ const add_node = (x, y, name, kind, a, b, c) => {
     } else {
         throw `add_node not implemented: ${kind}`
     }
+    n[name].coords = [x,y]
     let width = 100
     let height = 100
     if (kind == "osc2") {
@@ -294,6 +296,13 @@ const add_node = (x, y, name, kind, a, b, c) => {
     }
     n[name].x = x
     n[name].y = y
+    document.getElementById(name).addEventListener("mousedown", (e)=> {
+        context.node_evented = {
+            name: name,
+            x: e.clientX,
+            y: e.clientY,
+        }
+    })
 }
 
 
@@ -657,6 +666,48 @@ const main = async () => {
             started = true
         }
     })
+    document.body.addEventListener("mouseup", (e)=> {
+        if (context.node_evented) {
+            context.node_evented = null
+        } else {
+
+        }
+    })
+    document.body.addEventListener("mousemove", (e)=> {
+        if (context.node_evented) {
+            if (context.node_evented.x != null && context.node_evented.y != null) {
+                const dx = e.clientX - context.node_evented.x
+                const dy = context.node_evented.y - e.clientY
+                // console.log(context.node_evented.name)
+                // console.log(n[context.node_evented.name].coords)
+                const d = parseInt(Math.sqrt(dx*dx+dy*dy))
+                if (dx >= 0 && dy >= 0) {
+                    for (let _ = 0; _ < d; _++) {
+                        roll_up(context.node_evented.name)
+                    }
+                }
+                if (dx <= 0 && dy <= 0) {
+                    for (let _ = 0; _ < d; _++) {
+                        roll_down(context.node_evented.name)
+                    }
+                } 
+            } 
+            context.node_evented.x = e.clientX
+            context.node_evented.y = e.clientY
+        } else {
+            
+        }
+    })
+
+    // const x = event.clientX;
+	// 	const y = event.clientY;
+	// 	view.set_mouse(x, y);
+	// });
+	// document.addEventListener("mousemove", (e) => {
+	// 	const x = e.offsetX;
+	// 	const y = e.offsetY;
+	// 	view.set_mouse(x, y);
+
     const canvas = document.getElementById("canvas")
     resize(canvas, window.innerWidth , window.innerHeight)
     freqs_context = canvas.getContext("2d")
