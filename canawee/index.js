@@ -103,7 +103,7 @@ const flip_x = async (image) => {
 
 
 window.onload = () => {
-  console.log('bob')
+  console.log('canawee started')
   document.body.innerHTML = `
     <canvas id="canvas"></canvas>
   `

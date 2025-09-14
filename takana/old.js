@@ -1,5 +1,5 @@
 // import init from "./wasm/pkg/wasm.js";
 // init().then( async (wasm) => {
-//     // console.log('bob')
+//     // console.log('takana started')
 //     // console.log(wasm.greet())
 // });

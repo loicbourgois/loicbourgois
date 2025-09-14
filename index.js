@@ -42,7 +42,7 @@ const addMask = () => {
   context.fillStyle = `rgba(0, 0, 0, 0.01)`;
   context.font = "bold 200px monospace";
   context.textAlign = "center";
-  context.fillText("Welcome!", (canvas.width / 2), (canvas.height / 2) + 50);
+  context.fillText("Greetings!", (canvas.width / 2), (canvas.height / 2) + 50);
 }
 
 const canvas = document.getElementById('canvas');

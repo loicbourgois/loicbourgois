@@ -46,7 +46,7 @@ const html = () => {
       <p><span id="winner_name">..</span> Wins!</p>
       <button onclick="again()">Play Again<br>[space]</button>
     </div>
-    <div class="bob">
+    <div class="side">
       <input class="player_name"  id="player_1_name"
         value="${localStorage.getItem('player_1_name') ? localStorage.getItem('player_1_name') :  "Blue"}"
         oninput="localStorage.setItem('player_1_name', document.querySelector('#player_1_name').value)"></input>
@@ -54,10 +54,10 @@ const html = () => {
       <p id="move_with_instructions" class="disappearable disappear">Loading...</p>
       <p class="disappearable disappear"> <a href="garage">Go to Garage</a> </p>
       <p class="disappearable disappear">  </p>
-      <p class="disappearable disappear"> <a href="https://github.com/loicbourgois/loicbourgois/gravitle">Github</a> </p>
+      <p class="disappearable disappear"> <a href="https://github.com/loicbourgois/loicbourgois/tree/master/gravitle-duel">Github</a> </p>
     </div>
     <canvas id="canvas"></canvas>
-    <div class="bob">
+    <div class="side">
       <input class="player_name"  id="player_2_name"
         value="${localStorage.getItem('player_2_name') ? localStorage.getItem('player_2_name') :  "Green"}"
         oninput="localStorage.setItem('player_2_name', document.querySelector('#player_2_name').value)"></input>
@@ -153,7 +153,7 @@ const style = () => {
     #score_player_1, #score_player_2 {
       font-size: 2rem;
     }
-    #content > div.bob {
+    #content > div.side {
       width: 0;
       flex-grow: 1;
       display: flex;
