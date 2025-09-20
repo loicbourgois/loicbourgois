@@ -173,7 +173,7 @@ const add_links = (p1) => {
 }
 
 
-const DIAM = 0.04
+const DIAM = 0.05
 
 
 const add_option = (x,y,d=DIAM) => {
@@ -265,6 +265,7 @@ const mouse_position = {
 
 
 const save_ship = () => {
+  console.log(JSON.stringify(small_ship(true_ship()), null, 2))
   localStorage.setItem('ship', JSON.stringify(small_ship(true_ship())));
   console.log("Ship saved")
 }
@@ -309,13 +310,13 @@ const true_ship = () => {
     }
   }
   return {
-    links: links_f,
-    parts: parts_f,
+    DIAM: DIAM*0.25,
     center: {
       x: 0.8,
       y: 0.8,
     },
-    DIAM: DIAM*0.25,
+    parts: parts_f,
+    links: links_f,
   }
 }
 
