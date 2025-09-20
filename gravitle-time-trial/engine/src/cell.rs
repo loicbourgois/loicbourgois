@@ -21,6 +21,7 @@ pub struct Cell {
     pub collision_response: Point,
     pub collision_response_count: u32,
     pub activated: u8,
+    pub activated_previous: u8,
     pub kind: u8,
 }
 #[wasm_bindgen]
@@ -36,6 +37,7 @@ impl Cell {
             dv: Point::new(0.0, 0.0),
             direction: Point::new(0.0, 0.0),
             activated: 0,
+            activated_previous: 0,
             kind,
             collision_response: Point::new(0.0, 0.0),
             collision_response_count: 0,

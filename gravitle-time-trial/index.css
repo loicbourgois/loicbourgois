@@ -68,7 +68,7 @@ canvas {
   flex-grow: 1;
 }
 #aa {
-  margin-top: 25vh;
+  margin-top: 15vh;
   margin-bottom: auto;
 }
 #vic_text {
@@ -86,4 +86,7 @@ button{
 }
 #victory.yes #vic_text button:hover {
   color: #ff9f;
+}
+#victory.yes #victory_duration_1 {
+  font-size: 2rem;
 }

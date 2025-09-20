@@ -6,15 +6,27 @@ use crate::math::delta;
 use crate::math::wrap_around;
 use crate::point::Point;
 use crate::wasm_bindgen;
+use serde::Serialize;
+use std::collections::HashMap;
 const BOOSTER: u8 = 1;
 const LINK_STRENGH: f32 = 0.2;
+
+#[derive(Serialize)]
+struct ActivationEvent {
+    c: u32,
+    a: u8,
+}
+
 #[wasm_bindgen]
 pub struct World {
     cells: Vec<Cell>,
     links: Vec<Link>,
     pub victory: u8,
-    pub duration: u32,
-    pub victory_duration: u32,
+    pub step: u32,
+    pub victory_duration: Option<u32>,
+    pub victory_end: Option<u32>,
+    pub move_start: Option<u32>,
+    activation_events: HashMap<u32, Vec<ActivationEvent>>,
 }
 impl Default for World {
     fn default() -> Self {
@@ -27,9 +39,12 @@ impl World {
         World {
             cells: Vec::new(),
             links: Vec::new(),
-            duration: 0,
+            step: 0,
             victory: 0,
-            victory_duration: 0,
+            victory_duration: None,
+            move_start: None,
+            victory_end: None,
+            activation_events: HashMap::new(),
         }
     }
     pub fn link_exists(&self, aidx: usize, bidx: usize) -> bool {
@@ -43,12 +58,12 @@ impl World {
         }
         false
     }
-    pub fn step(&mut self) {
+    pub fn run_step(&mut self) {
         self.update_01();
         self.update_02();
         self.update_03();
         self.update_04();
-        self.duration += 1;
+        self.step += 1;
     }
     pub fn update_01(&mut self) {
         let cells_ptr = self.cells.as_mut_ptr();
@@ -74,7 +89,20 @@ impl World {
                 if ca.kind == BOOSTER && ca.activated == 1 {
                     ca.dp.x -= ca.direction.x * 0.0001;
                     ca.dp.y -= ca.direction.y * 0.0001;
+                    if self.move_start.is_none() {
+                        self.move_start = Some(self.step);
+                    }
                 }
+                if ca.activated_previous != ca.activated {
+                    self.activation_events
+                        .entry(self.step - self.move_start.unwrap())
+                        .or_default()
+                        .push(ActivationEvent {
+                            c: ca.idx,
+                            a: ca.activated,
+                        });
+                }
+                ca.activated_previous = ca.activated;
                 ca.np.x = ca.p.x + ca.dp.x;
                 ca.np.y = ca.p.y + ca.dp.y;
                 ca.link_response.reset();
@@ -106,9 +134,7 @@ impl World {
                         },
                         dp: cb.dp,
                     };
-                    // let d = ;
                     let diams = (ca.diameter + cb.diameter) * 0.5;
-                    // let diams_sqrd = ;
                     let colliding = wa.d_sqrd < diams * diams;
                     if colliding && ca.kind != 5 && ca.kind != 6 && cb.kind != 5 && cb.kind != 6 {
                         let mut cr = collision_response(&cria, &crib);
@@ -176,10 +202,15 @@ impl World {
                 p.pp.y = p.p.y - p.dp.y - p.collision_response.y - p.link_response.y;
             }
         }
-        if c5 == 0 && self.victory != 1 {
-            self.victory_duration = self.duration;
+        if c5 == 0 && self.victory != 1 && self.move_start.is_some() {
+            self.victory_end = Some(self.step);
+            self.victory_duration = Some(self.step - self.move_start.unwrap());
             self.victory = 1;
         }
+    }
+    pub fn get_activation_events(&self) -> String {
+        serde_json::to_string(&self.activation_events)
+            .unwrap_or_else(|_| "Error serializing activation_events to JSON".to_string())
     }
     // Cell
     pub fn add_cell(&mut self, x: f32, y: f32, diameter: f32, kind: u8) -> u32 {

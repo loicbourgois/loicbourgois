@@ -95,16 +95,15 @@ function getDataViewMemory0() {
     return cachedDataViewMemory0;
 }
 
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+
 function _assertClass(instance, klass) {
     if (!(instance instanceof klass)) {
         throw new Error(`expected instance of ${klass.name}`);
     }
 }
-
-export function setup() {
-    wasm.setup();
-}
-
 /**
  * @param {Point} a
  * @param {Point} b
@@ -117,6 +116,10 @@ export function wrap_around(a, b) {
     var ptr1 = b.__destroy_into_raw();
     const ret = wasm.wrap_around(ptr0, ptr1);
     return WrapAroundResult.__wrap(ret);
+}
+
+export function setup() {
+    wasm.setup();
 }
 
 const CellFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -315,6 +318,19 @@ export class Cell {
      */
     set activated(arg0) {
         wasm.__wbg_set_cell_activated(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get activated_previous() {
+        const ret = wasm.__wbg_get_cell_activated_previous(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set activated_previous(arg0) {
+        wasm.__wbg_set_cell_activated_previous(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {number}
@@ -633,28 +649,54 @@ export class World {
     /**
      * @returns {number}
      */
-    get duration() {
-        const ret = wasm.__wbg_get_world_duration(this.__wbg_ptr);
+    get step() {
+        const ret = wasm.__wbg_get_world_step(this.__wbg_ptr);
         return ret >>> 0;
     }
     /**
      * @param {number} arg0
      */
-    set duration(arg0) {
-        wasm.__wbg_set_world_duration(this.__wbg_ptr, arg0);
+    set step(arg0) {
+        wasm.__wbg_set_world_step(this.__wbg_ptr, arg0);
     }
     /**
-     * @returns {number}
+     * @returns {number | undefined}
      */
     get victory_duration() {
         const ret = wasm.__wbg_get_world_victory_duration(this.__wbg_ptr);
-        return ret >>> 0;
+        return ret === 0x100000001 ? undefined : ret;
     }
     /**
-     * @param {number} arg0
+     * @param {number | null} [arg0]
      */
     set victory_duration(arg0) {
-        wasm.__wbg_set_world_victory_duration(this.__wbg_ptr, arg0);
+        wasm.__wbg_set_world_victory_duration(this.__wbg_ptr, isLikeNone(arg0) ? 0x100000001 : (arg0) >>> 0);
+    }
+    /**
+     * @returns {number | undefined}
+     */
+    get victory_end() {
+        const ret = wasm.__wbg_get_world_victory_end(this.__wbg_ptr);
+        return ret === 0x100000001 ? undefined : ret;
+    }
+    /**
+     * @param {number | null} [arg0]
+     */
+    set victory_end(arg0) {
+        wasm.__wbg_set_world_victory_end(this.__wbg_ptr, isLikeNone(arg0) ? 0x100000001 : (arg0) >>> 0);
+    }
+    /**
+     * @returns {number | undefined}
+     */
+    get move_start() {
+        const ret = wasm.__wbg_get_world_move_start(this.__wbg_ptr);
+        return ret === 0x100000001 ? undefined : ret;
+    }
+    /**
+     * @param {number | null} [arg0]
+     */
+    set move_start(arg0) {
+        wasm.__wbg_set_world_move_start(this.__wbg_ptr, isLikeNone(arg0) ? 0x100000001 : (arg0) >>> 0);
     }
     /**
      * @returns {number}
@@ -795,6 +837,21 @@ export class World {
         const ret = wasm.world_add_cell(this.__wbg_ptr, x, y, diameter, kind);
         return ret >>> 0;
     }
+    /**
+     * @returns {string}
+     */
+    get_activation_events() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.world_get_activation_events(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
     update_04() {
         wasm.world_update_04(this.__wbg_ptr);
     }
@@ -807,8 +864,8 @@ export class World {
     update_01() {
         wasm.world_update_01(this.__wbg_ptr);
     }
-    step() {
-        wasm.world_step(this.__wbg_ptr);
+    run_step() {
+        wasm.world_run_step(this.__wbg_ptr);
     }
     /**
      * @param {number} aidx

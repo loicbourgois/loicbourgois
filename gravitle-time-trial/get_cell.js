@@ -1,6 +1,6 @@
 const get_cell = (cells_view, cell_size, idx) => {
 	const cell = {
-		kind: cells_view.getUint8(idx * cell_size + 77, true),
+		kind: cells_view.getUint8(idx * cell_size + 78, true),
 		activated: cells_view.getUint8(idx * cell_size + 76, true),
 		idx: cells_view.getUint32(idx * cell_size + 64, true),
 		p: {
