@@ -119,6 +119,21 @@ const draw_ship_only = (gravitle, world, memory, view) => {
 			}
 		}
 	}
+	for (let i = 0; i < world.cells_count(); i++) {
+		const cell = get_cell(cells_view, cell_size, i);
+		if (cell.kind == 5) {
+			// const p3 = cell.ap;
+			// const d3 = cell.diameter * mult;
+			// const c3 = "#ff93";
+			// view.draw_disk_multi(p3.x, p3.y, d3, c3);
+		} else if (cell.kind == 6) {
+			const p3 = cell.ap;
+			const d3 = cell.diameter * mult;
+			const c3 = "#5548";
+			view.draw_disk_multi(p3.x, p3.y, d3, c3);
+		} else {
+		}
+	}
 };
 
 const draw_cells = (gravitle, world, memory, view) => {

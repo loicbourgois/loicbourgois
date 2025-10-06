@@ -1,5 +1,6 @@
 use crate::cell::Cell;
 use crate::link::Link;
+use crate::log;
 use crate::math::Cri;
 use crate::math::collision_response;
 use crate::math::delta;
@@ -206,6 +207,7 @@ impl World {
             self.victory_end = Some(self.step);
             self.victory_duration = Some(self.step - self.move_start.unwrap());
             self.victory = 1;
+            log("victory");
         }
     }
     pub fn get_activation_events(&self) -> String {
@@ -223,6 +225,9 @@ impl World {
     }
     pub fn set_cell_activated(&mut self, idx: u32, activated: u8) {
         self.cells[idx as usize].activated = activated;
+    }
+    pub fn switch_cell_activated(&mut self, idx: u32) {
+        self.cells[idx as usize].activated = (self.cells[idx as usize].activated + 1) % 2;
     }
     pub fn set_cell_kind(&mut self, idx: u32, kind: u8) {
         self.cells[idx as usize].kind = kind;

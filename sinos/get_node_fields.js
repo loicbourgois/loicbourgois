@@ -100,6 +100,13 @@ const get_node_fields = (kind, name, a) => {
                 <span id="${name}.delay">-</span>
             </div>
         `
+    } else if (kind == "filter") { 
+        node_fields = `
+            <div>
+                <span>freq:</span>
+                <span id="${name}.frequency">-</span>
+            </div>
+        `
     } else {
         throw new Error(`html invalid kind: ${kind}`);
     }

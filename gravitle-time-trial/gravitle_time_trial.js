@@ -821,6 +821,12 @@ export class World {
     }
     /**
      * @param {number} idx
+     */
+    switch_cell_activated(idx) {
+        wasm.world_switch_cell_activated(this.__wbg_ptr, idx);
+    }
+    /**
+     * @param {number} idx
      * @param {number} activated
      */
     set_cell_activated(idx, activated) {
