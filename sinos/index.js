@@ -25,6 +25,10 @@ import {patch_07} from "./patch_07.js"
 import {patch_08} from "./patch_08.js"
 import {patch_09} from "./patch_09.js"
 import {patch_10} from "./patch_10.js"
+import {patch_11} from "./patch_11.js"
+import {patch_12} from "./patch_12.js"
+import {patch_13} from "./patch_13.js"
+import {patch_14} from "./patch_14.js"
 import {get_node_fields} from "./get_node_fields.js"
 import {
     sleep
@@ -42,7 +46,7 @@ let dataArray
 let freqs_context
 let WIDTH
 let HEIGHT
-const lines = []
+const lines_draw = []
 const todos = []
 const context = {
     focused: new Set(),
@@ -79,7 +83,12 @@ const get_new_node = (kind, a, b) => {
         const n = audio_context.createDelay(100);
         n.delayTime.setValueAtTime(a, audio_context.currentTime)
         return n
-    } else {
+    } else if (kind == "filter") {
+        const n = audio_context.createBiquadFilter();
+        n.type = a
+        n.frequency.setValueAtTime(b, audio_context.currentTime)
+        return n
+    }else {
         throw `get_new_node invalid kind: ${kind}`
     }
 }
@@ -96,6 +105,9 @@ const connect = (a,b) => {
     } else if (bs.length == 2 && bs[1] == "gain") {
         id_b = bs[0]
         b_field = "gain"
+    } else if (bs.length == 2 && bs[1] == "frequency") {
+        id_b = bs[0]
+        b_field = "frequency"
     } else {
         // pass
     }
@@ -143,10 +155,12 @@ const connect = (a,b) => {
     console.assert(eb, `invalid element: ${id_b}`)
     const pa = get_middle(ea) 
     const pb = get_middle(eb)
-    lines.push({
-        p1:pa,
+    lines_draw.push({
+        p1: pa,
         p2: pb,
         color: "#fff",
+        ea: ea,
+        eb: eb,
     })
 }
 
@@ -257,6 +271,15 @@ const add_node = (x, y, name, kind, a, b, c) => {
         todos.push(() => {
             n[name].node = get_new_node(kind, a)
         })
+    } else if (kind == "filter") { 
+        n[name] = {
+            kind: kind,
+            type: a,
+            frequency: b,
+        }
+        todos.push(() => {
+            n[name].node = get_new_node(kind, a, b)
+        })
     } else {
         throw `add_node not implemented: ${kind}`
     }
@@ -267,10 +290,10 @@ const add_node = (x, y, name, kind, a, b, c) => {
         height = 220
     }
     document.body.insertAdjacentHTML('beforeend', `
-        <div id="${name}" class="node" style="
+        <div id="${name}" class="node top_${y} left_${x}" style="
             position: absolute;
-            top: ${y*120 + 20}px;
-            left: ${x*120 + 20}px;
+            top: ${y*120 + 50}px;
+            // left: ${x*120 + 20}px;
             width: ${width}px;
             height: ${height}px;
         ">
@@ -308,7 +331,7 @@ const add_node = (x, y, name, kind, a, b, c) => {
 
 const draw = () => {
     let current_time = performance.now() / 1000
-    if (audio_context) {
+    if (audio_context && analyser) {
         analyser.getByteFrequencyData(dataArray);
         current_time = audio_context.currentTime
     }
@@ -330,10 +353,14 @@ const draw = () => {
             barHeight = data_2[i];
         }
         freqs_context.fillStyle = `rgb(${barHeight} ${barHeight/2} 0)`;
-        freqs_context.fillRect(i, HEIGHT - barHeight, 1, barHeight);
+        // freqs_context.fillRect(i, HEIGHT - barHeight, 1, barHeight);
+        freqs_context.fillRect(WIDTH/2+i*0.8, HEIGHT-250, 2, barHeight);
+        freqs_context.fillRect(WIDTH/2-i*0.8, HEIGHT-250, 2, barHeight);
     }
-    for (const l of lines) {
-        line_simple(freqs_context, l.p1, l.p2, l.color, 2)
+    for (const l of lines_draw) {
+        const p1 = get_middle(l.ea)
+        const p2 = get_middle(l.eb)
+        line_simple(freqs_context, p1, p2, l.color, 2)
     }
     for (const e of [
         ...document.getElementsByClassName('clock_canvas'), 
@@ -408,12 +435,19 @@ const draw = () => {
                 node.node.delayTime.setValueAtTime(node.delay, audio_context.currentTime)
             }
             document.getElementById(`${k}.delay`).innerHTML = node.delay.toFixed(4)
+        } else if (node.kind == "filter") {
+            if (audio_context) {
+                // console.log(node.node)
+                node.node.frequency.setValueAtTime(node.frequency, audio_context.currentTime)
+            }
+            document.getElementById(`${k}.frequency`).innerHTML = node.frequency.toFixed(2)
         } else {
             throw `draw: kind not implemented: ${node.kind}`
         }
     }
     requestAnimationFrame(draw);
 }
+
 
 const set_focus = (eid) => {
     context.focused.add(eid)
@@ -453,6 +487,8 @@ const roll_up = (nid) => {
         w.freq = w.freq * roll
     } else if (w.kind == "delay") {
         w.delay = w.delay * roll
+    } else if (w.kind == "filter") {
+        w.frequency = w.frequency * roll
     } else {
         console.warn(`roll_up: not implemented: ${w.kind}`)
     }
@@ -480,6 +516,8 @@ const roll_down = (nid) => {
         w.freq = w.freq / roll
     } else if (w.kind == "delay") {
         w.delay = w.delay / roll
+    } else if (w.kind == "filter") {
+        w.frequency = w.frequency / roll
     } else {
         console.warn(`not implemented: ${w.kind}`)
     }
@@ -519,8 +557,6 @@ const process_keys = () => {
         if (k == "r") {
             roll_down_2(3,0)
         }
-
-
         if (k == "q") {
             roll_up_2(0,1)
         }
@@ -588,16 +624,18 @@ const print_config = () => {
 }
 
 
-const start_midi = () => {
-    navigator.permissions.query({ name: "midi", sysex: true }).then((result) => {
-        if (result.state === "granted") {
-            console.log("granted")
-        } else if (result.state === "prompt") {
-            console.log("prompt")
-        } else {
-            console.log("error")
-        }
-    });
+const start_midi = async () => {
+    // navigator.requestMIDIAccess({ sysex: true })
+    // navigator.permissions.query({ name: "midi", sysex: true }).then((result) => {
+    //     if (result.state === "granted") {
+    //         console.log("granted")
+    //     } else if (result.state === "prompt") {
+    //         console.log("prompt")
+    //         // console.log(result)
+    //     } else {
+    //         console.log("error")
+    //     }
+    // });
     const onMIDISuccess = async (midiAccess) => {
         console.log("MIDI ready!");
         // console.log(midiAccess.outputs);
@@ -638,12 +676,25 @@ const start_midi = () => {
         });
     }
     navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+    // const aa = navigator.requestMIDIAccess()
+    // console.log(aa)
+    // const bb = await aa
+    // console.log("Web MIDI supported?", "requestMIDIAccess" in navigator);
+}
+
+
+const get_audio_context = async () => {
+    const audio_context = new AudioContext();
+    await audio_context.audioWorklet.addModule('noise-processor.js');
+    return audio_context
 }
 
 
 const start = async () => {
-    audio_context = new AudioContext();
+    console.log("start")
+    audio_context = await get_audio_context()
     analyser = audio_context.createAnalyser();
+    console.log(analyser)
     analyser.fftSize = 2048*4*2;
     bufferLength = analyser.frequencyBinCount;
     dataArray = new Uint8Array(bufferLength);
@@ -651,7 +702,19 @@ const start = async () => {
         const function_ = todos.shift()
         function_()
     }
-    n.gA.node.connect(analyser);
+    const compressor = audio_context.createDynamicsCompressor();
+    // Configure settings
+    compressor.threshold.setValueAtTime(-54, audio_context.currentTime); // dB value where compression starts
+    compressor.knee.setValueAtTime(30, audio_context.currentTime);       // How smoothly the curve transitions
+    compressor.ratio.setValueAtTime(12, audio_context.currentTime);      // Amount of compression
+    compressor.attack.setValueAtTime(0.05, audio_context.currentTime);  // Time (s) to start compressing
+    compressor.release.setValueAtTime(0.05, audio_context.currentTime);  // Time (s) to release compression
+    // Connect everything
+    n.gA.node.connect(compressor)
+    compressor.connect(n.gD.node);
+    compressor.connect(analyser);
+    const noise = new AudioWorkletNode(audio_context, 'noise-generator');
+    noise.connect(n.h1.node);
     n.gD.node.connect(audio_context.destination);
 }
 
@@ -698,7 +761,6 @@ const main = async () => {
             
         }
     })
-
     // const x = event.clientX;
 	// 	const y = event.clientY;
 	// 	view.set_mouse(x, y);
@@ -707,15 +769,14 @@ const main = async () => {
 	// 	const x = e.offsetX;
 	// 	const y = e.offsetY;
 	// 	view.set_mouse(x, y);
-
     const canvas = document.getElementById("canvas")
     resize(canvas, window.innerWidth , window.innerHeight)
     freqs_context = canvas.getContext("2d")
     WIDTH = canvas.width
     HEIGHT = canvas.height
-    console.log(WIDTH)
+    // console.log(WIDTH)
     dataArray = new Uint8Array(0)
-    patch_10(add_node, connect)
+    patch_14(add_node, connect)
     document.addEventListener('keydown', function(event) {
         context.keydowns.add(event.key)
     });
@@ -726,6 +787,12 @@ const main = async () => {
     draw()
     process_keys()
     print_config()
+    window.addEventListener("resize", function () {
+        // console.log("aa")
+		resize(canvas, window.innerWidth , window.innerHeight)//resize();
+        WIDTH = canvas.width
+        HEIGHT = canvas.height
+	});
 }
 
 

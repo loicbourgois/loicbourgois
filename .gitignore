@@ -1,3 +1,4 @@
+gravitle-time-trial/engine/target
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
 # compiled output
@@ -47,3 +48,15 @@ Thumbs.db
 
 mnist/mnist_png
 takana/wasm/target
+
+movie-finder-api/target
+movie-finder-api/cert.pem
+movie-finder-api/key.pem
+movie-finder-api/fullchain.pem
+movie-finder-api/privkey.pem
+
+cert.pem
+key.pem
+fullchain.pem
+privkey.pem
+

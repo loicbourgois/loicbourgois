@@ -438,9 +438,7 @@ const render = (context) => {
   for (let p of parts) {
     if (p.deleted) {
       continue
-    }
-    if (p.activated && p.kind == 'booster')
-    {
+    } else if (p.activated && p.kind == 'booster') {
       fill_circle_2(context, add(p.p, mul(p.direction, 0.007+Math.random()*0.003)), p.d*0.7, colors[p.kind].value_3)
       fill_circle_2(context, add(p.p, mul(p.direction, 0.005+Math.random()*0.001)), p.d*0.9, colors[p.kind].value_2)
       fill_circle_2(context, p.p, p.d, colors[p.kind].value_1)

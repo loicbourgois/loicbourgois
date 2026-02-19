@@ -15,6 +15,30 @@ body {
   display: flex;
   flex-direction: column;
 }
+.left_0 {
+  left: 10vw
+}
+.left_1 {
+  left: 20vw
+}
+.left_2 {
+  left: 30vw
+}
+.left_3 {
+  left: 40vw
+}
+.left_4 {
+  left: 50vw
+}
+.left_5 {
+  left: 60vw
+}
+.left_6 {
+  left: 70vw
+}
+.left_7 {
+  left: 80vw
+}
 canvas {
   background: #000;
   margin: auto;

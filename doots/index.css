@@ -114,3 +114,19 @@ select {
   flex-grow: 1;
   overflow: scroll;
 }
+
+.zoop {
+  width: 0;
+  flex-grow: 1;
+}
+
+.zap {
+  padding: 0.5rem;
+  padding-top: 0.6rem;
+  background: #444;
+  /* margin-top: 1px;
+  margin-left: 1px;
+  margin-bottom: 1px;
+  margin-right: 1px; */
+  border: solid 1px #000;
+}
