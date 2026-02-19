@@ -9,11 +9,9 @@ open http://localhost/movie-finder/
 
 # Backend for movie_finder
 $HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/local.sh
-
-curl https://localhost:3000/about
-
-curl -k https://localhost:3000/about
-
+    curl -k https://localhost:3000/about
+    open https://localhost:3000/about
+    open https://localhost/movie-finder/
 ```
 
 
@@ -21,5 +19,5 @@ curl -k https://localhost:3000/about
 ```sh
 $HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/admin.sh
     $HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/staging.sh
-curl http://api.loicbourgois.com:3000/about
+curl -k https://api.loicbourgois.com:3000/about
 ```

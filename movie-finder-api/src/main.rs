@@ -139,17 +139,12 @@ async fn main() -> std::io::Result<()> {
         //     _ => panic!("invalid environment")
         // };
         let cors = Cors::default()
-    .allowed_origin("http://localhost")                
-    .allowed_origin("https://localhost")               
-    .allowed_origin("localhost")               
+    .allowed_origin("https://localhost")
+            .allowed_origin("https://loicbourgois.com")
     .allowed_methods(vec!["GET", "POST", "OPTIONS"])
-    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-    .allowed_header(http::header::CONTENT_TYPE)
+    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT, http::header::ORIGIN])
+            .allowed_header(http::header::CONTENT_TYPE)
     .supports_credentials();
-            // .allowed_origin("localhost")
-            // .allowed_origin("loicbourgois.com")
-            // .allowed_origin("http://loicbourgois.com")
-            // .allowed_origin("https://loicbourgois.com")
         let app = App::new()
             .app_data(web::Data::new(data.clone()))
             .wrap(cors)
@@ -170,9 +165,5 @@ async fn main() -> std::io::Result<()> {
             .set_certificate_chain_file(get_chain_path())
             .unwrap();
         server = server.bind_openssl("0.0.0.0:3000", builder)?;
-    // } else {
-    //     aa = aa.bind(("0.0.0.0", 9000))?;
-    // }
-    // server = server.bind(("0.0.0.0", 3000))?;
     server.run().await
 }
