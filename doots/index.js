@@ -655,7 +655,7 @@ const conditions = {
     }
   },
   'low_resource': {
-    label: 'self resource < 20%',
+    label: 'my {resource} < 20%',
     f: (doot_id) => {
       for (let kind of kinds) {
         if ( data.doots[doot_id].got[kind] < 0.2 && Object.keys(data.free_resources[kind]).length ) {
@@ -665,7 +665,7 @@ const conditions = {
     }
   },
   'resource_not_full': {
-    label: 'self resource < 90%',
+    label: 'my {resource} < 90%',
     f: (doot_id) => {
       for (let kind of kinds) {
         if ( data.doots[doot_id].got[kind] < 0.9 && Object.keys(data.free_resources[kind]).length ) {
@@ -675,7 +675,7 @@ const conditions = {
     }
   },
   'resource_not_half': {
-    label: 'self resource < 50%',
+    label: 'my {resource} < 50%',
     f: (doot_id) => {
       for (let kind of kinds) {
         if ( data.doots[doot_id].got[kind] < 0.5 && Object.keys(data.free_resources[kind]).length ) {
@@ -687,7 +687,7 @@ const conditions = {
 }
 const actions = {
   'take_resource': {
-    label: 'take resource',
+    label: 'take {resource}',
     f: (doot_id, kind) => {
       if (kind) {
         return take_action(doot_id, kind)
@@ -701,37 +701,37 @@ const actions = {
 }
 for (let kind of kinds) {
   conditions[`lower_${kind}`] = {
-    label: `self ${kind} < 20%`,
+    label: `my ${kind} < 20%`,
     f: (doot_id) => {
       return data.doots[doot_id].got[kind] < 0.2
     }
   }
   conditions[`low_${kind}`] = {
-    label: `self ${kind} < 50%`,
+    label: `my ${kind} < 50%`,
     f: (doot_id) => {
       return data.doots[doot_id].got[kind] < 0.5
     }
   }
   conditions[`${kind}_not_full`]= {
-    label: `self ${kind} < 90%`,
+    label: `my ${kind} < 90%`,
     f: (doot_id) => {
       return data.doots[doot_id].got[kind] < 0.9
     }
   }
   conditions[`${kind}_barelly_full`]= {
-    label: `self ${kind} > 20%`,
+    label: `my ${kind} > 20%`,
     f: (doot_id) => {
       return data.doots[doot_id].got[kind] > 0.2
     }
   }
   conditions[`${kind}_half_full`]= {
-    label: `self ${kind} > 50%`,
+    label: `my ${kind} > 50%`,
     f: (doot_id) => {
       return data.doots[doot_id].got[kind] > 0.5
     }
   }
   conditions[`${kind}_almost_full`]= {
-    label: `self ${kind} > 90%`,
+    label: `my ${kind} > 90%`,
     f: (doot_id) => {
       return data.doots[doot_id].got[kind] > 0.9
     }
@@ -931,9 +931,12 @@ const update_rules_ui = () => {
         <button ${up_disabled}    onclick="move_rule_up(${i})">↑</button>
         <button ${down_disabled}  onclick="move_rule_down(${i})">↓</button>
         <div class="expand conditions">
-          <select onchange="update_c1(${i})"  name="rule-${i}-c1" id="rule-${i}-c1">
-            ${c1_options}
-          </select>
+          <div class="flex">
+            <span class="zap">if</span>
+            <select onchange="update_c1(${i})"  name="rule-${i}-c1" id="rule-${i}-c1" class="zoop">
+              ${c1_options}
+            </select>
+          </div>
           <div class="flex">
             <select onchange="update_operand(${i})" name="rule-${i}-operand" id="rule-${i}-operand">
               ${operand_options}

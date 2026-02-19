@@ -28,6 +28,7 @@ import {patch_10} from "./patch_10.js"
 import {patch_11} from "./patch_11.js"
 import {patch_12} from "./patch_12.js"
 import {patch_13} from "./patch_13.js"
+import {patch_14} from "./patch_14.js"
 import {get_node_fields} from "./get_node_fields.js"
 import {
     sleep
@@ -104,6 +105,9 @@ const connect = (a,b) => {
     } else if (bs.length == 2 && bs[1] == "gain") {
         id_b = bs[0]
         b_field = "gain"
+    } else if (bs.length == 2 && bs[1] == "frequency") {
+        id_b = bs[0]
+        b_field = "frequency"
     } else {
         // pass
     }
@@ -326,9 +330,8 @@ const add_node = (x, y, name, kind, a, b, c) => {
 
 
 const draw = () => {
-    // console.log("ee")
     let current_time = performance.now() / 1000
-    if (audio_context) {
+    if (audio_context && analyser) {
         analyser.getByteFrequencyData(dataArray);
         current_time = audio_context.currentTime
     }
@@ -445,6 +448,7 @@ const draw = () => {
     requestAnimationFrame(draw);
 }
 
+
 const set_focus = (eid) => {
     context.focused.add(eid)
     document.getElementById(eid).classList.add("focused")
@@ -553,8 +557,6 @@ const process_keys = () => {
         if (k == "r") {
             roll_down_2(3,0)
         }
-
-
         if (k == "q") {
             roll_up_2(0,1)
         }
@@ -681,10 +683,18 @@ const start_midi = async () => {
 }
 
 
+const get_audio_context = async () => {
+    const audio_context = new AudioContext();
+    await audio_context.audioWorklet.addModule('noise-processor.js');
+    return audio_context
+}
+
+
 const start = async () => {
     console.log("start")
-    audio_context = new AudioContext();
+    audio_context = await get_audio_context()
     analyser = audio_context.createAnalyser();
+    console.log(analyser)
     analyser.fftSize = 2048*4*2;
     bufferLength = analyser.frequencyBinCount;
     dataArray = new Uint8Array(bufferLength);
@@ -703,6 +713,8 @@ const start = async () => {
     n.gA.node.connect(compressor)
     compressor.connect(n.gD.node);
     compressor.connect(analyser);
+    const noise = new AudioWorkletNode(audio_context, 'noise-generator');
+    noise.connect(n.h1.node);
     n.gD.node.connect(audio_context.destination);
 }
 
@@ -764,7 +776,7 @@ const main = async () => {
     HEIGHT = canvas.height
     // console.log(WIDTH)
     dataArray = new Uint8Array(0)
-    patch_13(add_node, connect)
+    patch_14(add_node, connect)
     document.addEventListener('keydown', function(event) {
         context.keydowns.add(event.key)
     });

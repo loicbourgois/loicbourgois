@@ -48,3 +48,5 @@ Thumbs.db
 
 mnist/mnist_png
 takana/wasm/target
+
+movie-finder-api/target
