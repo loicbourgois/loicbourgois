@@ -3,6 +3,9 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - $full_path:/usr/share/nginx/html:ro
       - $full_path/nginx.conf:/etc/nginx/nginx.conf:ro
+      - $full_path/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
+      - $full_path/privkey.pem:/etc/nginx/certs/privkey.pem:ro

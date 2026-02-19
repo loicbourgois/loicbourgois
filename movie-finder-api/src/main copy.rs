@@ -6,16 +6,11 @@ use actix_web::HttpResponse;
 use actix_cors::Cors;
 use actix_web::web;
 use serde::Serialize;
-use actix_web::Responder;
+ use actix_web::Responder;
 use actix_web::get;
 use std::env;
 use chrono::DateTime;
 use chrono::Utc;
-use openssl::ssl::SslMethod;
-use openssl::ssl::SslFiletype;
-use openssl::ssl::SslAcceptor;
-
-use actix_web::{http};
 
 #[derive(Serialize)]
 struct SearchResult {
@@ -114,25 +109,13 @@ async fn main() -> std::io::Result<()> {
     println!("[ end ] load_data");
     let mut server = HttpServer::new(move || {
         println!("[start] setup");
-        // let cors = match environment {
-        //     "local" => Cors::default()
-        //         .allowed_origin("https://localhost"),
-        //     "staging" => Cors::default()
-        //         .allowed_origin("https://localhost"),
-        //     _ => panic!("invalid environment")
-        // };
-        let cors = Cors::default()
-    .allowed_origin("http://localhost")                
-    .allowed_origin("https://localhost")               
-    .allowed_origin("localhost")               
-    .allowed_methods(vec!["GET", "POST", "OPTIONS"])
-    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-    .allowed_header(http::header::CONTENT_TYPE)
-    .supports_credentials();
-            // .allowed_origin("localhost")
-            // .allowed_origin("loicbourgois.com")
-            // .allowed_origin("http://loicbourgois.com")
-            // .allowed_origin("https://loicbourgois.com")
+        let cors = match environment {
+            "local" => Cors::default()
+                .allowed_origin("http://localhost"),
+            "staging" => Cors::default()
+                .allowed_origin("http://localhost"),
+            _ => panic!("invalid environment")
+        };
         let app = App::new()
             .app_data(web::Data::new(data.clone()))
             .wrap(cors)
@@ -142,17 +125,6 @@ async fn main() -> std::io::Result<()> {
         app
     })
     .workers(config.workers);
-        let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        builder
-            .set_private_key_file("/Users/loicbourgois/github.com/loicbourgois/loicbourgois/privkey.pem", SslFiletype::PEM)
-            .unwrap();
-        builder
-            .set_certificate_chain_file("/Users/loicbourgois/github.com/loicbourgois/loicbourgois/fullchain.pem")
-            .unwrap();
-        server = server.bind_openssl("0.0.0.0:3000", builder)?;
-    // } else {
-    //     aa = aa.bind(("0.0.0.0", 9000))?;
-    // }
-    // server = server.bind(("0.0.0.0", 3000))?;
+    server = server.bind(("0.0.0.0", 3000))?;
     server.run().await
 }

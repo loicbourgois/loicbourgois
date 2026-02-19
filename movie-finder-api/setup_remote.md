@@ -21,4 +21,5 @@ $HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/admin.sh
     cd $HOME/github.com/loicbourgois
     git clone https://github.com/loicbourgois/loicbourgois.git
     cd $HOME/github.com/loicbourgois/loicbourgois
+    curl https://sh.rustup.rs -sSf | sh
 ```
