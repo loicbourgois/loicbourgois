@@ -8,6 +8,7 @@ use actix_web::web;
 use serde::Serialize;
 use actix_web::Responder;
 use actix_web::get;
+use std::path::PathBuf;
 use std::env;
 use chrono::DateTime;
 use chrono::Utc;
@@ -98,6 +99,22 @@ pub fn get_config (environment: &str) -> Config {
     }
 }
 
+fn get_key_path() -> PathBuf {
+    let home_dir = env::var("HOME")
+        .expect("HOME environment variable not set");
+    let mut path = PathBuf::from(home_dir);
+    path.push("github.com/loicbourgois/loicbourgois/privkey.pem");
+    path
+}
+
+fn get_chain_path() -> PathBuf {
+    let home_dir = env::var("HOME")
+        .expect("HOME environment variable not set");
+    let mut path = PathBuf::from(home_dir);
+    path.push("github.com/loicbourgois/loicbourgois/fullchain.pem");
+    path
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let environment = match env::var("environment") {
@@ -143,11 +160,14 @@ async fn main() -> std::io::Result<()> {
     })
     .workers(config.workers);
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+        let home_dir = env::var("HOME")
+            .expect("HOME environment variable not set");
+        let mut path = PathBuf::from(home_dir);
         builder
-            .set_private_key_file("/Users/loicbourgois/github.com/loicbourgois/loicbourgois/privkey.pem", SslFiletype::PEM)
+            .set_private_key_file(get_key_path(), SslFiletype::PEM)
             .unwrap();
         builder
-            .set_certificate_chain_file("/Users/loicbourgois/github.com/loicbourgois/loicbourgois/fullchain.pem")
+            .set_certificate_chain_file(get_chain_path())
             .unwrap();
         server = server.bind_openssl("0.0.0.0:3000", builder)?;
     // } else {
