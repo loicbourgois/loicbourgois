@@ -108,7 +108,14 @@ fn get_key_path(environment: &str) -> PathBuf {
             path.push("github.com/loicbourgois/loicbourgois/privkey.pem");
             path
         },
-        "staging" => "/etc/letsencrypt/live/api.loicbourgois.com/privkey.pem".into(),
+        "staging" => {
+            let home_dir = env::var("HOME")
+                .expect("HOME environment variable not set");
+            let mut path = PathBuf::from(home_dir);
+            path.push("github.com/loicbourgois/loicbourgois/privkey.pem");
+            path
+        },
+        // "staging" => "/etc/letsencrypt/live/api.loicbourgois.com/privkey.pem".into(),
         _ => panic!("invalid")
     }
     
@@ -123,7 +130,14 @@ fn get_chain_path(environment: &str) -> PathBuf {
             path.push("github.com/loicbourgois/loicbourgois/fullchain.pem");
             path
         },
-        "staging" => "/etc/letsencrypt/live/api.loicbourgois.com/fullchain.pem".into(),
+        "staging" => {
+            let home_dir = env::var("HOME")
+                .expect("HOME environment variable not set");
+            let mut path = PathBuf::from(home_dir);
+            path.push("github.com/loicbourgois/loicbourgois/fullchain.pem");
+            path
+        },
+        // "staging" => "/etc/letsencrypt/live/api.loicbourgois.com/fullchain.pem".into(),
         _ => panic!("invalid")
     }
 }

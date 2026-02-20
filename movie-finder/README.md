@@ -19,6 +19,7 @@ $HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/local.sh
 ```sh
 $HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/admin.sh
     screen -DR movie_finder_staging
+        cat /etc/letsencrypt/live/api.loicbourgois.com/fullchain.pem
         $HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/staging.sh
 curl -k https://api.loicbourgois.com:3000/about
 open https://api.loicbourgois.com:3000/about
