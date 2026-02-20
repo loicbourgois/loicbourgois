@@ -99,20 +99,33 @@ pub fn get_config (environment: &str) -> Config {
     }
 }
 
-fn get_key_path() -> PathBuf {
-    let home_dir = env::var("HOME")
-        .expect("HOME environment variable not set");
-    let mut path = PathBuf::from(home_dir);
-    path.push("github.com/loicbourgois/loicbourgois/privkey.pem");
-    path
+fn get_key_path(environment: &str) -> PathBuf {
+    match environment {
+        "local" => {
+            let home_dir = env::var("HOME")
+                .expect("HOME environment variable not set");
+            let mut path = PathBuf::from(home_dir);
+            path.push("github.com/loicbourgois/loicbourgois/privkey.pem");
+            path
+        },
+        "staging" => "/etc/letsencrypt/live/api.loicbourgois.com/privkey.pem".into(),
+        _ => panic!("invalid")
+    }
+    
 }
 
-fn get_chain_path() -> PathBuf {
-    let home_dir = env::var("HOME")
-        .expect("HOME environment variable not set");
-    let mut path = PathBuf::from(home_dir);
-    path.push("github.com/loicbourgois/loicbourgois/fullchain.pem");
-    path
+fn get_chain_path(environment: &str) -> PathBuf {
+    match environment {
+        "local" => {
+            let home_dir = env::var("HOME")
+                .expect("HOME environment variable not set");
+            let mut path = PathBuf::from(home_dir);
+            path.push("github.com/loicbourgois/loicbourgois/fullchain.pem");
+            path
+        },
+        "staging" => "/etc/letsencrypt/live/api.loicbourgois.com/fullchain.pem".into(),
+        _ => panic!("invalid")
+    }
 }
 
 #[actix_web::main]
@@ -155,14 +168,11 @@ async fn main() -> std::io::Result<()> {
     })
     .workers(config.workers);
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        let home_dir = env::var("HOME")
-            .expect("HOME environment variable not set");
-        let mut path = PathBuf::from(home_dir);
         builder
-            .set_private_key_file(get_key_path(), SslFiletype::PEM)
+            .set_private_key_file(get_key_path(environment), SslFiletype::PEM)
             .unwrap();
         builder
-            .set_certificate_chain_file(get_chain_path())
+            .set_certificate_chain_file(get_chain_path(environment))
             .unwrap();
         server = server.bind_openssl("0.0.0.0:3000", builder)?;
     server.run().await
