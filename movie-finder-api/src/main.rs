@@ -158,20 +158,23 @@ async fn main() -> std::io::Result<()> {
     println!("[ end ] load_data");
     let mut server = HttpServer::new(move || {
         println!("[start] setup");
-        // let cors = match environment {
-        //     "local" => Cors::default()
-        //         .allowed_origin("https://localhost"),
-        //     "staging" => Cors::default()
-        //         .allowed_origin("https://localhost"),
-        //     _ => panic!("invalid environment")
-        // };
-        let cors = Cors::default()
+        let cors = match environment {
+            "local" => Cors::default()
     .allowed_origin("https://localhost")
             .allowed_origin("https://loicbourgois.com")
     .allowed_methods(vec!["GET", "POST", "OPTIONS"])
     .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT, http::header::ORIGIN])
             .allowed_header(http::header::CONTENT_TYPE)
-    .supports_credentials();
+    .supports_credentials(),
+            "staging" => Cors::default()
+    .allowed_origin("https://localhost")
+            .allowed_origin("https://loicbourgois.com")
+    .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT, http::header::ORIGIN])
+            .allowed_header(http::header::CONTENT_TYPE)
+    .supports_credentials(),
+            _ => panic!("invalid environment")
+        };
         let app = App::new()
             .app_data(web::Data::new(data.clone()))
             .wrap(cors)
