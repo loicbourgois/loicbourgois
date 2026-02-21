@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
-cd $HOME/github.com/loicbourgois/loicbourgois/movie-finder-etl
+cd $HOME/github.com/loicbourgois/loicbourgois/movie-finder/etl
 python3.14 -m venv .venv
-$HOME/github.com/loicbourgois/loicbourgois/movie-finder-etl/.venv/bin/python3.14 \
+$HOME/github.com/loicbourgois/loicbourgois/movie-finder/etl/.venv/bin/python3.14 \
     -m pip install --upgrade pip
 $HOME/github.com/loicbourgois/loicbourgois/movie-finder/etl/.venv/bin/python3.14 \
     -m pip install -r \
