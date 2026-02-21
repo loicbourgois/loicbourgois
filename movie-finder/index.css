@@ -40,6 +40,10 @@ a {
   margin-top: 0.5rem;
   text-decoration: none;
 }
+a.glow:hover {
+  text-shadow: 0 0 5px #fff;
+}
+
 #content {
   display: flex;
   flex-wrap: wrap;
@@ -56,5 +60,5 @@ a {
   color: #888;
 }
 .links *:hover {
-  color: #ddd;
+  color: #bbb;
 }

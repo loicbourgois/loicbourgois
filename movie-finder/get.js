@@ -9,7 +9,7 @@ const get = async (qid) => {
     `
     document.getElementById("content").innerHTML += `
         <div class="media">
-            <a href="https://${window.location.hostname}/movie-finder/${r2.media.qid}" class="image_wrapper">
+            <a class="glow" href="https://${window.location.hostname}/movie-finder/${r2.media.qid}" class="image_wrapper">
                 <img src="${r2.media.omdb_image_link}">
             </a>
             <a href="https://${window.location.hostname}/movie-finder/${r2.media.qid}">${r2.media.label}</a>
@@ -21,7 +21,7 @@ const get = async (qid) => {
     for (const x of r2.recommandations) {
         document.getElementById("content").innerHTML += `
             <div class="media">
-                <a href="https://${window.location.hostname}/movie-finder/${x.qid}" class="image_wrapper">
+                <a class="glow" href="https://${window.location.hostname}/movie-finder/${x.qid}" class="image_wrapper">
                     <img src="${x.omdb_image_link}">
                 </a>
                 <a href="https://${window.location.hostname}/movie-finder/${x.qid}">${x.label}</a>
