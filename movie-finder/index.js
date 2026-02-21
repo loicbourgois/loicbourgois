@@ -2,15 +2,15 @@ import {
     get_config
  } from "./config.js"
 import { 
-    get
+    fetch_
  } from "./fetch.js"
 
 
 const main = async () => {
     const config = get_config(window.location.hostname)
-    const r = await get(`https://${config.server}/about`)
+    const r = await fetch_(`https://${config.server}/about`)
     console.log(r)
-    const r2 = await get(`https://${config.server}/random`)
+    const r2 = await fetch_(`https://${config.server}/random`)
     console.log(r2)
     document.getElementById("content").innerHTML += `
         <div class="media">

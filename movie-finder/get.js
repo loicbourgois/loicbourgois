@@ -1,14 +1,8 @@
-import { 
-    get_config
-} from "./config.js"
-import { 
-    fetch_
-} from "./fetch.js"
+import * as api from "./api.js";
 
 
 const get = async (qid) => {
-    const config = get_config(window.location.hostname)
-    const r2 = await fetch_(`https://${config.server}/get/${qid}`)
+    const r2 = await api.get(qid)
     document.body.innerHTML = `
         <div id="content">
         </div>
