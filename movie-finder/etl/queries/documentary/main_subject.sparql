@@ -1,0 +1,13 @@
+# https://query.wikidata.org/
+# documentary -.-> main_subject
+SELECT distinct ?documentary ?main_subject
+with { 
+    SELECT distinct ?documentary
+    WHERE {
+        ?documentary wdt:P31/wdt:P279* wd:Q4164344 .
+    }
+} as %q0    
+WHERE {
+    include %q0
+    ?documentary wdt:P921 ?main_subject .
+}

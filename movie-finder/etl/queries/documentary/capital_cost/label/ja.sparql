@@ -1,0 +1,29 @@
+# https://query.wikidata.org/
+# documentary -> capital_cost -> label -> ja
+SELECT ?capital_cost ?capital_cost_label (lang(?capital_cost_label) as ?language)
+with {
+    SELECT distinct ?documentary
+    WHERE {
+        ?documentary wdt:P31/wdt:P279* wd:Q4164344 .
+    }
+} as %q0
+    
+with {
+    SELECT distinct ?documentary ?capital_cost
+    WHERE {
+        include %q0
+        ?documentary wdt:P2130 ?capital_cost .
+    }
+} as %q1
+    
+with {
+    SELECT distinct ?capital_cost
+    WHERE {
+        include %q1
+    }
+} as %q
+
+WHERE {
+    include %q
+    ?capital_cost rdfs:label ?capital_cost_label filter (lang(?capital_cost_label) = "ja").
+}

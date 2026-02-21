@@ -1,0 +1,23 @@
+# https://query.wikidata.org/
+# {item} -> {field} -> {subfield}
+select distinct ?{field} ?{subfield}
+
+with {{    
+    SELECT distinct ?{item}
+    WHERE {{
+        ?{item} wdt:P31/wdt:P279* {item_q} .
+    }}
+}} as %q0
+
+with {{
+    SELECT distinct ?{item} ?{field}
+    WHERE {{
+        include %q0
+        ?{item} {field_p} ?{field} .
+    }}
+}} as %q1
+
+where {{
+    include %q1
+    ?{field} {subfield_p} ?{subfield} .
+}}

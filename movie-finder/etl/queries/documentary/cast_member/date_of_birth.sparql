@@ -1,0 +1,23 @@
+# https://query.wikidata.org/
+# documentary -> cast_member -> date_of_birth
+select distinct ?cast_member ?date_of_birth
+
+with {    
+    SELECT distinct ?documentary
+    WHERE {
+        ?documentary wdt:P31/wdt:P279* wd:Q4164344 .
+    }
+} as %q0
+
+with {
+    SELECT distinct ?documentary ?cast_member
+    WHERE {
+        include %q0
+        ?documentary wdt:P161 ?cast_member .
+    }
+} as %q1
+
+where {
+    include %q1
+    ?cast_member wdt:P569 ?date_of_birth .
+}

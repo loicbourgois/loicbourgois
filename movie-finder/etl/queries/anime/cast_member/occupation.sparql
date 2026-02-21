@@ -1,0 +1,23 @@
+# https://query.wikidata.org/
+# anime -> cast_member -> occupation
+select distinct ?cast_member ?occupation
+
+with {    
+    SELECT distinct ?anime
+    WHERE {
+        ?anime wdt:P31/wdt:P279* wd:Q1107 .
+    }
+} as %q0
+
+with {
+    SELECT distinct ?anime ?cast_member
+    WHERE {
+        include %q0
+        ?anime wdt:P161 ?cast_member .
+    }
+} as %q1
+
+where {
+    include %q1
+    ?cast_member wdt:P106 ?occupation .
+}

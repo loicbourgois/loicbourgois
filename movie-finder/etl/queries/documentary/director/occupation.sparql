@@ -1,0 +1,23 @@
+# https://query.wikidata.org/
+# documentary -> director -> occupation
+select distinct ?director ?occupation
+
+with {    
+    SELECT distinct ?documentary
+    WHERE {
+        ?documentary wdt:P31/wdt:P279* wd:Q4164344 .
+    }
+} as %q0
+
+with {
+    SELECT distinct ?documentary ?director
+    WHERE {
+        include %q0
+        ?documentary wdt:P57 ?director .
+    }
+} as %q1
+
+where {
+    include %q1
+    ?director wdt:P106 ?occupation .
+}

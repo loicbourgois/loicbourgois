@@ -1,14 +1,8 @@
-import { 
-    get_config
-} from "./config.js"
-import { 
-    get
-} from "./get.js"
+import * as api from "./api.js";
 
 
 const search = async (search_str) => {
-    const config = get_config(window.location.hostname)
-    const r = await get(`http://${config.server}/search/${search_str}`)
+    const r = api.search(search_str)
     console.log(r)
 }
 
