@@ -1,0 +1,29 @@
+# https://query.wikidata.org/
+# documentary -> imdb_id -> label -> en
+SELECT ?imdb_id ?imdb_id_label (lang(?imdb_id_label) as ?language)
+with {
+    SELECT distinct ?documentary
+    WHERE {
+        ?documentary wdt:P31/wdt:P279* wd:Q4164344 .
+    }
+} as %q0
+    
+with {
+    SELECT distinct ?documentary ?imdb_id
+    WHERE {
+        include %q0
+        ?documentary wdt:P345 ?imdb_id .
+    }
+} as %q1
+    
+with {
+    SELECT distinct ?imdb_id
+    WHERE {
+        include %q1
+    }
+} as %q
+
+WHERE {
+    include %q
+    ?imdb_id rdfs:label ?imdb_id_label filter (lang(?imdb_id_label) = "en").
+}

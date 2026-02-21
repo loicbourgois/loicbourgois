@@ -60,3 +60,7 @@ key.pem
 fullchain.pem
 privkey.pem
 
+movie-finder/data/
+movie-finder/etl/__pycache__
+movie-finder/etl/.venv
+movie-finder/api/target

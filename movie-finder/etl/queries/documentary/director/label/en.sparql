@@ -1,0 +1,29 @@
+# https://query.wikidata.org/
+# documentary -> director -> label -> en
+SELECT ?director ?director_label (lang(?director_label) as ?language)
+with {
+    SELECT distinct ?documentary
+    WHERE {
+        ?documentary wdt:P31/wdt:P279* wd:Q4164344 .
+    }
+} as %q0
+    
+with {
+    SELECT distinct ?documentary ?director
+    WHERE {
+        include %q0
+        ?documentary wdt:P57 ?director .
+    }
+} as %q1
+    
+with {
+    SELECT distinct ?director
+    WHERE {
+        include %q1
+    }
+} as %q
+
+WHERE {
+    include %q
+    ?director rdfs:label ?director_label filter (lang(?director_label) = "en").
+}

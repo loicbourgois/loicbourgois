@@ -1,0 +1,13 @@
+# https://query.wikidata.org/
+# {item} -> label -> {language}
+SELECT ?{item} ?{item}_label (lang(?{item}_label) as ?language)
+with {{      
+    SELECT distinct ?{item}
+    WHERE {{
+        ?{item} wdt:P31/wdt:P279* {item_q} .
+    }}
+}} as %q0
+WHERE {{
+    include %q0
+    ?{item} rdfs:label ?{item}_label filter (lang(?{item}_label) = "{language}").
+}}

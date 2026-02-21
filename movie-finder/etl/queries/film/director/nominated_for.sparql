@@ -1,0 +1,23 @@
+# https://query.wikidata.org/
+# film -> director -> nominated_for
+select distinct ?director ?nominated_for
+
+with {    
+    SELECT distinct ?film
+    WHERE {
+        ?film wdt:P31/wdt:P279* wd:Q11424 .
+    }
+} as %q0
+
+with {
+    SELECT distinct ?film ?director
+    WHERE {
+        include %q0
+        ?film wdt:P57 ?director .
+    }
+} as %q1
+
+where {
+    include %q1
+    ?director wdt:P1411 ?nominated_for .
+}

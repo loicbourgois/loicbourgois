@@ -1,0 +1,29 @@
+# https://query.wikidata.org/
+# film -> genre -> label -> fr
+SELECT ?genre ?genre_label (lang(?genre_label) as ?language)
+with {
+    SELECT distinct ?film
+    WHERE {
+        ?film wdt:P31/wdt:P279* wd:Q11424 .
+    }
+} as %q0
+    
+with {
+    SELECT distinct ?film ?genre
+    WHERE {
+        include %q0
+        ?film wdt:P136 ?genre .
+    }
+} as %q1
+    
+with {
+    SELECT distinct ?genre
+    WHERE {
+        include %q1
+    }
+} as %q
+
+WHERE {
+    include %q
+    ?genre rdfs:label ?genre_label filter (lang(?genre_label) = "fr").
+}

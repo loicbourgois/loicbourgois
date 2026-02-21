@@ -1,0 +1,23 @@
+# https://query.wikidata.org/
+# anime -> director -> gender
+select distinct ?director ?gender
+
+with {    
+    SELECT distinct ?anime
+    WHERE {
+        ?anime wdt:P31/wdt:P279* wd:Q1107 .
+    }
+} as %q0
+
+with {
+    SELECT distinct ?anime ?director
+    WHERE {
+        include %q0
+        ?anime wdt:P57 ?director .
+    }
+} as %q1
+
+where {
+    include %q1
+    ?director wdt:P21 ?gender .
+}

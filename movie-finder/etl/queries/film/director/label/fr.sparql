@@ -1,0 +1,29 @@
+# https://query.wikidata.org/
+# film -> director -> label -> fr
+SELECT ?director ?director_label (lang(?director_label) as ?language)
+with {
+    SELECT distinct ?film
+    WHERE {
+        ?film wdt:P31/wdt:P279* wd:Q11424 .
+    }
+} as %q0
+    
+with {
+    SELECT distinct ?film ?director
+    WHERE {
+        include %q0
+        ?film wdt:P57 ?director .
+    }
+} as %q1
+    
+with {
+    SELECT distinct ?director
+    WHERE {
+        include %q1
+    }
+} as %q
+
+WHERE {
+    include %q
+    ?director rdfs:label ?director_label filter (lang(?director_label) = "fr").
+}

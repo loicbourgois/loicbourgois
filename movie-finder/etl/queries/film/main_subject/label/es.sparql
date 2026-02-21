@@ -1,0 +1,29 @@
+# https://query.wikidata.org/
+# film -> main_subject -> label -> es
+SELECT ?main_subject ?main_subject_label (lang(?main_subject_label) as ?language)
+with {
+    SELECT distinct ?film
+    WHERE {
+        ?film wdt:P31/wdt:P279* wd:Q11424 .
+    }
+} as %q0
+    
+with {
+    SELECT distinct ?film ?main_subject
+    WHERE {
+        include %q0
+        ?film wdt:P921 ?main_subject .
+    }
+} as %q1
+    
+with {
+    SELECT distinct ?main_subject
+    WHERE {
+        include %q1
+    }
+} as %q
+
+WHERE {
+    include %q
+    ?main_subject rdfs:label ?main_subject_label filter (lang(?main_subject_label) = "es").
+}

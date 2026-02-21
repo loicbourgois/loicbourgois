@@ -1,0 +1,19 @@
+[package]
+name = "movie-finder-api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "*"
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+tokio = { version = "*", features = ["full"] }
+actix-web = { version = "*", features = ["openssl"] }
+actix-files = "*"
+rand = "*"
+reqwest = { version = "*", features = ["blocking"] }
+csv = "*"
+actix-cors = "*"
+openssl = { version = "*" }
+time = "*"
+chrono = "*"

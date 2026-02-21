@@ -1,0 +1,13 @@
+# https://query.wikidata.org/
+# film -.-> main_subject
+SELECT distinct ?film ?main_subject
+with { 
+    SELECT distinct ?film
+    WHERE {
+        ?film wdt:P31/wdt:P279* wd:Q11424 .
+    }
+} as %q0    
+WHERE {
+    include %q0
+    ?film wdt:P921 ?main_subject .
+}

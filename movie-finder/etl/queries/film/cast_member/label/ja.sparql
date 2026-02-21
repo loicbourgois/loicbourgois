@@ -1,0 +1,29 @@
+# https://query.wikidata.org/
+# film -> cast_member -> label -> ja
+SELECT ?cast_member ?cast_member_label (lang(?cast_member_label) as ?language)
+with {
+    SELECT distinct ?film
+    WHERE {
+        ?film wdt:P31/wdt:P279* wd:Q11424 .
+    }
+} as %q0
+    
+with {
+    SELECT distinct ?film ?cast_member
+    WHERE {
+        include %q0
+        ?film wdt:P161 ?cast_member .
+    }
+} as %q1
+    
+with {
+    SELECT distinct ?cast_member
+    WHERE {
+        include %q1
+    }
+} as %q
+
+WHERE {
+    include %q
+    ?cast_member rdfs:label ?cast_member_label filter (lang(?cast_member_label) = "ja").
+}

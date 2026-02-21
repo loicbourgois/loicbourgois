@@ -1,0 +1,29 @@
+# https://query.wikidata.org/
+# anime -> genre -> label -> en
+SELECT ?genre ?genre_label (lang(?genre_label) as ?language)
+with {
+    SELECT distinct ?anime
+    WHERE {
+        ?anime wdt:P31/wdt:P279* wd:Q1107 .
+    }
+} as %q0
+    
+with {
+    SELECT distinct ?anime ?genre
+    WHERE {
+        include %q0
+        ?anime wdt:P136 ?genre .
+    }
+} as %q1
+    
+with {
+    SELECT distinct ?genre
+    WHERE {
+        include %q1
+    }
+} as %q
+
+WHERE {
+    include %q
+    ?genre rdfs:label ?genre_label filter (lang(?genre_label) = "en").
+}

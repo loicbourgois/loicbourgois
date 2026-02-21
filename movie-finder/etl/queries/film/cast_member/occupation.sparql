@@ -1,0 +1,23 @@
+# https://query.wikidata.org/
+# film -> cast_member -> occupation
+select distinct ?cast_member ?occupation
+
+with {    
+    SELECT distinct ?film
+    WHERE {
+        ?film wdt:P31/wdt:P279* wd:Q11424 .
+    }
+} as %q0
+
+with {
+    SELECT distinct ?film ?cast_member
+    WHERE {
+        include %q0
+        ?film wdt:P161 ?cast_member .
+    }
+} as %q1
+
+where {
+    include %q1
+    ?cast_member wdt:P106 ?occupation .
+}

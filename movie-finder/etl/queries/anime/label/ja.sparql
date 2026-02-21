@@ -1,0 +1,13 @@
+# https://query.wikidata.org/
+# anime -> label -> ja
+SELECT ?anime ?anime_label (lang(?anime_label) as ?language)
+with {      
+    SELECT distinct ?anime
+    WHERE {
+        ?anime wdt:P31/wdt:P279* wd:Q1107 .
+    }
+} as %q0
+WHERE {
+    include %q0
+    ?anime rdfs:label ?anime_label filter (lang(?anime_label) = "ja").
+}

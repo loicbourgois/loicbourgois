@@ -1,0 +1,13 @@
+# https://query.wikidata.org/
+# film -.-> capital_cost
+SELECT distinct ?film ?capital_cost
+with { 
+    SELECT distinct ?film
+    WHERE {
+        ?film wdt:P31/wdt:P279* wd:Q11424 .
+    }
+} as %q0    
+WHERE {
+    include %q0
+    ?film wdt:P2130 ?capital_cost .
+}
