@@ -40,10 +40,10 @@ def map_qid_to_omdb_to_image():
                     omdb_id,
                     image_id as omdb_image_id,
                     image_version as omdb_image_version,
-                    concat("http://www.wikidata.org/entity/", qid) as wikidata_link,
-                    concat("https://www.omdb.org/movie/", omdb_id) as omdb_link,
+                    "http://www.wikidata.org/entity/" || qid as wikidata_link,
+                    "https://www.omdb.org/movie/" || omdb_id as omdb_link,
                     replace(
-                        concat("https://www.omdb.org/image/default/", image_id, ".jpeg?v=", image_version),
+                        "https://www.omdb.org/image/default/" || image_id || ".jpeg?v=" || image_version,
                         "?v=\\N",
                         ""
                     ) as omdb_image_link
@@ -129,7 +129,7 @@ def wikidata_imdb_omd():
                 qid,
                 omdb_image_link,
                 df_1.wikidata_link,
-                concat("https://www.imdb.com/title/" , imdb_id) as imdb_link
+                "https://www.imdb.com/title/" || imdb_id as imdb_link
             from df_1
             inner join df_3
                 on df_1.wikidata_link = df_3.wikidata_link
