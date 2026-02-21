@@ -175,6 +175,6 @@ def wikidata_imdb_omd():
 
 
 if __name__ == "__main__":
-    map_qid_to_omdb_to_image()
     json_to_csv()
+    map_qid_to_omdb_to_image()
     wikidata_imdb_omd()
