@@ -10,5 +10,8 @@ def pull_omdb():
         url = f"https://www.omdb.org/data/{item}.csv.bz2"
         file = f"{item}.csv.bz2"
         runcmd_list(["curl", url, "-O"], cwd=omdb_folder)
-        runcmd_list(["rm", file.replace(".csv.bz2", ".csv")], cwd=omdb_folder)
+        try:
+            runcmd_list(["rm", file.replace(".csv.bz2", ".csv")], cwd=omdb_folder)
+        except:
+            pass
         runcmd_list(["bzip2", "-d", file], cwd=omdb_folder)
