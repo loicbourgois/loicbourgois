@@ -5,14 +5,92 @@ import {
 } from "./webgpu.js"
 import { imgs } from "./block.js"
 
+const Kind = Object.freeze({
+  void: 0,
+  pixel: 1,
+  down: 2
+});
+const Direction = Object.freeze({
+  right: "right",
+  down: "down",
+});
+const Direction2 = Object.freeze({
+  right: [1,0],
+});
+
 
 const step = (world) => {
   for (let y = 0; y < world.unit_count; y++) {
       for (let x = 0; x < world.unit_count; x++) {
         const i = x + y * world.unit_count
-        world.blocks_next[i].k = []
+        world.blocks_next[i] = []
       }
-  } 
+  }
+  for (let y = 0; y < world.unit_count; y++) {
+    for (let x = 0; x < world.unit_count; x++) {
+      const i = x + y * world.unit_count
+      const b = world.blocks[i]
+      const br = world.blocks[i+1]
+      if (b.k == Kind.pixel) {
+        if (br.k == Kind.down) {
+          world.blocks_next[i + world.unit_count].push(
+            {i:i, 
+            direction:Direction.down,}
+          )
+        }
+        else if (b.direction == Direction.right) {
+          world.blocks_next[i + 1].push({
+            i:i,
+          })
+        }
+        else if (b.direction == Direction.down) {
+          world.blocks_next[i + world.unit_count].push({
+            i:i,
+          })
+        }
+      }
+      if (b.k == Kind.down) {
+        world.blocks_next[i].push({i:i})
+      }
+    }
+  }
+  for (let y = 0; y < world.unit_count; y++) {
+    for (let x = 0; x < world.unit_count; x++) {
+      const i = x + y * world.unit_count
+      if (world.blocks_next[i].length > 1) {
+        throw "woop"
+      }
+    }
+  }
+  for (let y = 0; y < world.unit_count; y++) {
+    for (let x = 0; x < world.unit_count; x++) {
+      const i = x + y * world.unit_count
+      if (world.blocks_next[i].length == 1) {
+        const bi = world.blocks_next[i][0].i
+        const d = world.blocks_next[i][0].direction
+        world.blocks_next[i] = structuredClone(world.blocks[bi])
+        if (d) {
+          world.blocks_next[i].direction = d
+        }
+      } else if (world.blocks_next[i].length == 0) {
+        world.blocks_next[i] = {
+          k: Kind.void
+        }
+      } else {
+        throw "error"
+      }
+    }
+  }
+  for (let y = 0; y < world.unit_count; y++) {
+    for (let x = 0; x < world.unit_count; x++) {
+      const i = x + y * world.unit_count
+      world.blocks[i] = structuredClone(world.blocks_next[i])
+    }
+  }
+  world.tick += 1
+  setTimeout(()=>{
+    step(world)
+  }, 1000*0.1);
 }
 
 
@@ -36,15 +114,8 @@ const main = async () => {
     blocks: [],
     unit_count: unit_count,
     blocks_next: [],
+    tick: 0,
   }
-  const Kind = Object.freeze({
-    void: 0,
-    pixel: 1,
-    down: 2
-  });
-  const Direction = Object.freeze({
-    right: [1,0],
-  });
   for (let y = 0; y < unit_count; y++) {
       for (let x = 0; x < unit_count; x++) {
         world.blocks.push({
@@ -53,7 +124,6 @@ const main = async () => {
         world.blocks_next.push([])
       }
   } 
-  
   world.blocks[0] = {
     k: Kind.pixel,
     direction: Direction.right,
@@ -61,7 +131,6 @@ const main = async () => {
     g: 0,
     b: 0,
   }
-  
   world.blocks[1] = {
     k: Kind.pixel,
     direction: Direction.right,
@@ -69,11 +138,11 @@ const main = async () => {
     g: 255,
     b: 0,
   }
-  
   world.blocks[10] = {
     k: Kind.down,
   }
   step(world)
+  // step(world)
   render(wgpu, world)
 }
 
