@@ -1,6 +1,4 @@
-import {
-    getColors
-} from "./color.js"
+const fields_per_pix = 4;
 
 
 const setup_webgpu = async (
@@ -63,7 +61,7 @@ const setup_webgpu = async (
     });
     const uniformValues = new Float32Array(uniformBufferSize / 4);
     //
-    const buffer_data_js = new Int32Array(unit_count*unit_count);
+    const buffer_data_js = new Int32Array(unit_count*unit_count*fields_per_pix);
     for (let y = 0; y < unit_count; y++) {
         for (let x = 0; x < unit_count; x++) {
             const k = (x + y * unit_count) * 4;
@@ -77,7 +75,7 @@ const setup_webgpu = async (
         }
     }
     const buffer_data_gpu = device.createBuffer({
-        size: unit_count*unit_count*4,
+        size: unit_count*unit_count*fields_per_pix * 4,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     //
@@ -195,21 +193,6 @@ function render(x, world) {
             render(x, world)
         })
     })
-}
-
-
-const new_geometry = (storage_buffer_a_data) => {
-    for (let index = 0; index < storage_buffer_a_data.length; index++) {
-        storage_buffer_a_data[index] = Math.random()
-    }
-}
-
-
-const new_colors = (colors_buffer_data, layers) => {
-    const colors = getColors(layers+1, 2);
-    for (let index = 0; index < colors_buffer_data.length; index++) {
-        colors_buffer_data[index] = colors[parseInt(index/4)+1][index%4]
-    }
 }
 
 

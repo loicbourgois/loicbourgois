@@ -28,7 +28,37 @@ const imgs_ = {
         ---xx---
         --------
         a------a
-    `
+    `,
+    left: `
+        a------a
+        ----x---
+        ---xx---
+        --xxxx--
+        --xxxx--
+        ---xx---
+        ----x---
+        a------a
+    `,
+    up: `
+        a------a
+        --------
+        ---xx---
+        --xxxx--
+        -xxxxxx-
+        ---xx---
+        --------
+        a------a
+    `,
+    right: `
+        a------a
+        ---x----
+        ---xx---
+        --xxxx--
+        --xxxx--
+        ---xx---
+        ---x----
+        a------a
+    `,
 }
 
 const translate = {
@@ -41,6 +71,9 @@ const translate = {
 const imgs = [
     imgs_.block.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
     imgs_.down.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
+    imgs_.right.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
+    imgs_.left.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
+    imgs_.up.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
 ]
 
 

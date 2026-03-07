@@ -69,7 +69,7 @@ struct DataPoint {
     g = f32(data[i].g) / 255.0 * f32(v);
     b = f32(data[i].b) / 255.0 * f32(v);
   }
-  if k == 2 {
+  if k > 1 {
     var v = imgs[(k-1)*8*8 + img_i];
     r = f32(v) / 255.0;
     g = f32(v) / 255.0;

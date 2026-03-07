@@ -8,15 +8,77 @@ import { imgs } from "./block.js"
 const Kind = Object.freeze({
   void: 0,
   pixel: 1,
-  down: 2
+  down: 2,
+  right: 3,
+  left: 4,
+  up: 5,
 });
 const Direction = Object.freeze({
   right: "right",
   down: "down",
+  left: "left",
+  up: "up",
 });
 const Direction2 = Object.freeze({
   right: [1,0],
 });
+
+
+const organize = (world) => {
+  let reorganize = false
+  for (let y = 0; y < world.unit_count; y++) {
+    for (let x = 0; x < world.unit_count; x++) {
+      const i = x + y * world.unit_count
+      if (world.blocks_next[i].length > 1) {
+        const tmp = structuredClone(world.blocks_next[i])
+        world.blocks_next[i] = []
+        reorganize = true
+        for (const data of tmp) {
+          world.blocks_next[data.i].push(data);
+        }
+        
+      }
+    }
+  }
+  if (reorganize) {
+    organize(world)
+  }
+}
+
+
+const down = (i, uc) => {
+  const x = i % uc
+  const y = parseInt(i / uc)
+  const x_new = x;
+  const y_new = (y+1) % uc;
+  return x_new + y_new * uc
+}
+
+
+const left = (i, uc) => {
+  const x = i % uc
+  const y = parseInt(i / uc)
+  const x_new = (x-1 + uc) % uc;
+  const y_new = y;
+  return x_new + y_new * uc
+}
+
+const up = (i, uc) => {
+  const x = i % uc
+  const y = parseInt(i / uc)
+  const x_new = x;
+  const y_new = (y-1+uc)%uc;
+  return x_new + y_new * uc
+}
+
+
+const right = (i, uc) => {
+  const x = i % uc
+  const y = parseInt(i / uc)
+  const x_new = (x+1 + uc) % uc;
+  const y_new = y;
+  return x_new + y_new * uc
+}
 
 
 const step = (world) => {
@@ -28,23 +90,64 @@ const step = (world) => {
   }
   for (let y = 0; y < world.unit_count; y++) {
     for (let x = 0; x < world.unit_count; x++) {
+      //
       const i = x + y * world.unit_count
+      const id = down(i, world.unit_count)
+      const il = left(i, world.unit_count)
+      const ir = right(i, world.unit_count)
+      const iu = up(i, world.unit_count)
+      //
       const b = world.blocks[i]
-      const br = world.blocks[i+1]
+      const br = world.blocks[ir]
+      const bd = world.blocks[id]
+      const bl = world.blocks[il]
+      const bu = world.blocks[iu]
+      //
       if (b.k == Kind.pixel) {
-        if (br.k == Kind.down) {
-          world.blocks_next[i + world.unit_count].push(
-            {i:i, 
-            direction:Direction.down,}
-          )
-        }
-        else if (b.direction == Direction.right) {
+        if (
+          br.k == Kind.down && b.direction == Direction.right  
+          || bl.k == Kind.down && b.direction == Direction.left  
+        ) {
+          world.blocks_next[id].push({
+            i:i, 
+            direction:Direction.down,
+          })
+        } else if (bd.k == Kind.left || bu.k == Kind.left) {
+          world.blocks_next[il].push({
+            i:i, 
+            direction:Direction.left,
+          })
+        } else if (
+          bl.k == Kind.up && b.direction == Direction.left
+          || br.k == Kind.up && b.direction == Direction.right  
+        ) {
+          world.blocks_next[iu].push({
+            i:i, 
+            direction:Direction.up,
+          })
+        } else if (bu.k == Kind.right || bd.k == Kind.right) {
+          world.blocks_next[ir].push({
+            i:i, 
+            direction:Direction.right,
+          })
+        } else if (b.direction == Direction.right) {
           world.blocks_next[i + 1].push({
             i:i,
           })
-        }
-        else if (b.direction == Direction.down) {
-          world.blocks_next[i + world.unit_count].push({
+        } else if (b.direction == Direction.down) {
+          world.blocks_next[id].push({
+            i:i,
+          })
+        } else if (b.direction == Direction.left) {
+          world.blocks_next[il].push({
+            i:i,
+          })
+        } else if (b.direction == Direction.up) {
+          world.blocks_next[iu].push({
+            i:i,
+          })
+        } else {
+          world.blocks_next[i].push({
             i:i,
           })
         }
@@ -52,16 +155,18 @@ const step = (world) => {
       if (b.k == Kind.down) {
         world.blocks_next[i].push({i:i})
       }
-    }
-  }
-  for (let y = 0; y < world.unit_count; y++) {
-    for (let x = 0; x < world.unit_count; x++) {
-      const i = x + y * world.unit_count
-      if (world.blocks_next[i].length > 1) {
-        throw "woop"
+      if (b.k == Kind.up) {
+        world.blocks_next[i].push({i:i})
+      }
+      if (b.k == Kind.left) {
+        world.blocks_next[i].push({i:i})
+      }
+      if (b.k == Kind.right) {
+        world.blocks_next[i].push({i:i})
       }
     }
   }
+  organize(world)
   for (let y = 0; y < world.unit_count; y++) {
     for (let x = 0; x < world.unit_count; x++) {
       const i = x + y * world.unit_count
@@ -77,7 +182,7 @@ const step = (world) => {
           k: Kind.void
         }
       } else {
-        throw "error"
+        throw "error 2"
       }
     }
   }
@@ -90,7 +195,17 @@ const step = (world) => {
   world.tick += 1
   setTimeout(()=>{
     step(world)
-  }, 1000*0.1);
+  }, 1000 * 60 / 174 / 8);
+}
+
+
+const i = (world, x, y) => {
+  return x + y * world.unit_count
+}
+
+
+const set_block = (world, x, y, data) => {
+  world.blocks[i(world, x, y)] = data
 }
 
 
@@ -124,6 +239,7 @@ const main = async () => {
         world.blocks_next.push([])
       }
   } 
+  console.log("world.blocks_next.length", world.blocks_next.length)
   world.blocks[0] = {
     k: Kind.pixel,
     direction: Direction.right,
@@ -138,11 +254,40 @@ const main = async () => {
     g: 255,
     b: 0,
   }
-  world.blocks[10] = {
+  set_block(world, 10, 0, {
     k: Kind.down,
-  }
+  })
+  set_block(world, 9, 11, {
+    k: Kind.left,
+  })
+  set_block(world, 10, 12, {
+    k: Kind.up,
+  })
+  set_block(world, 10, 13, {
+    k: Kind.up,
+  })
+
+  set_block(world, 5, 10, {
+    k: Kind.up,
+  })
+
+  set_block(world, 6, 5, {
+    k: Kind.right,
+  })
+
+  set_block(world, 10, 6, {
+    // k: Kind.down,
+    k: Kind.up,
+  })
+
+  set_block(world, 15, 15, {
+    k: Kind.pixel,
+    r: 255,
+    g: 255,
+    b: 0,
+  })
+
   step(world)
-  // step(world)
   render(wgpu, world)
 }
 
