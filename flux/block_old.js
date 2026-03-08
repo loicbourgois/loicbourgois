@@ -19,6 +19,16 @@ const imgs_ = {
         aa1111aa
         aaaaaaaa
     `,
+    // down: `
+    //     a------a
+    //     --------
+    //     ---xx---
+    //     -xxxxxx-
+    //     --xxxx--
+    //     ---xx---
+    //     --------
+    //     a------a
+    // `,
     down: `
         a------a
         --------
@@ -31,66 +41,35 @@ const imgs_ = {
     `,
     left: `
         a------a
-        --------
-        --------
-        xxx-----
-        xxx-----
-        --------
-        --------
+        ----x---
+        ---xx---
+        --xxxx--
+        --xxxx--
+        ---xx---
+        ----x---
         a------a
     `,
     up: `
-        a--xx--a
+        a------a
+        --------
         ---xx---
+        --xxxx--
+        -xxxxxx-
         ---xx---
-        --------
-        --------
-        --------
         --------
         a------a
     `,
     right: `
         a------a
-        --------
-        --------
-        -----xxx
-        -----xxx
-        --------
-        --------
+        ---x----
+        ---xx---
+        --xxxx--
+        --xxxx--
+        ---xx---
+        ---x----
         a------a
-    `,
-    split_left_right: `
-        a------a
-        --------
-        --------
-        xxx--xxx
-        xxx--xxx
-        --------
-        --------
-        a------a
-    `,
-    split_up_down: `
-        a--xx--a
-        ---xx---
-        ---xx---
-        --------
-        --------
-        ---xx---
-        ---xx---
-        a--xx--a
-    `,
-    mix_to_left: `
-        a--xx--a
-        ---xx---
-        ---xx---
-        xxxxx---
-        xxxxx---
-        ---xx---
-        ---xx---
-        a--xx--a
     `,
 }
-
 
 const translate = {
     '-': 128,
@@ -105,9 +84,6 @@ const imgs = [
     imgs_.right.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
     imgs_.left.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
     imgs_.up.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
-    imgs_.split_left_right.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
-    imgs_.split_up_down.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
-    imgs_.mix_to_left.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
 ]
 
 

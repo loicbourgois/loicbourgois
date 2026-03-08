@@ -87,7 +87,6 @@ const setup_webgpu = async (
             img_i += 1
         }
     }
-    console.log(buffer_imgs_js)
     const buffer_imgs_gpu = device.createBuffer({
         size: imgs.length * 8 * 8 * 4,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
