@@ -9,12 +9,13 @@ from .shared import (
 import os
 from pandasql import sqldf
 from .config import languages
+from .plot_to_qid import plot_to_qid
+from .trigram_2_plot import trigram_2_plot
 
 
 def map_qid_to_omdb_to_image():
     df_omdb_image_ids = pandas.read_csv(f"{HOME}/github.com/loicbourgois/loicbourgois/movie-finder/data/omdb/image_ids.csv")
     df_distinct_object_type = sqldf("SELECT distinct object_type FROM df_omdb_image_ids;", locals())
-    # print(df_distinct_object_type)
     for k in [
         'film', 'documentary', 'anime'
     ]:
@@ -174,7 +175,11 @@ def wikidata_imdb_omd():
     )
 
 
+
+
 if __name__ == "__main__":
-    json_to_csv()
-    map_qid_to_omdb_to_image()
-    wikidata_imdb_omd()
+    # json_to_csv()
+    # map_qid_to_omdb_to_image()
+    # wikidata_imdb_omd()
+    # plot_to_qid()
+    trigram_2_plot()

@@ -73,10 +73,10 @@ async fn main() -> std::io::Result<()> {
         Err(e) => panic!("couldn't read environment: {e}"),
     };
     let config = get_config(environment);
-    println!("[start] load_data");
-    let data = load_data();
-    println!("[ end ] load_data");
     let mut server = HttpServer::new(move || {
+        println!("[start] load_data");
+        let data = load_data();
+        println!("[ end ] load_data");
         println!("[start] setup");
         let cors = match environment {
             "local" => Cors::default()
@@ -104,7 +104,7 @@ async fn main() -> std::io::Result<()> {
             _ => panic!("invalid environment"),
         };
         let app = App::new()
-            .app_data(web::Data::new(data.clone()))
+            .app_data(web::Data::new(data))
             .wrap(cors)
             .service(search_service)
             .service(about_service)

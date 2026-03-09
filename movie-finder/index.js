@@ -36,5 +36,13 @@ const main = async () => {
             </div>
         `
     }
+    const input = document.querySelector('#top input');
+    const button = document.querySelector('#top button');
+    button.addEventListener('click', () => {
+        const query = input.value.trim();
+        if (query) {
+            window.location.href = `/movie-finder/search/${encodeURIComponent(query)}`;
+        }
+    });
 }
 main()

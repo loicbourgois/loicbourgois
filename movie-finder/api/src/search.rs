@@ -1,4 +1,7 @@
 use crate::Data;
+use crate::media::MediaRecommendation;
+use crate::media::Recommendation;
+use crate::media::get_1_wikidata_imdb_omd_by_qid;
 use crate::text;
 use crate::text::generate_trigrams;
 use actix_web::HttpResponse;
@@ -18,117 +21,65 @@ struct SearchResult {
     omdb_image_link: Option<HashSet<String>>,
     imdb_link: Option<String>,
     search_back_link: Option<String>,
+    trigrams: HashSet<String>,
 }
 
 #[derive(Serialize, Clone)]
 struct SearchResponse {
     search: String,
-    results: Vec<SearchResult>,
+    results: Vec<MediaRecommendation>,
+}
+
+pub fn get_matches(
+    search_trigrams: &HashSet<String>,
+    data: &Data,
+) -> HashMap<String, HashSet<String>> {
+    let mut matches: HashMap<String, HashSet<String>> = HashMap::new();
+    for trigram in search_trigrams {
+        match data.trigram_2_plot_hash.get(trigram) {
+            Some(search_strs) => {
+                for search_str in search_strs {
+                    if !matches.contains_key(search_str) {
+                        matches.insert(search_str.to_string(), HashSet::new());
+                    }
+                    let trigrams = matches.get_mut(search_str).unwrap();
+                    trigrams.insert(trigram.to_string());
+                }
+            }
+            None => {}
+        }
+    }
+    matches
 }
 
 #[get("/search/{search_str}")]
 async fn search_service(search_str: web::Path<String>, data: web::Data<Data>) -> impl Responder {
     let search_str = text::normalize(&search_str);
     let mut results = HashMap::new();
-    for (k, v) in &data.search_str_2_movie_qid {
-        if *k == *search_str {
-            let score = 1.0;
-            for x in v {
-                results
-                    .entry(x.to_string())
-                    .and_modify(|existing: &mut SearchResult| {
-                        existing.score = existing.score.max(score);
-                    })
-                    .or_insert(SearchResult {
-                        qid: x.to_string(),
-                        score,
-                        wikidata: format!("https://www.wikidata.org/wiki/{x}"),
-                        label: k.to_string(),
-                        omdb_image_link: None,
-                        imdb_link: None,
-                        search_back_link: None,
-                    });
-            }
-        } else if k.contains(&*search_str) {
-            let percent = (search_str.len() as f32) / (k.len() as f32);
-            let score = percent * 0.95;
-            for x in v {
-                results
-                    .entry(x.to_string())
-                    .and_modify(|existing: &mut SearchResult| {
-                        existing.score = existing.score.max(score);
-                    })
-                    .or_insert(SearchResult {
-                        qid: x.to_string(),
-                        score,
-                        wikidata: format!("https://www.wikidata.org/wiki/{x}"),
-                        label: k.to_string(),
-                        omdb_image_link: None,
-                        imdb_link: None,
-                        search_back_link: None,
-                    });
-            }
-        } else if (*search_str).contains(k) {
-            let percent = (k.len() as f32) / (search_str.len() as f32);
-            let score = percent * 0.95;
-            for x in v {
-                results
-                    .entry(x.to_string())
-                    .and_modify(|existing: &mut SearchResult| {
-                        existing.score = existing.score.max(score);
-                    })
-                    .or_insert(SearchResult {
-                        qid: x.to_string(),
-                        score,
-                        wikidata: format!("https://www.wikidata.org/wiki/{x}"),
-                        label: k.to_string(),
-                        omdb_image_link: None,
-                        imdb_link: None,
-                        search_back_link: None,
-                    });
-            }
-        }
-    }
-    let trigrams = generate_trigrams(&search_str);
-    let mut matches: HashMap<String, f32> = HashMap::new();
-    for trigram in &trigrams {
-        match data.trigram_2_search_str.get(trigram) {
-            Some(search_strs) => {
-                for search_str in search_strs {
-                    if !matches.contains_key(search_str) {
-                        matches.insert(search_str.to_string(), 0.0);
-                    }
-                    let value = matches.get(search_str).unwrap();
-                    matches.insert(search_str.to_string(), value + 1.0);
+    let search_trigrams = generate_trigrams(&search_str);
+    let matches = get_matches(&search_trigrams, &data);
+    for (plot_hash, trigrams) in matches {
+        let score = trigrams.len() as f32;
+        let qid = data.plot_hash_2_qid.get(&plot_hash).unwrap();
+        results
+            .entry(qid.to_string())
+            .and_modify(|existing: &mut SearchResult| {
+                if score > existing.score {
+                    existing.score = score;
+                    existing.label = search_str.to_string();
+                    existing.trigrams.clone_from(&trigrams);
                 }
-            }
-            None => {}
-        }
-    }
-    for (search_str, v) in matches {
-        let percent = v / (trigrams.len() as f32);
-        let percent_2 = (trigrams.len() as f32) / (generate_trigrams(&search_str).len() as f32);
-        let score = percent.min(percent_2);
-        let qids = data.search_str_2_movie_qid.get(&search_str).unwrap();
-        for qid in qids {
-            results
-                .entry(qid.to_string())
-                .and_modify(|existing: &mut SearchResult| {
-                    if score > existing.score {
-                        existing.score = score;
-                        existing.label = search_str.to_string();
-                    }
-                })
-                .or_insert(SearchResult {
-                    qid: qid.to_string(),
-                    score,
-                    wikidata: format!("https://www.wikidata.org/wiki/{qid}"),
-                    label: search_str.to_string(),
-                    omdb_image_link: None,
-                    imdb_link: None,
-                    search_back_link: None,
-                });
-        }
+            })
+            .or_insert(SearchResult {
+                qid: qid.to_string(),
+                score,
+                wikidata: format!("https://www.wikidata.org/wiki/{qid}"),
+                label: search_str.to_string(),
+                omdb_image_link: None,
+                imdb_link: None,
+                search_back_link: None,
+                trigrams: trigrams.clone(),
+            });
     }
     let mut results_vec: Vec<SearchResult> = results.values().cloned().collect();
     for x in &mut results_vec {
@@ -143,18 +94,40 @@ async fn search_service(search_str: web::Path<String>, data: web::Data<Data>) ->
     });
     results_vec.retain(|x| x.omdb_image_link.is_some());
     results_vec.truncate(100);
-    for x in results_vec.iter().rev() {
+    let medias: Vec<MediaRecommendation> = results_vec
+        .clone()
+        .into_iter()
+        .map(|r| {
+            let m = get_1_wikidata_imdb_omd_by_qid(&r.qid, &data).unwrap();
+            MediaRecommendation {
+                kind: m.kind,
+                qid: m.qid,
+                omdb_image_link: m.omdb_image_link,
+                imdb_link: m.imdb_link,
+                language: m.language,
+                label: m.label,
+                reco: Recommendation {
+                    qid: r.qid,
+                    score: r.score,
+                    label: r.label,
+                    trigrams: r.trigrams,
+                },
+            }
+        })
+        .collect();
+    for m in medias.iter().rev() {
         println!(
-            "{} - {} - {} - {}",
-            x.label,
-            x.score,
-            x.omdb_image_link.clone().unwrap().iter().next().unwrap(),
-            x.imdb_link.clone().unwrap_or(String::new()),
+            "{} - {} - {} - {:?}",
+            m.reco.score,
+            m.label,
+            m.imdb_link.clone(),
+            m.reco.trigrams,
         );
     }
+    println!("search_str: {search_str}");
     let response = SearchResponse {
         search: search_str.to_string(),
-        results: results_vec,
+        results: medias,
     };
     HttpResponse::Ok().json(response)
 }
