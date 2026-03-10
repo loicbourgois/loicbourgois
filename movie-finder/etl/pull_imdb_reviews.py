@@ -43,12 +43,12 @@ def pull_imdb_reviews():
             imdb_id for imdb_id in all_available_imdb_ids if imdb_id not in processed_imdb_ids
         ]
         random.shuffle(imdb_ids_to_process_this_round)
-        c1 = len(imdb_ids)
+        c1 = len(all_available_imdb_ids)
         c2 = df_out["imdb_id"].nunique() if not df_out.empty else 0
         print(f"item___imdb_id:   {c1}")
         print(f"imdb_id___reviews:{c2}")
         print(f"progress:         {round(c2/c1*100,2)}%")
-        data_todo = imdb_ids[0:10]
+        data_todo = all_available_imdb_ids[0:10]
         for i, imdb_id in enumerate(data_todo):
             if df_out["imdb_id"].astype(str).str.contains(imdb_id).any():
                 print(f"{i+1}/{len(data_todo)} - {imdb_id} - SKIP")
