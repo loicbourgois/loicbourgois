@@ -48,7 +48,7 @@ def pull_imdb_reviews():
         print(f"item___imdb_id:   {c1}")
         print(f"imdb_id___reviews:{c2}")
         print(f"progress:         {round(c2/c1*100,2)}%")
-        data_todo = all_available_imdb_ids[0:10]
+        data_todo = imdb_ids_to_process_this_round[0:10]
         for i, imdb_id in enumerate(data_todo):
             if df_out["imdb_id"].astype(str).str.contains(imdb_id).any():
                 print(f"{i+1}/{len(data_todo)} - {imdb_id} - SKIP")
