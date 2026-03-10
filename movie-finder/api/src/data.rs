@@ -21,8 +21,12 @@ pub struct Data {
     pub wikidata_imdb_omd: Vec<Media>,
     pub qid_2_wikidata_imdb_omd: HashMap<String, Vec<Media>>,
     pub qid_2_plot: HashMap<String, Vec<String>>,
+
     pub trigram_2_plot_hash: HashMap<String, Vec<String>>,
     pub plot_hash_2_qid: HashMap<String, String>,
+
+    pub trigram_2_review_hash: HashMap<String, Vec<String>>,
+    pub review_hash_2_qid: HashMap<String, String>,
 }
 
 #[derive(Deserialize)]
@@ -97,6 +101,24 @@ pub fn load_data() -> Data {
         let txt = fs::read_to_string(path).expect("Failed to read plot_hash_2_qid.json");
         serde_json::from_str(&txt).expect("Failed to parse plot_hash_2_qid.json")
     };
+
+    let trigram_2_review_hash: HashMap<String, Vec<String>> = {
+        let mut path = PathBuf::from(&home_dir);
+        path.push(
+            "github.com/loicbourgois/loicbourgois/movie-finder/data/json/trigram_2_review_hash.json",
+        );
+        let txt = fs::read_to_string(path).expect("Failed to read trigram_2_review_hash.json");
+        serde_json::from_str(&txt).expect("Failed to parse trigram_2_review_hash.json")
+    };
+    let review_hash_2_qid: HashMap<String, String> = {
+        let mut path = PathBuf::from(&home_dir);
+        path.push(
+            "github.com/loicbourgois/loicbourgois/movie-finder/data/json/review_hash_2_qid.json",
+        );
+        let txt = fs::read_to_string(path).expect("Failed to read review_hash_2_qid.json");
+        serde_json::from_str(&txt).expect("Failed to parse review_hash_2_qid.json")
+    };
+
     // let csv_paths = {
     //     let mut v = Vec::new();
     //     for media in &config.medias {
@@ -226,5 +248,7 @@ pub fn load_data() -> Data {
         qid_2_plot,
         plot_hash_2_qid,
         trigram_2_plot_hash,
+        review_hash_2_qid,
+        trigram_2_review_hash,
     }
 }

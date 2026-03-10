@@ -13,21 +13,21 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 #[derive(Serialize, Clone)]
-struct SearchResult {
-    qid: String,
-    score: f32,
-    wikidata: String,
-    label: String,
-    omdb_image_link: Option<HashSet<String>>,
-    imdb_link: Option<String>,
-    search_back_link: Option<String>,
-    trigrams: HashSet<String>,
+pub struct SearchResult {
+    pub qid: String,
+    pub score: f32,
+    pub wikidata: String,
+    pub label: String,
+    pub omdb_image_link: Option<HashSet<String>>,
+    pub imdb_link: Option<String>,
+    pub search_back_link: Option<String>,
+    pub trigrams: HashSet<String>,
 }
 
 #[derive(Serialize, Clone)]
-struct SearchResponse {
-    search: String,
-    results: Vec<MediaRecommendation>,
+pub struct SearchResponse {
+    pub search: String,
+    pub results: Vec<MediaRecommendation>,
 }
 
 pub fn get_matches(

@@ -10,7 +10,9 @@ import os
 from pandasql import sqldf
 from .config import languages
 from .plot_to_qid import plot_to_qid
+from .review_to_qid import review_to_qid
 from .trigram_2_plot import trigram_2_plot
+from .trigram_2_review import trigram_2_review
 
 
 def map_qid_to_omdb_to_image():
@@ -181,5 +183,7 @@ if __name__ == "__main__":
     # json_to_csv()
     # map_qid_to_omdb_to_image()
     # wikidata_imdb_omd()
-    # plot_to_qid()
+    plot_to_qid()
     trigram_2_plot()
+    review_to_qid()
+    trigram_2_review()

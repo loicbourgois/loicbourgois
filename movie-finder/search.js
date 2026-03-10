@@ -2,18 +2,14 @@ import * as api from "./api.js";
 
 
 const search = async (search_str) => {
-
     function loadCSS(href) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
 
-    document.head.appendChild(link);
+        document.head.appendChild(link);
     }
-
-    // Usage example
     loadCSS('../index.css');
-
     const r = await api.search(search_str)
     console.log(r)
     document.body.innerHTML = `
