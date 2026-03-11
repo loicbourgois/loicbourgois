@@ -2,41 +2,24 @@ use crate::Data;
 use crate::media::MediaRecommendation;
 use crate::media::Recommendation;
 use crate::media::get_1_wikidata_imdb_omd_by_qid;
+use crate::search::SearchResponse;
+use crate::search::SearchResult;
 use crate::text;
 use crate::text::generate_trigrams;
 use actix_web::HttpResponse;
 use actix_web::Responder;
 use actix_web::get;
 use actix_web::web;
-use serde::Serialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-#[derive(Serialize, Clone)]
-pub struct SearchResult {
-    pub qid: String,
-    pub score: f32,
-    pub wikidata: String,
-    pub label: String,
-    pub omdb_image_link: Option<HashSet<String>>,
-    pub imdb_link: Option<String>,
-    pub search_back_link: Option<String>,
-    pub trigrams: HashSet<String>,
-}
-
-#[derive(Serialize, Clone)]
-pub struct SearchResponse {
-    pub search: String,
-    pub results: Vec<MediaRecommendation>,
-}
-
 pub fn get_matches(
     search_trigrams: &HashSet<String>,
-    trigram_2_x_hash: &HashMap<String, Vec<String>>,
+    data: &Data,
 ) -> HashMap<String, HashSet<String>> {
     let mut matches: HashMap<String, HashSet<String>> = HashMap::new();
     for trigram in search_trigrams {
-        match trigram_2_x_hash.get(trigram) {
+        match data.trigram_2_review_hash.get(trigram) {
             Some(search_strs) => {
                 for search_str in search_strs {
                     if !matches.contains_key(search_str) {
@@ -52,18 +35,18 @@ pub fn get_matches(
     matches
 }
 
-fn search_by_x(
-    search_str: &str,
-    data: &Data,
-    trigram_2_x_hash: &HashMap<String, Vec<String>>,
-    x_hash_2_qid: &HashMap<String, String>,
-) -> Vec<MediaRecommendation> {
+#[get("/search/review/{search_str}")]
+async fn search_review_service(
+    search_str: web::Path<String>,
+    data: web::Data<Data>,
+) -> impl Responder {
+    let search_str = text::normalize(&search_str);
     let mut results = HashMap::new();
-    let search_trigrams = generate_trigrams(search_str);
-    let matches = get_matches(&search_trigrams, trigram_2_x_hash);
-    for (hash, trigrams) in matches {
+    let search_trigrams = generate_trigrams(&search_str);
+    let matches = get_matches(&search_trigrams, &data);
+    for (review_hash, trigrams) in matches {
         let score = trigrams.len() as f32;
-        let qid = x_hash_2_qid.get(&hash).unwrap();
+        let qid = data.review_hash_2_qid.get(&review_hash).unwrap();
         results
             .entry(qid.to_string())
             .and_modify(|existing: &mut SearchResult| {
@@ -101,7 +84,7 @@ fn search_by_x(
         .clone()
         .into_iter()
         .map(|r| {
-            let m = get_1_wikidata_imdb_omd_by_qid(&r.qid, data).unwrap();
+            let m = get_1_wikidata_imdb_omd_by_qid(&r.qid, &data).unwrap();
             MediaRecommendation {
                 kind: m.kind,
                 qid: m.qid,
@@ -118,43 +101,7 @@ fn search_by_x(
             }
         })
         .collect();
-    medias
-}
-
-#[get("/search/{search_str}")]
-async fn search_service(search_str: web::Path<String>, data: web::Data<Data>) -> impl Responder {
-    let search_str = text::normalize(&search_str);
-    let medias_by_plot = search_by_x(
-        &search_str,
-        &data,
-        &data.trigram_2_plot_hash,
-        &data.plot_hash_2_qid,
-    );
-    let medias_by_review = search_by_x(
-        &search_str,
-        &data,
-        &data.trigram_2_review_hash,
-        &data.review_hash_2_qid,
-    );
-    let mut medias = Vec::new();
-    let max_len = std::cmp::max(medias_by_plot.len(), medias_by_review.len());
-    for i in 0..max_len {
-        if i < medias_by_plot.len() {
-            medias.push(medias_by_plot[i].clone());
-        }
-        if i < medias_by_review.len() {
-            medias.push(medias_by_review[i].clone());
-        }
-    }
-    let mut seen_qids = HashSet::new();
-    let mut deduped_medias = Vec::new();
-    for media in medias {
-        if !seen_qids.contains(&media.qid) {
-            seen_qids.insert(media.qid.clone());
-            deduped_medias.push(media);
-        }
-    }
-    for m in deduped_medias.iter().rev() {
+    for m in medias.iter().rev() {
         println!(
             "{} - {} - {} - {:?}",
             m.reco.score,
@@ -166,7 +113,7 @@ async fn search_service(search_str: web::Path<String>, data: web::Data<Data>) ->
     println!("search_str: {search_str}");
     let response = SearchResponse {
         search: search_str.to_string(),
-        results: deduped_medias,
+        results: medias,
     };
     HttpResponse::Ok().json(response)
 }

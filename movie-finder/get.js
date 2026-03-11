@@ -1,9 +1,24 @@
 import * as api from "./api.js";
+import { 
+    setup_events
+} from "./shared.js"
 
 
 const get = async (qid) => {
+    function loadCSS(href) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+    }
+    loadCSS('index.css');
     const r2 = await api.get(qid)
     document.body.innerHTML = `
+        <div id="top">
+            <button id="button_random">Random</button>
+            <input type="text">
+            <button id="button_search">Search</button>
+        </div>
         <div id="content">
         </div>
     `
@@ -31,6 +46,7 @@ const get = async (qid) => {
             </div>
         `
     }
+    setup_events()
 }
 
 

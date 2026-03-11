@@ -1,9 +1,12 @@
 import {
     get_config
- } from "./config.js"
+} from "./config.js"
 import { 
     fetch_
- } from "./fetch.js"
+} from "./fetch.js"
+import { 
+    setup_events
+} from "./shared.js"
 
 
 const main = async () => {
@@ -36,5 +39,8 @@ const main = async () => {
             </div>
         `
     }
+    setup_events()
 }
+
+
 main()

@@ -4,10 +4,11 @@
 ## Local
 ```sh
 # Frontend
-$HOME/github.com/loicbourgois/loicbourgois/go.sh
+$HOME/github.com/loicbourgois/loicbourgois/dev.sh
 open https://localhost/movie-finder/
 
 # Backend for movie_finder
+$HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/build.sh
 $HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/local.sh
     curl -k https://localhost:3000/about
     open https://localhost:3000/about
@@ -18,9 +19,9 @@ $HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/local.sh
 
 ## Staging
 ```sh
-$HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/admin.sh
-    screen -DR movie_finder_staging
-        $HOME/github.com/loicbourgois/loicbourgois/movie-finder-api/staging.sh
+$HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/admin.sh
+    screen -DR movie_finder_staging_api
+        $HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/staging.sh
 curl -k https://api.loicbourgois.com:3000/about
 open https://api.loicbourgois.com:3000/about
 open https://loicbourgois.com/movie-finder

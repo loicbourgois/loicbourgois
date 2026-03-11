@@ -1,4 +1,5 @@
 use crate::data::Data;
+use crate::search::get_matches;
 use crate::text::generate_trigrams;
 use actix_web::HttpResponse;
 use actix_web::Responder;
@@ -9,6 +10,7 @@ use rand::rng;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 #[derive(Deserialize, Clone, Serialize, PartialEq)]
 pub struct Media {
@@ -20,14 +22,15 @@ pub struct Media {
     pub label: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct Recommendation {
     pub qid: String,
     pub score: f32,
     pub label: String,
+    pub trigrams: HashSet<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct MediaRecommendation {
     pub kind: String,
     pub qid: String,
@@ -56,6 +59,7 @@ pub struct Reco {
     pub score: f32,
     pub label: String,
     pub media: Option<Media>,
+    pub trigrams: HashSet<String>,
 }
 
 #[get("/get/{qid}")]
@@ -70,14 +74,28 @@ pub async fn get_media_service(qid: web::Path<String>, data: web::Data<Data>) ->
         .choose(&mut rng)
         .copied()
         .expect("Failed to choose media");
-    let recommandations = recommandations_via_trigrams(&media.label, &data, &qid);
+    let recommandations = match get_1_plot_by_qid(&qid, &data) {
+        Some(plot) => recommandations_via_plot_trigrams(&plot, &data, &qid),
+        None => Vec::new(),
+    };
     HttpResponse::Ok().json(MediaRecommandationResponse {
         media: media.clone(),
         recommandations,
     })
 }
 
-fn get_1_wikidata_imdb_omd_by_qid(qid: &str, data: &Data) -> Option<Media> {
+pub fn get_1_plot_by_qid(qid: &str, data: &Data) -> Option<String> {
+    match data.qid_2_plot.get(qid) {
+        Some(v) => {
+            let mut rng = rng();
+            let plot = v.choose(&mut rng).cloned().expect("Failed to choose plot");
+            Some(plot)
+        }
+        None => None,
+    }
+}
+
+pub fn get_1_wikidata_imdb_omd_by_qid(qid: &str, data: &Data) -> Option<Media> {
     match data.qid_2_wikidata_imdb_omd.get(qid) {
         Some(v) => {
             let mut rng = rng();
@@ -88,45 +106,34 @@ fn get_1_wikidata_imdb_omd_by_qid(qid: &str, data: &Data) -> Option<Media> {
     }
 }
 
-fn recommandations_via_trigrams(label: &str, data: &Data, qid: &str) -> Vec<MediaRecommendation> {
-    let trigrams = generate_trigrams(label);
-    let mut matches: HashMap<String, f32> = HashMap::new();
-    for trigram in &trigrams {
-        match data.trigram_2_search_str.get(trigram) {
-            Some(search_strs) => {
-                for search_str in search_strs {
-                    if !matches.contains_key(search_str) {
-                        matches.insert(search_str.to_string(), 0.0);
-                    }
-                    let value = matches.get(search_str).unwrap();
-                    matches.insert(search_str.to_string(), value + 1.0);
-                }
-            }
-            None => {}
-        }
-    }
+fn recommandations_via_plot_trigrams(
+    plot: &str,
+    data: &Data,
+    qid: &str,
+) -> Vec<MediaRecommendation> {
+    let plot_trigrams = generate_trigrams(plot);
+    let matches = get_matches(&plot_trigrams, &data.trigram_2_plot_hash);
     let mut results = HashMap::new();
-    for (search_str, v) in matches {
-        let percent = v / (trigrams.len() as f32);
-        let percent_2 = (trigrams.len() as f32) / (generate_trigrams(&search_str).len() as f32);
-        let score = percent.min(percent_2);
-        let qids = data.search_str_2_movie_qid.get(&search_str).unwrap();
-        for qid in qids {
-            results
-                .entry(qid.to_string())
-                .and_modify(|existing: &mut Reco| {
-                    if score > existing.score {
-                        existing.score = score;
-                        existing.label = search_str.to_string();
-                    }
-                })
-                .or_insert(Reco {
-                    qid: qid.to_string(),
-                    score,
-                    label: search_str.to_string(),
-                    media: get_1_wikidata_imdb_omd_by_qid(qid, data),
-                });
-        }
+    for (plot_hash, trigrams) in matches {
+        // let score = (trigrams.len() as f32) / (plot_hash.len() as f32);
+        let score = trigrams.len() as f32;
+        let qid = data.plot_hash_2_qid.get(&plot_hash).unwrap();
+        results
+            .entry(qid.to_string())
+            .and_modify(|existing: &mut Reco| {
+                if score > existing.score {
+                    existing.score = score;
+                    existing.label = plot.to_string();
+                    existing.trigrams.clone_from(&trigrams);
+                }
+            })
+            .or_insert(Reco {
+                qid: qid.to_string(),
+                score,
+                label: plot.to_string(),
+                media: get_1_wikidata_imdb_omd_by_qid(qid, data),
+                trigrams: trigrams.clone(),
+            });
     }
     let mut results_vec: Vec<Reco> = results.values().cloned().collect();
     results_vec.sort_by(|a, b| {
@@ -152,9 +159,20 @@ fn recommandations_via_trigrams(label: &str, data: &Data, qid: &str) -> Vec<Medi
                     qid: r.qid,
                     score: r.score,
                     label: r.label,
+                    trigrams: r.trigrams,
                 },
             }
         })
         .collect();
+    for m in medias.iter().rev() {
+        println!(
+            "{} - {} - {} - {:?}",
+            m.reco.score,
+            m.label,
+            m.imdb_link.clone(),
+            m.reco.trigrams,
+        );
+    }
+    println!("qid: {qid}");
     medias
 }
