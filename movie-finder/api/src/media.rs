@@ -112,7 +112,7 @@ fn recommandations_via_plot_trigrams(
     qid: &str,
 ) -> Vec<MediaRecommendation> {
     let plot_trigrams = generate_trigrams(plot);
-    let matches = get_matches(&plot_trigrams, data);
+    let matches = get_matches(&plot_trigrams, &data.trigram_2_plot_hash);
     let mut results = HashMap::new();
     for (plot_hash, trigrams) in matches {
         // let score = (trigrams.len() as f32) / (plot_hash.len() as f32);

@@ -14,40 +14,22 @@ use std::path::PathBuf;
 
 #[derive(Clone)]
 pub struct Data {
-    // pub search_str_2_movie_qid: HashMap<String, HashSet<String>>,
     pub start_time: DateTime<Utc>,
     pub qid_2_omdb_image_link: HashMap<String, HashSet<String>>,
     pub qid_2_imdb_link: HashMap<String, String>,
     pub wikidata_imdb_omd: Vec<Media>,
     pub qid_2_wikidata_imdb_omd: HashMap<String, Vec<Media>>,
     pub qid_2_plot: HashMap<String, Vec<String>>,
-
     pub trigram_2_plot_hash: HashMap<String, Vec<String>>,
     pub plot_hash_2_qid: HashMap<String, String>,
-
     pub trigram_2_review_hash: HashMap<String, Vec<String>>,
     pub review_hash_2_qid: HashMap<String, String>,
 }
 
 #[derive(Deserialize)]
 struct Config {
-    // languages: HashSet<String>,
     medias: HashSet<String>,
 }
-
-// fn read_csv_file(path: PathBuf) -> Result<Vec<(String, String, String)>, Box<dyn Error>> {
-//     let mut reader = Reader::from_path(path)?;
-//     let mut records = Vec::new();
-//     for result in reader.records() {
-//         let record = result?;
-//         records.push((
-//             record[0].to_string(),
-//             record[1].to_string(),
-//             record[2].to_string(),
-//         ));
-//     }
-//     Ok(records)
-// }
 
 fn read_csv_file_7(
     path: PathBuf,
@@ -118,32 +100,12 @@ pub fn load_data() -> Data {
         let txt = fs::read_to_string(path).expect("Failed to read review_hash_2_qid.json");
         serde_json::from_str(&txt).expect("Failed to parse review_hash_2_qid.json")
     };
-
-    // let csv_paths = {
-    //     let mut v = Vec::new();
-    //     for media in &config.medias {
-    //         for language in &config.languages {
-    //             let mut csv_path = PathBuf::from(&home_dir);
-    //             csv_path.push(format!(
-    //                 "github.com/loicbourgois/loicbourgois/movie-finder/data/csv/{media}/label/{language}.csv"
-    //             ));
-    //             v.push(csv_path);
-    //         }
-    //     }
-    //     v
-    // };
-    // let mut search_str_2_movie_qid = HashMap::new();
     let mut qid_2_plot = HashMap::new();
     let mut csv_path = PathBuf::from(&home_dir);
     csv_path.push("github.com/loicbourgois/loicbourgois/movie-finder/data/csv/plot_to_qid.csv");
     match read_csv_file_2(csv_path.clone()) {
         Ok(records) => {
             for (qid, plot) in &records {
-                // let normalized_plot = text::normalize(plot);
-                // search_str_2_movie_qid
-                //     .entry(normalized_plot.to_string())
-                //     .or_insert_with(HashSet::new)
-                //     .insert(qid.clone());
                 qid_2_plot
                     .entry(qid.clone())
                     .or_insert_with(Vec::new)
@@ -154,20 +116,6 @@ pub fn load_data() -> Data {
             panic!("{}", e);
         }
     }
-    // let l = csv_paths.len();
-    // for (i, csv_path) in csv_paths.iter().enumerate() {
-    //     println!("{}/{} - {}", i + 1, l, csv_path.display());
-    //     if let Ok(records) = read_csv_file(csv_path.clone()) {
-    //         // for (qid, label, _) in records {
-    //             // let qid_proper = qid.replace("http://www.wikidata.org/entity/", "");
-    //             // let normalized_label = text::normalize(&label);
-    //             // search_str_2_movie_qid
-    //             //     .entry(normalized_label.to_string())
-    //             //     .or_insert_with(HashSet::new)
-    //             //     .insert(qid_proper.clone());
-    //         }
-    //     }
-    // }
     let mut qid_2_omdb_image_link = HashMap::new();
     let l = config.medias.len();
     for (i, media) in config.medias.iter().enumerate() {
@@ -232,15 +180,10 @@ pub fn load_data() -> Data {
             .push(x.clone());
     }
     println!("qid_2_omdb_image_link.len: {}", qid_2_omdb_image_link.len());
-    // println!(
-    //     "search_str_2_movie_qid.len: {}",
-    //     search_str_2_movie_qid.len()
-    // );
     println!("qid_2_imdb_link.len: {}", qid_2_imdb_link.len());
     println!("wikidata_imdb_omd.len: {}", wikidata_imdb_omd.len());
     Data {
         start_time: Utc::now(),
-        // search_str_2_movie_qid,
         qid_2_omdb_image_link,
         qid_2_imdb_link,
         wikidata_imdb_omd,

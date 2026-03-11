@@ -4,7 +4,7 @@
 ## Local
 ```sh
 # Frontend
-$HOME/github.com/loicbourgois/loicbourgois/go.sh
+$HOME/github.com/loicbourgois/loicbourgois/dev.sh
 open https://localhost/movie-finder/
 
 # Backend for movie_finder

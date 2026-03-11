@@ -6,8 +6,8 @@ mod data;
 mod media;
 mod random;
 mod search;
-mod search_review;
-use crate::search_review::search_review_service;
+// mod search_review;
+// use crate::search_review::search_review_service;
 mod text;
 use crate::about::about_service;
 use crate::config::get_config;
@@ -109,7 +109,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(data))
             .wrap(cors)
             .service(search_service)
-            .service(search_review_service)
+            // .service(search_review_service)
             .service(about_service)
             .service(random_service)
             .service(get_media_service);

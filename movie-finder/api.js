@@ -12,11 +12,11 @@ const search = async (search_str) => {
     return r
 }
 
-const search_review = async (search_str) => {
-    const config = get_config(window.location.hostname)
-    const r =  fetch_(`https://${config.server}/search/review/${search_str}`)
-    return r
-}
+// const search_review = async (search_str) => {
+//     const config = get_config(window.location.hostname)
+//     const r =  fetch_(`https://${config.server}/search/review/${search_str}`)
+//     return r
+// }
 
 const get = async (qid) => {
     const config = get_config(window.location.hostname)
@@ -28,5 +28,5 @@ const get = async (qid) => {
 export {
     get,
     search,
-    search_review,
+    // search_review,
 }
