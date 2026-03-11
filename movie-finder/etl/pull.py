@@ -5,7 +5,7 @@ from .pull_imdb_reviews import pull_imdb_reviews
 
 
 if __name__ == "__main__":
-    # pull_omdb()
-    # pull_wikidata()
+    pull_omdb()
+    pull_wikidata()
     # pull_imdb_descriptions()
-    pull_imdb_reviews()
+    # pull_imdb_reviews()
