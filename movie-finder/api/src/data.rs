@@ -67,6 +67,7 @@ pub fn load_data() -> Data {
     path.push("github.com/loicbourgois/loicbourgois/movie-finder/api/config.json");
     let config_text = fs::read_to_string(path).expect("Failed to read config.json");
     let config: Config = serde_json::from_str(&config_text).expect("Failed to parse config.json");
+    println!("load trigram_2_plot_hash");
     let trigram_2_plot_hash: HashMap<String, Vec<String>> = {
         let mut path = PathBuf::from(&home_dir);
         path.push(
@@ -75,6 +76,7 @@ pub fn load_data() -> Data {
         let txt = fs::read_to_string(path).expect("Failed to read trigram_2_plot_hash.json");
         serde_json::from_str(&txt).expect("Failed to parse trigram_2_plot_hash.json")
     };
+    println!("load plot_hash_2_qid");
     let plot_hash_2_qid: HashMap<String, String> = {
         let mut path = PathBuf::from(&home_dir);
         path.push(
@@ -83,7 +85,7 @@ pub fn load_data() -> Data {
         let txt = fs::read_to_string(path).expect("Failed to read plot_hash_2_qid.json");
         serde_json::from_str(&txt).expect("Failed to parse plot_hash_2_qid.json")
     };
-
+    println!("load trigram_2_review_hash");
     let trigram_2_review_hash: HashMap<String, Vec<String>> = {
         let mut path = PathBuf::from(&home_dir);
         path.push(
@@ -92,6 +94,7 @@ pub fn load_data() -> Data {
         let txt = fs::read_to_string(path).expect("Failed to read trigram_2_review_hash.json");
         serde_json::from_str(&txt).expect("Failed to parse trigram_2_review_hash.json")
     };
+    println!("load review_hash_2_qid");
     let review_hash_2_qid: HashMap<String, String> = {
         let mut path = PathBuf::from(&home_dir);
         path.push(
@@ -100,6 +103,7 @@ pub fn load_data() -> Data {
         let txt = fs::read_to_string(path).expect("Failed to read review_hash_2_qid.json");
         serde_json::from_str(&txt).expect("Failed to parse review_hash_2_qid.json")
     };
+    println!("load qid_2_plot");
     let mut qid_2_plot = HashMap::new();
     let mut csv_path = PathBuf::from(&home_dir);
     csv_path.push("github.com/loicbourgois/loicbourgois/movie-finder/data/csv/plot_to_qid.csv");
@@ -116,6 +120,7 @@ pub fn load_data() -> Data {
             panic!("{}", e);
         }
     }
+    println!("load qid_2_omdb_image_link");
     let mut qid_2_omdb_image_link = HashMap::new();
     let l = config.medias.len();
     for (i, media) in config.medias.iter().enumerate() {
@@ -142,6 +147,7 @@ pub fn load_data() -> Data {
             }
         }
     }
+    println!("load qid_2_imdb_link");
     let mut qid_2_imdb_link = HashMap::new();
     let l = config.medias.len();
     for (i, media) in config.medias.iter().enumerate() {

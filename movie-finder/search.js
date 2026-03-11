@@ -1,4 +1,7 @@
 import * as api from "./api.js";
+import { 
+    setup_events
+} from "./shared.js"
 
 
 const search = async (search_str) => {
@@ -14,8 +17,9 @@ const search = async (search_str) => {
     console.log(r)
     document.body.innerHTML = `
         <div id="top">
+            <button id="button_random">Random</button>
             <input type="text" value="${decodeURIComponent(search_str)}">
-            <button>Search</button>
+            <button id="button_search">Search</button>
         </div>
         <div id="content">
         </div>
@@ -33,20 +37,7 @@ const search = async (search_str) => {
             </div>
         `
     }
-    const input = document.querySelector('#top input');
-    const button = document.querySelector('#top button');
-    const triggerSearch = () => {
-        const query = input.value.trim();
-        if (query) {
-            window.location.href = `/movie-finder/search/${encodeURIComponent(query)}`;
-        }
-    };
-    button.addEventListener('click', triggerSearch);
-    input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            triggerSearch();
-        }
-    });
+    setup_events()
 }
 
 

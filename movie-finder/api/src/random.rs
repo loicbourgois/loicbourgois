@@ -20,7 +20,7 @@ pub async fn random_service(data: web::Data<Data>) -> impl Responder {
         .wikidata_imdb_omd
         .iter()
         .filter(|m| m != &&media)
-        .sample(&mut rng, 100)
+        .sample(&mut rng, 99)
         .into_iter()
         .cloned()
         .collect();
