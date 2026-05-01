@@ -10,7 +10,7 @@ struct Metadata {
   noise_ratio: f32,
   speed: f32,
   unit_count_f: f32,
-  padding: f32,
+  tick: f32,
 };
 
 
@@ -25,11 +25,15 @@ struct DataPoint {
   r: i32,
   g: i32,
   b: i32,
+  direction: i32,
 };
 
 
+const unit_size: i32 = 9;
+
+
 @group(0) @binding(0) var<uniform> m: Metadata;
-@group(0) @binding(1) var<storage, read> imgs: array<i32>;
+@group(0) @binding(1) var<storage, read> imgs: array<f32>;
 @group(0) @binding(3) var<storage, read> data: array<DataPoint>;
 
 
@@ -52,28 +56,68 @@ struct DataPoint {
 
 
 @fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
+  let zoom_pixels = f32(4);
   var unit_count = i32(m.unit_count_f);
   var x = i32(vsOut.position.x / m.canvas.x * m.unit_count_f);
   var y = i32(vsOut.position.y / m.canvas.y * m.unit_count_f);
   var i = x + y * unit_count;
   var k = data[i].kind;
+  var dir = data[i].direction;
   var r = 0.0;
   var g = 0.0;
   var b = 0.0;
-  var img_x = i32(vsOut.position.x) % 8;
-  var img_y = i32(vsOut.position.y) % 8;
-  var img_i = i32(img_x + img_y * 8);
-  if k == 1 {
-    var v = imgs[0 + img_i];
-    r = f32(data[i].r) / 255.0 * f32(v);
-    g = f32(data[i].g) / 255.0 * f32(v);
-    b = f32(data[i].b) / 255.0 * f32(v);
+  var img_x = i32(vsOut.position.x/zoom_pixels) % unit_size;
+  var img_y = i32(vsOut.position.y/zoom_pixels) % unit_size;
+  var img_i = i32(img_x + img_y * unit_size);
+  var tick = i32(m.tick);
+
+
+  var img_i2 = 0;
+  // UP
+  if dir == 0 {
+    var img_x_ = (i32(vsOut.position.x / zoom_pixels)) % unit_size;
+    var img_y_ = (i32(vsOut.position.y / zoom_pixels) + tick) % unit_size;
+    img_i2 = i32(img_x_ + img_y_ * unit_size);
   }
-  if k > 1 {
-    var v = imgs[(k-1)*8*8 + img_i];
-    r = f32(v) / 255.0;
-    g = f32(v) / 255.0;
-    b = f32(v) / 255.0;
+  // DOWN
+  if dir == 1 {
+    // img_i2 = (img_i - unit_size*tick) % (unit_size*unit_size) + unit_size*unit_size;
+    var img_x_ = (i32(vsOut.position.x / zoom_pixels)) % unit_size;
+    var img_y_ = (i32(vsOut.position.y / zoom_pixels) - (tick % unit_size) + unit_size) % unit_size;
+    img_i2 = i32(img_x_ + img_y_ * unit_size );
+  }
+  // LEFT
+  if dir == 2 {
+    var img_x_ = (i32(vsOut.position.x / zoom_pixels) + tick) % unit_size;
+    var img_y_ = (i32(vsOut.position.y / zoom_pixels)) % unit_size;
+    img_i2 = i32(img_x_ + img_y_ * unit_size);
+  }
+  // RIGHT
+  if dir == 3 {
+    var img_x_ = (i32(vsOut.position.x / zoom_pixels) - (tick % unit_size) + unit_size) % unit_size;
+    var img_y_ = (i32(vsOut.position.y / zoom_pixels)) % unit_size;
+    img_i2 = i32(img_x_ + img_y_ * unit_size );
+  }
+
+
+  // 
+  if k == 1 {
+    var v = imgs[1*unit_size*unit_size + img_i] * imgs[(14+dir) * unit_size*unit_size + img_i2 ];
+    r = f32(data[i].r) * v / 255.0;
+    g = f32(data[i].g) * v / 255.0;
+    b = f32(data[i].b) * v / 255.0;
+  }
+  else if k == 12 {
+    var v = imgs[11*unit_size*unit_size + img_i];
+    r = f32(data[i].r) * v / 255.0;
+    g = f32(data[i].g) * v / 255.0;
+    b = f32(data[i].b) * v / 255.0;
+  }
+  else if k > 1 {
+    var v = imgs[k*unit_size*unit_size + img_i];
+    r = f32(v);
+    g = f32(v) ;
+    b = f32(v) ;
   }
   return vec4f(r, g, b, 1.0);
 }

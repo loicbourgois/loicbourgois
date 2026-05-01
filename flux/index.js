@@ -1,47 +1,30 @@
 let auto_step = true
 // auto_step = false
-const steps_to_run = 12
+const steps_to_run = 1
+const speed = 2
 
 
 import { resize_square } from "./canvas.js"
+import { Kind } from "./kind.js"
+import { add_transforms } from "./add_transforms.js"
 import {
   setup_webgpu,
   render,
 } from "./webgpu.js"
-import { imgs } from "./block.js"
-
-
-// We won't go under 64/256 for rgb values
-// 64 is ok
-const limit = 64;
-
-
-const Kind = Object.freeze({
-  void: 0,
-  pixel: 1,
-  down: 2,
-  right: 3,
-  left: 4,
-  up: 5,
-  split_left_right: 6,
-  split_up_down: 7,
-  mix_to_left: 8,
-});
-
-
-const Direction = Object.freeze({
-  right: "right",
-  down: "down",
-  left: "left",
-  up: "up",
-});
+import { 
+  imgs,
+} from "./block_9.js"
+import { t01 } from "./configs/t01.js"
+import { t03 } from "./configs/t03.js"
+import { t04 } from "./configs/t04.js"
+import { t05 } from "./configs/t05.js"
+import { set_block } from "./shared.js"
 
 
 const organize = (transforms, iter=0) => {
-  // console.log(structuredClone(transforms))
-  if (iter > 10) {
-    throw "too many iter"
-  }
+  // if (iter > 100) {
+  //   throw "too many iter"
+  // }
   for (const transform of transforms) {
     if (transform.deletes) {
       for (const delete_ of transform.deletes) {
@@ -61,7 +44,6 @@ const organize = (transforms, iter=0) => {
       }
     }
   }
-  // console.log(structuredClone(transforms))
   const blocks_next = {}
   const conflicts = new Set()
   for (const transform of transforms) {
@@ -78,6 +60,11 @@ const organize = (transforms, iter=0) => {
     for (const conflict of conflicts) {
       for (const transform of transforms) {
         if (transform.outputs.some( o => o.i == conflict )) {
+          for (const input of transform.inputs) {
+            if (input.scoring) {
+              score[input.scoring] -= 1;
+            }
+          }
           transform.outputs = structuredClone(transform.inputs)
           transform.deletes = []
         }
@@ -90,320 +77,155 @@ const organize = (transforms, iter=0) => {
 }
 
 
-const down = (i, uc) => {
-  const x = i % uc
-  const y = parseInt(i / uc)
-  const x_new = x;
-  const y_new = (y+1) % uc;
-  return x_new + y_new * uc
-}
+const score = {}
+const flow_rate = []
 
 
-const left = (i, uc) => {
-  const x = i % uc
-  const y = parseInt(i / uc)
-  const x_new = (x-1 + uc) % uc;
-  const y_new = y;
-  return x_new + y_new * uc
-}
-
-
-const up = (i, uc) => {
-  const x = i % uc
-  const y = parseInt(i / uc)
-  const x_new = x;
-  const y_new = (y-1+uc)%uc;
-  return x_new + y_new * uc
-}
-
-
-const right = (i, uc) => {
-  const x = i % uc
-  const y = parseInt(i / uc)
-  const x_new = (x+1 + uc) % uc;
-  const y_new = y;
-  return x_new + y_new * uc
-}
-
-
-const continue_from_to = (i, b, inew) => {
-  return {
-      inputs: [{
-        i:i,
-        b:structuredClone(b),
-      }],
-      outputs:[{
-        i:inew,
-        b:structuredClone(b)
-      }]
-    }
-}
-
-
-const go_from_to = (i, b, inew, direction) => {
-  const bo = structuredClone(b)
-  bo.direction = direction
-  return {
-    inputs: [
-      {
-        i:i,
-        b:structuredClone(b),
-      }
-    ],
-    outputs:[
-      {
-        i:inew,
-        b:bo,
-      }
-    ],
+const skip_color = (r, g, b) => {
+  let c128 = 0;
+  let c256 = 0;
+  if (r == 128) c128 += 1 
+  if (g == 128) c128 += 1 
+  if (b == 128) c128 += 1 
+  if (r == 256) c256 += 1 
+  if (g == 256) c256 += 1 
+  if (b == 256) c256 += 1 
+  // if (r+g+b < 128) {
+  //   return true
+  // }
+  if (c256 == 3) {
+    return false
   }
+  if (c256 == 2 && c128 == 1) {
+    return false
+  }
+  if (c256 == 1 && c128 == 2) {
+    return false
+  }
+  if (c256 == 1 && c128 == 1) {
+    return false
+  }
+  // if (c128 < 1) {
+  //   return true
+  // }
+  // if (c256 < 1) {
+  //   return true
+  // }
+  // return false
+  return true
 }
 
 
 const step = (world) => {
-  // console.log("######### Step")
-  const transforms = []
-  for (let y = 0; y < world.unit_count; y++) {
-    for (let x = 0; x < world.unit_count; x++) {
-      // Setups is
-      const i = x + y * world.unit_count
-      const id = down(i, world.unit_count)
-      const il = left(i, world.unit_count)
-      const ir = right(i, world.unit_count)
-      const iu = up(i, world.unit_count)
-      // Setup blocks
-      const b = world.blocks[i]
-      const br = world.blocks[ir]
-      const bd = world.blocks[id]
-      const bl = world.blocks[il]
-      const bu = world.blocks[iu]
-      //
-      // Create transforms
-      //
-      if (b.k == Kind.pixel) {
-        //
-        // Go to
-        //
-        if (
-          br.k == Kind.down && b.direction == Direction.right  
-          || bl.k == Kind.down && b.direction == Direction.left  
-        ) {
-          transforms.push(go_from_to(i,b,id, Direction.down))
-        } else if (
-          bd.k == Kind.left || bu.k == Kind.left
-        ) {
-          transforms.push(go_from_to(i,b,il, Direction.left))
-        } else if (
-          bl.k == Kind.up && b.direction == Direction.left
-          || br.k == Kind.up && b.direction == Direction.right  
-        ) {
-          transforms.push(go_from_to(i,b,iu, Direction.up))
-        } else if (bu.k == Kind.right || bd.k == Kind.right) {
-          transforms.push(go_from_to(i,b,ir, Direction.right))
-        } 
-        // 
-        // Split
-        //
-        else if (
-          bd.k == Kind.split_left_right
-        ) {
-          transforms.push({
-            inputs: [
-              {
-                i:i,
-                b:structuredClone(b),
-              }
-            ],
-            outputs:[
-              {
-                i: il,
-                b: {
-                  k: Kind.pixel,
-                  r: b.r / 2,
-                  g: b.g / 2,
-                  b: b.b / 2,
-                  direction: Direction.left,
-                }
-              }, {
-                i: ir,
-                b: {
-                  k: Kind.pixel,
-                  r: b.r / 2,
-                  g: b.g / 2,
-                  b: b.b / 2,
-                  direction: Direction.right,
-                }
-              }
-            ],
-          })
-        } else if (
-          (
-            br.k == Kind.split_up_down
-            || bl.k == Kind.split_up_down
-          ) && (b.r > limit || !b.r) && (b.g > limit || !b.g) && (b.b > limit || !b.b)
-        ) {
-          transforms.push({
-            inputs: [
-              {
-                i:i,
-                b:structuredClone(b),
-              }
-            ],
-            outputs:[
-              {
-                i: iu,
-                b: {
-                  k: Kind.pixel,
-                  r: b.r / 2,
-                  g: b.g / 2,
-                  b: b.b / 2,
-                  direction: Direction.up,
-                }
-              }, {
-                i: id,
-                b: {
-                  k: Kind.pixel,
-                  r: b.r / 2,
-                  g: b.g / 2,
-                  b: b.b / 2,
-                  direction: Direction.down,
-                }
-              }
-            ],
-          })
-        }  
-        // 
-        // Continue movement (or static)
-        // 
-        else if (b.direction == Direction.right) {
-          transforms.push(continue_from_to(i, b, ir))
-        } else if (
-          b.direction == Direction.down
-          && bd.Kind != Kind.mix_to_left
-        ) {
-          transforms.push(continue_from_to(i, b, id))
-        } else if (b.direction == Direction.left) {
-          transforms.push(continue_from_to(i, b, il))
-        } else if (
-          b.direction == Direction.up
-          && bu.Kind != Kind.mix_to_left
-        ) {
-          transforms.push(continue_from_to(i, b, iu))
+  // console.log(world.tick)
+  
+  if (world.tick%9 == 0) {
+    const transforms = []
+
+    flow_rate.push({})
+    for (let r = 0; r <= 256; r+=128) {
+      for (let g = 0; g <= 256; g+=128) {
+        for (let b = 0; b <= 256; b+=128) {
+          if (skip_color(r,g,b)) {
+            continue
+          }
+          flow_rate[world.tick/9][`${r},${g},${b}`] = 0
+        }
+      }
+    }
+
+
+    for (let y = 0; y < world.unit_count; y++) {
+      for (let x = 0; x < world.unit_count; x++) {
+        add_transforms(x, y, world, transforms, score, flow_rate)
+      }
+    }
+    const blocks_next = organize(transforms)
+    for (let y = 0; y < world.unit_count; y++) {
+      for (let x = 0; x < world.unit_count; x++) {
+        const i = x + y * world.unit_count
+        if (blocks_next[i]) {
+          world.blocks[i] = structuredClone(blocks_next[i])
         } else {
-          transforms.push(continue_from_to(i, b, i))
-        }
-      // 
-      // Mixers
-      // 
-      } else if (
-        b.k == Kind.mix_to_left
-        && bu.k == Kind.pixel 
-        && bd.k == Kind.pixel
-      ) {
-        transforms.push({
-          inputs: [
-            {
-              i:i,
-              b:structuredClone(b),
-            }, {
-              i:iu,
-              b:structuredClone(bu),
-            }, {
-              i:id,
-              b:structuredClone(bd),
-            }
-          ],
-          outputs:[
-            {
-              i:i,
-              b:structuredClone(b),
-            }, {
-              i: il,
-              b: {
-                k: Kind.pixel,
-                r: bu.r + bd.r,
-                g: bu.g + bd.g,
-                b: bu.b + bd.b,
-                direction: Direction.left,
-              }
-            }
-          ],
-          deletes: [
-            {
-              i:iu,
-            },
-            {
-              i:id,
-            },
-          ]
-        })
-      } 
-      //
-      // Default
-      //
-      else if (b.k != Kind.void) {
-        transforms.push({
-          inputs: [
-            {
-              i:i,
-              b:structuredClone(b),
-            }
-          ],
-          outputs:[
-            {
-              i:i,
-              b:structuredClone(b),
-            }
-          ]
-        })
-      } else if (b.k == Kind.void) {
-        // pass
-      } else {
-        throw "error"
-      }
-    }
-  }
-  // 
-  const blocks_next = organize(transforms)
-  //
-  for (let y = 0; y < world.unit_count; y++) {
-    for (let x = 0; x < world.unit_count; x++) {
-      const i = x + y * world.unit_count
-      if (blocks_next[i]) {
-        world.blocks[i] = structuredClone(blocks_next[i])
-      } else {
-        world.blocks[i] = {
-          k: Kind.void,
+          world.blocks[i] = {
+            k: Kind.void,
+          }
         }
       }
     }
   }
+  const flow_rate_now = flow_rate.at(-1)
+  let txt = ""
+  for (let r = 0; r <= 256; r+=128) {
+    for (let g = 0; g <= 256; g+=128) {
+      for (let b = 0; b <= 256; b+=128) {
+        if (skip_color(r,g,b)) {
+          continue
+        }
+        const s = flow_rate_now[`${r},${g},${b}`]
+        if (s > 0) {
+          txt += `<p style="background:rgb(${r},${g},${b})">${s}</p>`
+        } else {
+          txt += `<p style="background:rgb(${r},${g},${b})">-</p>`
+        }
+      }
+    }
+  }
+  document.getElementById("score").innerHTML = txt
   world.tick += 1
   setTimeout( () => {
     if (auto_step) {
       step(world)
     }
-  }, 1000 * 60 / 174 / 8);
-}
-
-
-const i = (world, x, y) => {
-  return x + y * world.unit_count
-}
-
-
-const set_block = (world, x, y, data) => {
-  world.blocks[i(world, x, y)] = data
+  }, 1000 * 60 / 174 / 9 / speed );
 }
 
 
 const main = async () => {
   document.body.style.background = '#111'
+  const newBlockContainer = document.getElementById("new_block");
+  const radioContainer = document.createElement("div");
+  radioContainer.id = "new_block_select";
+  for (const kindName of Object.keys(Kind)) {
+    if (["void", "create", "consume", "pixel"].includes(kindName)) {
+      continue;
+    }
+    const label = document.createElement("label");
+    label.style.display = "block";
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "new_block_select";
+    radio.value = kindName;
+    if (!radioContainer.querySelector("input")) {
+      radio.checked = true;
+    }
+    label.appendChild(radio);
+    label.append(` ${kindName}`);
+    radioContainer.appendChild(label);
+  }
+  newBlockContainer.appendChild(radioContainer);
+  let score_counts = 0
+  for (let r = 0; r <= 256; r+=128) {
+    for (let g = 0; g <= 256; g+=128) {
+      for (let b = 0; b <= 256; b+=128) {
+        if (skip_color(r,g,b)) {
+          continue
+        }
+        const color_id = `${r},${g},${b}`
+        console.log(color_id)
+        score[color_id] = 0
+        flow_rate[color_id] = []
+        score_counts += 1
+      }
+    }
+  }
+  console.log(`score_counts: ${score_counts}`)
   const canvas = document.getElementById("canvas")
   const dimension_min_window = Math.min(window.innerWidth, window.innerHeight)
   const scale = 0.95;
   const dimension_scaled = dimension_min_window * scale;
-  const unit_size = 8;
+  const zoom_pixels = 4;
+  const unit_size = 9*zoom_pixels;
   const unit_count = parseInt(dimension_min_window * scale / unit_size);
   const dimension = unit_size*unit_count;
   console.log(`unit_size:            ${unit_size}`)
@@ -412,6 +234,46 @@ const main = async () => {
   console.log(`dimension_scaled:     ${dimension_scaled}`)
   console.log(`dimension:            ${dimension}`)
   resize_square(canvas, dimension, 1)
+  canvas.addEventListener('click', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const gridX = Math.floor(x / unit_size);
+    const gridY = Math.floor(y / unit_size);
+    const i = gridX + gridY * unit_count;
+    const currentBlock = world.blocks[i];
+    console.log(currentBlock)
+    if (!currentBlock || currentBlock.k === Kind.void || currentBlock.k === Kind.pixel) {
+      const kindElement = document.querySelector("input[name='new_block_select']:checked");
+      const kind = kindElement ? kindElement.value : "void";
+      set_block(world, gridX, gridY, { k: Kind[kind] });
+      console.log(`set_block(${gridX}, ${gridY}, ${kind})`);
+      // const kind = document.getElementById("new_block_select").value
+      // set_block(world, gridX, gridY, { k: Kind[kind] });
+      // console.log(`set_block(${gridX}, ${gridY}, ${kind})`);
+    } else {
+      const kind = "void"
+      set_block(world, gridX, gridY, { k: Kind[kind] });
+      console.log(`set_block(${gridX}, ${gridY}, ${kind})`);
+      // console.log(`Clicked on existing block of kind ${currentBlock.k} at (${gridX}, ${gridY})`);
+    }
+  });
+
+  canvas.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const gridX = Math.floor(x / unit_size);
+    const gridY = Math.floor(y / unit_size);
+    const i = gridX + gridY * unit_count;
+    const currentBlock = world.blocks[i];
+    document.getElementById("debug").value = JSON.stringify({
+      x: gridX,
+      y: gridY,
+      "block": currentBlock,
+    }, null, 2)
+  });
+
   const wgpu = await setup_webgpu(canvas, unit_count, imgs)
   const world = {
     blocks: [],
@@ -427,73 +289,7 @@ const main = async () => {
         world.blocks_next.push([])
       }
   } 
-  /////////////////////////////////////////////
-  world.blocks[0] = {
-    k: Kind.pixel,
-    direction: Direction.right,
-    r: 256,
-    g: 0,
-    b: 0,
-  }
-  world.blocks[1] = {
-    k: Kind.pixel,
-    direction: Direction.right,
-    r: 256,
-    g: 256,
-    b: 0,
-  }
-  set_block(world, 10, 0, {
-    k: Kind.down,
-  })
-  set_block(world, 9, 11, {
-    k: Kind.left,
-  })
-  set_block(world, 10, 12, {
-    k: Kind.up,
-  })
-  set_block(world, 10, 13, {
-    k: Kind.up,
-  })
-  set_block(world, 5, 10, {
-    k: Kind.up,
-  })
-  set_block(world, 6, 5, {
-    k: Kind.right,
-  })
-  set_block(world, 10, 6, {
-    k: Kind.up,
-  })
-  set_block(world, 15, 15, {
-    k: Kind.pixel,
-    r: 256,
-    g: 256,
-    b: 0,
-  })
-  set_block(world, 9, 3, {
-    k: Kind.split_left_right,
-  })
-  set_block(world, 11, 2, {
-    k: Kind.split_up_down,
-  })
-  ////////////////
-  set_block(world, 16, 16, {
-    k: Kind.mix_to_left,
-  })
-  set_block(world, 16, 19, {
-    k: Kind.pixel,
-    r: 256,
-    g: 256,
-    b: 0,
-    direction: Direction.up,
-  })
-  set_block(world, 16, 13, {
-    k: Kind.pixel,
-    r: 0,
-    g: 0,
-    b: 128+64,
-    direction: Direction.down,
-  })
-  //
+  t05(world)
   if (auto_step) {
     step(world)
   } else {
@@ -506,3 +302,4 @@ const main = async () => {
 
 
 main()
+

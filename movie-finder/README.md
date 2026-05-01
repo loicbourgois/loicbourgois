@@ -21,6 +21,9 @@ $HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/local.sh
 ```sh
 $HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/admin.sh
     screen -DR movie_finder_staging_api
+        cd $HOME/github.com/loicbourgois/loicbourgois
+        git fetch --all
+        git pull
         $HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/staging.sh
 curl -k https://api.loicbourgois.com:3000/about
 open https://api.loicbourgois.com:3000/about
@@ -28,10 +31,11 @@ open https://loicbourgois.com/movie-finder
 ```
 
 
-## WIP
+## Check certificate
 ```sh
-- add random movie service
-- update frontend to show list
-- click on image triggers new search
-- deploy
+$HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/admin.sh
+    end_date=$(openssl x509 -in $HOME/github.com/loicbourgois/loicbourgois/fullchain.pem -noout -enddate | cut -d= -f2)
+    echo "Certificate expires on: $end_date"
+    days_left=$(( ( $(date -d "$end_date" +%s) - $(date +%s) ) / 86400 ))
+    echo "Days left: $days_left"
 ```
