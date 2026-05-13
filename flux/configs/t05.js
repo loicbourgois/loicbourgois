@@ -30,6 +30,9 @@ const t05 = (world) => {
     set_block(world, 18, 17, {
         k: Kind.d2u,
     })
+    set_block(world, 6, 7, {
+        k: Kind.u1d,
+    })
 }
 
 

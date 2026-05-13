@@ -16,6 +16,7 @@ const Kind = Object.freeze({
   l2r: 28,
   ld2r: 29,
   r1l: 30,
+  u1d: 31,
 });
 
 

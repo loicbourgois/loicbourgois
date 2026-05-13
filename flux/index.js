@@ -19,109 +19,18 @@ import { t03 } from "./configs/t03.js"
 import { t04 } from "./configs/t04.js"
 import { t05 } from "./configs/t05.js"
 import { set_block } from "./shared.js"
-
-
-const organize = (transforms, iter=0) => {
-  // if (iter > 100) {
-  //   throw "too many iter"
-  // }
-  for (const transform of transforms) {
-    if (transform.deletes) {
-      for (const delete_ of transform.deletes) {
-        for (let index = 0; index < transforms.length; index++) {
-          const transform_2 = transforms[index];
-          if ( 
-            transform_2.inputs 
-            && transform_2.inputs.length==1 
-            && transform_2.inputs[0].i == delete_.i 
-          ) {
-            transforms[index] = {
-              inputs:[],
-              outputs:[],
-            }
-          }
-        }
-      }
-    }
-  }
-  const blocks_next = {}
-  const conflicts = new Set()
-  for (const transform of transforms) {
-    for (const output of transform.outputs) {
-      const bn = blocks_next[output.i]
-      if ( bn === undefined ) {
-        blocks_next[output.i] = structuredClone(output.b)
-      } else {
-        conflicts.add(output.i)
-      }
-    }
-  }
-  if (conflicts.size != 0) {
-    for (const conflict of conflicts) {
-      for (const transform of transforms) {
-        if (transform.outputs.some( o => o.i == conflict )) {
-          for (const input of transform.inputs) {
-            if (input.scoring) {
-              score[input.scoring] -= 1;
-            }
-          }
-          transform.outputs = structuredClone(transform.inputs)
-          transform.deletes = []
-        }
-      }
-    }
-    return organize(transforms, iter+1)
-  } else {
-    return blocks_next
-  }
-}
+import {skip_color} from "./skip_color.js"
+import {organize} from "./organize.js"
 
 
 const score = {}
 const flow_rate = []
 
 
-const skip_color = (r, g, b) => {
-  let c128 = 0;
-  let c256 = 0;
-  if (r == 128) c128 += 1 
-  if (g == 128) c128 += 1 
-  if (b == 128) c128 += 1 
-  if (r == 256) c256 += 1 
-  if (g == 256) c256 += 1 
-  if (b == 256) c256 += 1 
-  // if (r+g+b < 128) {
-  //   return true
-  // }
-  if (c256 == 3) {
-    return false
-  }
-  if (c256 == 2 && c128 == 1) {
-    return false
-  }
-  if (c256 == 1 && c128 == 2) {
-    return false
-  }
-  if (c256 == 1 && c128 == 1) {
-    return false
-  }
-  // if (c128 < 1) {
-  //   return true
-  // }
-  // if (c256 < 1) {
-  //   return true
-  // }
-  // return false
-  return true
-}
-
-
 const step = (world) => {
   // console.log(world.tick)
-  
   if (world.tick%9 == 0) {
     const transforms = []
-
     flow_rate.push({})
     for (let r = 0; r <= 256; r+=128) {
       for (let g = 0; g <= 256; g+=128) {
@@ -133,8 +42,6 @@ const step = (world) => {
         }
       }
     }
-
-
     for (let y = 0; y < world.unit_count; y++) {
       for (let x = 0; x < world.unit_count; x++) {
         add_transforms(x, y, world, transforms, score, flow_rate)
@@ -248,17 +155,12 @@ const main = async () => {
       const kind = kindElement ? kindElement.value : "void";
       set_block(world, gridX, gridY, { k: Kind[kind] });
       console.log(`set_block(${gridX}, ${gridY}, ${kind})`);
-      // const kind = document.getElementById("new_block_select").value
-      // set_block(world, gridX, gridY, { k: Kind[kind] });
-      // console.log(`set_block(${gridX}, ${gridY}, ${kind})`);
     } else {
       const kind = "void"
       set_block(world, gridX, gridY, { k: Kind[kind] });
       console.log(`set_block(${gridX}, ${gridY}, ${kind})`);
-      // console.log(`Clicked on existing block of kind ${currentBlock.k} at (${gridX}, ${gridY})`);
     }
   });
-
   canvas.addEventListener('mousemove', (event) => {
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -273,7 +175,6 @@ const main = async () => {
       "block": currentBlock,
     }, null, 2)
   });
-
   const wgpu = await setup_webgpu(canvas, unit_count, imgs)
   const world = {
     blocks: [],
@@ -289,7 +190,7 @@ const main = async () => {
         world.blocks_next.push([])
       }
   } 
-  t05(world)
+  t04(world)
   if (auto_step) {
     step(world)
   } else {
@@ -302,4 +203,3 @@ const main = async () => {
 
 
 main()
-

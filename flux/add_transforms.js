@@ -229,6 +229,11 @@ const add_transforms = (x, y, world, transforms, score, flow_rate) => {
             , go_from_to_3
             , [transforms, b, i, br, Direction.left, il]
         ],
+        [
+            bu.k == Kind.create && b.k == Kind.u1d
+            , go_from_to_3
+            , [transforms, b, i, bu, Direction.down, id]
+        ],
     ]
     let conditions_actions_used = false;
     for (const condition_action of conditions_actions) {

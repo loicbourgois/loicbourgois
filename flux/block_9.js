@@ -126,27 +126,49 @@ const translate = {
     '2': 0.5,
     '3': 0.75,
 }
+// const arrow_up = `
+//     0-------0
+//     0-------0
+//     0-------0
+//     0-------0
+//     0---x---0
+//     0-------0
+//     0-------0
+//     0-------0
+//     0-------0
+// `
 const arrow_up = `
-    0-------0
-    0-------0
-    0-------0
-    0-------0
-    0---x---0
-    0-------0
-    0-------0
-    0-------0
-    0-------0
+    0xxxxxxx0
+    0xxxxxxx0
+    0xxxxxxx0
+    0xxxxxxx0
+    0xxx-xxx0
+    0xxxxxxx0
+    0xxxxxxx0
+    0xxxxxxx0
+    0xxxxxxx0
 `
 const arrow_down = arrow_up
+// const arrow_left = `
+//     000000000
+//     ---------
+//     ---------
+//     ---------
+//     ----x----
+//     ---------
+//     ---------
+//     ---------
+//     000000000
+// `
 const arrow_left = `
     000000000
-    ---------
-    ---------
-    ---------
-    ----x----
-    ---------
-    ---------
-    ---------
+    xxxxxxxxx
+    xxxxxxxxx
+    xxxxxxxxx
+    xxxx-xxxx
+    xxxxxxxxx
+    xxxxxxxxx
+    xxxxxxxxx
     000000000
 `
 const arrow_right = arrow_left
@@ -217,7 +239,7 @@ const d2u = `
     ---xxx---
 `
 const r2l = `
-    000000000
+    0000000--
     ---------
     ---------
     -------xx
@@ -225,7 +247,7 @@ const r2l = `
     -------xx
     ---------
     ---------
-    000000000
+    0000000--
 `
 const l2u = `
     0---x---0
@@ -261,7 +283,7 @@ const d2lr = `
     0--xxx--0
 `
 const l2r = `
-    000000000
+    --0000000
     ---------
     ---------
     xx-------
@@ -269,7 +291,7 @@ const l2r = `
     xx-------
     ---------
     ---------
-    000000000
+    --0000000
 `
 const ld2r = `
     000000000
@@ -292,6 +314,17 @@ const r1l = `
     ---------
     ---------
     0000000--
+`
+const u1d = `
+    ---xxx---
+    ---xxx---
+    ----x----
+    ---------
+    ----x----
+    ---------
+    ----x----
+    ---------
+    ----x----
 `
 
 
@@ -327,6 +360,7 @@ const imgs = [
     l2r.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
     ld2r.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
     r1l.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
+    u1d.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
     imgs_.buffer.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
     imgs_.buffer.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),
     imgs_.buffer.replaceAll(" ", "").replaceAll("\n", "").split("").map(a => translate[a]),

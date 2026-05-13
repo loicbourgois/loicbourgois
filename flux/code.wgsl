@@ -5,6 +5,7 @@ struct VSOutput {
 
 struct Metadata {
   canvas: vec2f,
+  // performance.now()
   time: f32,
   r: f32,
   noise_ratio: f32,
@@ -27,6 +28,11 @@ struct DataPoint {
   b: i32,
   direction: i32,
 };
+
+
+fn rand(v: vec2f) -> f32 {
+  return fract(sin(dot(v, vec2(12.9898, 78.233))) * 43758.5453);
+}
 
 
 const unit_size: i32 = 9;
@@ -100,24 +106,37 @@ const unit_size: i32 = 9;
   }
 
 
-  // 
-  if k == 1 {
+  // Draw image
+  var r1 = rand(vec2f( vsOut.position.y + m.time * 0.000001, vsOut.position.x)) * 0.5 + 0.5;
+  if k == 0 {
+    // void
+  }
+  else if k == 1 {
+    // Pixel flowing
     var v = imgs[1*unit_size*unit_size + img_i] * imgs[(14+dir) * unit_size*unit_size + img_i2 ];
-    r = f32(data[i].r) * v / 255.0;
-    g = f32(data[i].g) * v / 255.0;
-    b = f32(data[i].b) * v / 255.0;
+    r = f32(data[i].r) * v / 255.0 * r1;
+    g = f32(data[i].g) * v / 255.0 * r1;
+    b = f32(data[i].b) * v / 255.0 * r1;
   }
   else if k == 12 {
+    // Pixel source
     var v = imgs[11*unit_size*unit_size + img_i];
-    r = f32(data[i].r) * v / 255.0;
-    g = f32(data[i].g) * v / 255.0;
-    b = f32(data[i].b) * v / 255.0;
+    r = f32(data[i].r) * v / 255.0* r1*1.15;
+    g = f32(data[i].g) * v / 255.0* r1*1.15;
+    b = f32(data[i].b) * v / 255.0* r1*1.15;
   }
   else if k > 1 {
+    // Other
     var v = imgs[k*unit_size*unit_size + img_i];
     r = f32(v);
     g = f32(v) ;
     b = f32(v) ;
+  } 
+  else {
+    // error
+    r = 1.0;
+    g = 0.0;
+    b = 1.0;
   }
   return vec4f(r, g, b, 1.0);
 }
