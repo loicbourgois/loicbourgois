@@ -7,7 +7,6 @@
 @group(0) @binding(0) var<storage, read_write> pi: array<Particle>; // particles_in
 @group(0) @binding(1) var<storage, read_write> po: array<Particle>; // particles_out
 @group(0) @binding(2) var<uniform> m: Metadata;
-@group(0) @binding(3) var<storage, read> cells_gravity: array<CellGravity>;
 
 
 const PARTICLE_COUNT = __PARTICLE_COUNT__;
@@ -18,7 +17,7 @@ const THREADS_PER_WORK_GROUP = __THREADS_PER_WORK_GROUP__;
 fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   let dv = p2.v - p1.v; // delta velocity
   let dp = p2.p - p1.p; // delta position
-  let mf = 0.1; // mass factor
+  let mf = .1; // mass factor
   let dot_vp = dot_(dv, dp);
   let n_sqrd = norm_sqrd(dp);
   let factor = mf * dot_vp / n_sqrd;
@@ -51,12 +50,9 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
       continue;
     }
     let d_sqrd = distance_sqrd(pi[i].p, pi[i2].p);
-    if d_sqrd <= 0.000001 {
-      continue;
-    }
-    // gravity between 2 particles
-    let grav = (pi[i2].p - pi[i].p)*0.0;
-    dv += grav;
+    // if d_sqrd <= 0.00000001 {
+      // continue;
+    // }
     if d_sqrd >= diameter_sqrd {
       continue;
     }
@@ -66,26 +62,8 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
     or = normalize(or) * (DIAMETER - sqrt(norm_sqrd(or)));
     odp -= or * ordp;
   }
-  var gravity = vec2f(0.0, 0.0);
-  let g_res_u = u32(m.field_gravity.resolution);
-  let g_res_f = f32(m.field_gravity.resolution);
-  for (var x_gravity: u32 = 0; x_gravity < g_res_u; x_gravity++) {
-      for (var y_gravity: u32 = 0; y_gravity < g_res_u; y_gravity++) {
-        var i_gravity = x_gravity + y_gravity * u32(m.field_gravity.resolution);
-        let g = - cells_gravity[i_gravity].e * 0.000001;
-        let pg = vec2f(
-          f32(x_gravity) / g_res_f - 0.5 + 0.5/g_res_f, 
-          0.5 - f32(y_gravity) / g_res_f - 0.5/g_res_f
-        );
-        let d_vec = pi[i].p - pg;
-        let d = length(d_vec);
-        let n = normalize(d_vec);
-        let f = g / max(d * d, 0.001) ;
-        // gravity += n * f;
-      }
-  }
   let g = -0.000005;
-  gravity = vec2f(0.0, g);
+  let gravity = vec2f(0.0, g);
   let side_size = u32(m.side_size);
   let limit = 1000000.0;
   po[i].v = pi[i].v + gravity + dv + odp;
@@ -99,13 +77,13 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
     // po[i].v.y -= g*1.05;
     // po[i].v.x *= .999;
   }
-  if po[i].p.x < m.bounds.min_x + 0.1*0.5*diameter_ratio {
+  if po[i].p.x < m.bounds.min_x + DIAMETER*0.5*diameter_ratio {
     po[i].v.x += 0.0001;
   }
-  if po[i].p.x > m.bounds.max_x - 0.1*0.5*diameter_ratio {
+  if po[i].p.x > m.bounds.max_x - DIAMETER*0.5*diameter_ratio {
     po[i].v.x -= 0.0001;
   }
-  if po[i].p.y < m.bounds.min_y + 0.1*0.5*diameter_ratio {
+  if po[i].p.y < m.bounds.min_y + DIAMETER*0.5*diameter_ratio {
     po[i].v.y += 0.0001;
   }
 }

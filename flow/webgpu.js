@@ -57,7 +57,7 @@ const setup_compute = async ({
             { binding: 0, resource: { buffer: field_particle.buffer_gpu_in }},
             { binding: 1, resource: { buffer: field_particle.buffer_gpu_out }},
             { binding: 2, resource: { buffer: metadata_buffer_gpu }},
-            { binding: 3, resource: { buffer: field_gravity.buffer_gpu_out }},
+            // { binding: 3, resource: { buffer: field_gravity.buffer_gpu_out }},
         ],
     });
     // Gravity
