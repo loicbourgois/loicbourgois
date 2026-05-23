@@ -1,21 +1,19 @@
+const __DIAMETER__ = 0.1;
+const dispatchCount = [1, 1, 1];
+const workgroupSize = [4, 1, 1];
+const particles_count = 4
+
+
+console.log(`particles_count: ${particles_count}`)
+
+
 // multiply all elements of an array
-const arrayProduct = arr => arr.reduce((a, b) => a * b);
+const array_product = arr => arr.reduce((a, b) => a * b);
 
-const __DIAMETER__ = 0.0025;
-const dispatchCount = [8, 4, 4];
-const workgroupSize = [4, 4, 4]; // do not change, 64 is best
-const particles_count = 64 * 64 * 2
-
-// const __DIAMETER__ = 0.05;
-// const dispatchCount = [1, 1, 1];
-// const workgroupSize = [4, 4, 1];
-// const particles_count = 16
-
-console.log(particles_count)
 
 const setup_compute = async (x) => {
-    const numThreadsPerWorkgroup = arrayProduct(workgroupSize);
-    const numWorkgroups = arrayProduct(dispatchCount);
+    const numThreadsPerWorkgroup = array_product(workgroupSize);
+    const numWorkgroups = array_product(dispatchCount);
     const numResults = numWorkgroups * numThreadsPerWorkgroup;
     const particles_count = x.particles_in_buffer_js.length/4;
     if (particles_count != numResults) {
@@ -78,6 +76,43 @@ const compute = async (x) => {
 }
 
 
+const distance = (a, b) => {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+
+const setup_particles = (particles_count) => {
+    // let ps = []
+    // for (let index = 0; index < particles_count; index++) {
+    //     let p = {
+    //         x: Math.random()*0.5-0.25,
+    //         y: Math.random()*0.5-0.25,
+    //     }
+    //     let ok = true
+    //     for (const p2 of ps) {
+    //         if (distance(p, p2) < 0.2) {
+    //             ok = false
+    //             break
+    //         }
+    //     }
+    //     if (ok) {
+    //         ps.push(p)
+    //     } else {
+    //         index-=1
+    //     }
+    // }
+    // return ps
+    return [
+        {x:-0.25, y:-0.25},
+        {x:-0.25, y:0.25},
+        {x:0.25, y:0.25},
+        {x:0.25, y:-0.25},
+    ]
+}
+
+
 const setup_webgpu = async (
     canvas,
 ) => {
@@ -99,9 +134,12 @@ const setup_webgpu = async (
         alphaMode: "premultiplied",
     });
     const particles_array = []
+    const particles = setup_particles(particles_count)
     for (let index = 0; index < particles_count; index++) {
-        particles_array.push(Math.random())
-        particles_array.push(Math.random())
+        particles_array.push(particles[index].x)
+        particles_array.push(particles[index].y)
+        // particles_array.push(Math.random()*0.5-0.25)
+        // particles_array.push(Math.random()*0.5-0.25)
         particles_array.push((Math.random()-0.5)*0.0001)
         particles_array.push((Math.random()-0.5)*0.0001)
     }
@@ -131,6 +169,8 @@ const setup_webgpu = async (
             "// DISK_GENERATED //", disk_generated_code
         ).replace(
             "__DIAMETER__", __DIAMETER__,
+        ).replace(
+            "__PARTICLE_COUNT__", particles_count,
         ),
     });
     const pipeline_2 = device.createRenderPipeline({
@@ -145,10 +185,46 @@ const setup_webgpu = async (
             targets: [{ format: presentationFormat }],
         },
     });
+    // const pipeline_line = device.createRenderPipeline({
+    //     layout: 'auto',
+    //     vertex: {
+    //         module,
+    //         entryPoint: 'vs_line',
+    //     },
+    //     fragment: {
+    //         module,
+    //         entryPoint: 'fs_line',
+    //         targets: [{ format: presentationFormat }],
+    //     },
+    //     primitive: {
+    //         topology: 'line-list',
+    //     },
+    // });
+    const pipeline_line = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+            module,
+            entryPoint: 'vs_line',
+        },
+        fragment: {
+            module,
+            entryPoint: 'fs_line',
+            targets: [{ format: presentationFormat }],
+        },
+        primitive: {
+            topology: 'line-strip',
+        },
+    });
     let bindGroup2 = device.createBindGroup({
         layout: pipeline_2.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: { buffer: uniformBuffer }},
+            { binding: 1, resource: { buffer: particles_in_buffer_gpu }},
+        ],
+    });
+    let bindGroup_line = device.createBindGroup({
+        layout: pipeline_line.getBindGroupLayout(0),
+        entries: [
             { binding: 1, resource: { buffer: particles_in_buffer_gpu }},
         ],
     });
@@ -180,8 +256,12 @@ const setup_webgpu = async (
         speed: 1.0,
         particles_count: particles_count,
         compute_args:compute_args,
+        pipeline_line:pipeline_line,
+        bindGroup_line:bindGroup_line,
     }
 }
+
+
 const render = async (x) => {
     const start = performance.now()
     for (let index = 0; index < 5; index++) {
@@ -204,6 +284,14 @@ const render = async (x) => {
     pass2.setPipeline(x.pipeline_2);
     pass2.setBindGroup(0, x.bindGroup2);
     pass2.draw(16*3 * x.particles_count);
+
+    // pass2.setPipeline(x.pipeline_line);
+    // pass2.setBindGroup(0, x.bindGroup_line);
+    // pass2.draw(2, x.particles_count);
+    pass2.setPipeline(x.pipeline_line);
+    pass2.setBindGroup(0, x.bindGroup_line);
+    pass2.draw(33, x.particles_count);
+
     pass2.end();
     const commandBuffer2 = encoder2.finish();
     x.device.queue.submit([commandBuffer2]);
@@ -211,6 +299,8 @@ const render = async (x) => {
         render(x)
     })
 }
+
+
 export {
     setup_webgpu,
     render,
