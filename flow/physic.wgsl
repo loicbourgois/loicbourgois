@@ -7,6 +7,7 @@
 @group(0) @binding(0) var<storage, read_write> pi: array<Particle>; // particles_in
 @group(0) @binding(1) var<storage, read_write> po: array<Particle>; // particles_out
 @group(0) @binding(2) var<uniform> m: Metadata;
+@group(0) @binding(3) var<storage, read_write> regions: array<i32>;
 
 
 const PARTICLE_COUNT = __PARTICLE_COUNT__;
@@ -50,9 +51,9 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
       continue;
     }
     let d_sqrd = distance_sqrd(pi[i].p, pi[i2].p);
-    // if d_sqrd <= 0.00000001 {
-      // continue;
-    // }
+    if d_sqrd <= 0.00000001 {
+      continue;
+    }
     if d_sqrd >= diameter_sqrd {
       continue;
     }
@@ -86,4 +87,25 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   if po[i].p.y < m.bounds.min_y + DIAMETER*0.5*diameter_ratio {
     po[i].v.y += 0.0001;
   }
+
+
+  let region_side: i32 = 8;
+  var region_x: i32 = 0;
+  if po[i].p.x < m.bounds.min_x {
+    region_x = 0;
+  } else if po[i].p.x > m.bounds.max_x {
+    region_x = region_side-1;
+  } else {
+    region_x = i32(floor( (po[i].p.x - m.bounds.min_x) / (m.bounds.max_x - m.bounds.min_x) * f32(region_side) ));
+  }
+  var region_y: i32 = 0;
+  if po[i].p.y < m.bounds.min_y {
+    region_y = 0;
+  } else if po[i].p.y > m.bounds.max_y {
+    region_y = region_side - 1;
+  } else {
+    region_y = i32(floor( (po[i].p.y - m.bounds.min_y) / (m.bounds.max_y - m.bounds.min_y) * f32(region_side) ));
+  }
+  // po[i].region_id = ;
+  regions[i] = region_y * region_side + region_x;
 }

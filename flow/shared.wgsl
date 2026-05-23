@@ -5,6 +5,8 @@ struct Particle {
   e: f32,
   p: vec2f,
   v: vec2f,
+  region_id: i32,
+  _padding: f32,
 };
 
 
@@ -66,4 +68,5 @@ fn rand(v: vec2f) -> f32 {
   return fract(sin(dot(v, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
-const diameter_ratio: f32 = 2.;
+// const diameter_ratio: f32 = 2.;
+const diameter_ratio: f32 = .5;

@@ -8,9 +8,10 @@ const workgroupSize = [4, 4, 4];
 const particles_count = 64*16*4
 const side_size = Math.sqrt(particles_count)
 
-const particle_fields = 8
+const particle_fields = 10
 const metadata_buffer_gpu_size = 18 * 4;
 const metrics_size = 100
+const sort_metadata_buffer_gpu_size = 4 * 4;
 
 
 const starts = []
@@ -28,8 +29,10 @@ const setup_compute = async ({
     metadata_buffer_gpu,
     device,
     field_gravity,
+    buffer_particle_region_gpu,
+    buffer_particle_region_gpu_read,
+    buffer_particle_region_js,
 }) => {
-    // Particles
     const module = await create_shader_module({
         device: device,
         source: './physic.wgsl',
@@ -57,53 +60,19 @@ const setup_compute = async ({
             { binding: 0, resource: { buffer: field_particle.buffer_gpu_in }},
             { binding: 1, resource: { buffer: field_particle.buffer_gpu_out }},
             { binding: 2, resource: { buffer: metadata_buffer_gpu }},
-            // { binding: 3, resource: { buffer: field_gravity.buffer_gpu_out }},
+            { binding: 3, resource: { buffer: buffer_particle_region_gpu }},
         ],
     });
-    // Gravity
-    const gravity_module = await create_shader_module({
-        device: device,
-        source: './physic_gravity.wgsl',
-        imports: [
-            './shared.wgsl',
-        ],
-        formatting: {
-            '__WORKGROUP_SIZE__': field_gravity.workgroup_size,
-            '__THREADS_PER_WORK_GROUP__': field_gravity.numThreadsPerWorkgroup,
-        }
-    })
-    const gravity_pipeline = device.createComputePipeline({
-        label: 'gravity_pipeline',
-        layout: 'auto',
-        compute: {
-            module: gravity_module,
-            entryPoint: 'main',
-        },
-    });
-    const gravity_bind_group = device.createBindGroup({
-        layout: gravity_pipeline.getBindGroupLayout(0),
-        entries: [
-            { binding: 0, resource: { buffer: field_gravity.buffer_gpu_in }},
-            { binding: 1, resource: { buffer: field_gravity.buffer_gpu_out }},
-            { binding: 2, resource: { buffer: metadata_buffer_gpu }},
-        ],
-    });
-    // 
     const r = {
         device: device,
         pipeline: pipeline,
         bindGroup: bindGroup,
         dispatchCount: dispatchCount,
         field_particle: field_particle,
-        gravity: {
-            module: gravity_module,
-            pipeline: gravity_pipeline,
-            bind_group: gravity_bind_group,
-            dispatch_count: field_gravity.dispatch_count,
-            field: field_gravity,
-        },
+        buffer_particle_region_gpu: buffer_particle_region_gpu,
+        buffer_particle_region_gpu_read: buffer_particle_region_gpu_read,
+        buffer_particle_region_js: buffer_particle_region_js,
     }
-    // await compute(r)
     return r
 }
 
@@ -120,25 +89,19 @@ const compute_particles = async (x) => {
         x.field_particle.buffer_gpu_in, 0,
         x.field_particle.buffer_js.byteLength,
     );
-    const commandBuffer = encoder.finish();
-    x.device.queue.submit([commandBuffer]);
-}
-
-
-const compute_gravity = async (x) => {
-    const encoder = x.device.createCommandEncoder({ label: 'compute builtin encoder' });
-    const pass = encoder.beginComputePass({ label: 'compute builtin pass' });
-    pass.setPipeline(x.gravity.pipeline);
-    pass.setBindGroup(0, x.gravity.bind_group);
-    pass.dispatchWorkgroups(...x.gravity.dispatch_count);
-    pass.end();
     encoder.copyBufferToBuffer(
-        x.gravity.field.buffer_gpu_out, 0,
-        x.gravity.field.buffer_gpu_in, 0,
-        x.gravity.field.buffer_js.byteLength,
+        x.buffer_particle_region_gpu, 0,
+        x.buffer_particle_region_gpu_read, 0,
+        x.buffer_particle_region_js.byteLength,
     );
     const commandBuffer = encoder.finish();
-    x.device.queue.submit([commandBuffer]);
+    await x.device.queue.submit([commandBuffer]);
+    // await x.buffer_particle_region_gpu_read.mapAsync(GPUMapMode.READ)
+    // const mapped_region = x.buffer_particle_region_gpu_read.getMappedRange();
+    // x.buffer_particle_region_js.set(new Int32Array(mapped_region));
+    // x.buffer_particle_region_gpu_read.unmap();
+    // x.buffer_particle_region_js.sort((a, b) => a - b);
+    // console.log(x.buffer_particle_region_js)
 }
 
 
@@ -164,7 +127,7 @@ const setup_particles = (bounds) => {
             })
         }
     }
-    console.log(`particles bounds: ${JSON.stringify({
+    console.log(`particles bounds start: ${JSON.stringify({
         min_x:min_x,
         max_x:max_x,
         min_y:min_y,
@@ -187,7 +150,8 @@ const setup_webgpu = async ({
         ratio_h = 1
         ratio_w = canvas.width / canvas.height
     } else {
-        throw("wip")
+        ratio_h = canvas.height / canvas.width
+        ratio_w = 1
     }
     const base_size = 5
     const bounds = {
@@ -242,6 +206,8 @@ const setup_webgpu = async ({
         particles_array.push(particles[index].y)
         particles_array.push((Math.random()-0.5)*0.0001)
         particles_array.push((Math.random()-0.5)*0.0001)
+        particles_array.push(0.0)
+        particles_array.push(0.0)
     }
     const field_particle = new Field({
         device: device, 
@@ -251,6 +217,17 @@ const setup_webgpu = async ({
         workgroup_size: workgroupSize,
         data: particles_array,
     })
+
+    const buffer_particle_region_js = new Int32Array(particles_count);
+    const buffer_particle_region_gpu = device.createBuffer({
+        size: buffer_particle_region_js.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+    });
+    const buffer_particle_region_gpu_read = device.createBuffer({
+        size: buffer_particle_region_js.byteLength,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+
     const metadata_buffer_gpu = device.createBuffer({
         size: metadata_buffer_gpu_size,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -367,6 +344,9 @@ const setup_webgpu = async ({
         metadata_buffer_gpu: metadata_buffer_gpu,
         field_particle: field_particle,
         field_gravity:field_gravity,
+        buffer_particle_region_gpu: buffer_particle_region_gpu,
+        buffer_particle_region_gpu_read: buffer_particle_region_gpu_read,
+        buffer_particle_region_js: buffer_particle_region_js,
     })
     const draw_01_renderPassDescriptor = {
         colorAttachments: [
@@ -475,17 +455,13 @@ const run = async (
     const elapsed_ms = starts.length > 1 ? start - starts[0] : 0;
     const fps = elapsed_ms > 0 ? ((starts.length - 1) * 1000) / elapsed_ms : 0;
     document.querySelector('#fps_value').textContent = fps.toFixed(1);
-    for (let index = 0; index < 7; index++) {
+    for (let index = 0; index < 5; index++) {
         step_counter += 1;
         x.uniformValues.set([
             x.gravity_resolution,
             64,
             0.0,
             0.0,
-        //     w_min: -base_size*ratio_w,
-        // w_max: base_size*ratio_w,
-        // h_min: -base_size*ratio_h,
-        // h_max: base_size*ratio_h,
             x.bounds.w_min,
             x.bounds.w_max,
             x.bounds.h_min,
@@ -502,10 +478,7 @@ const run = async (
             Math.random(),
         ]);
         x.device.queue.writeBuffer(x.metadata_buffer_gpu, 0, x.uniformValues);
-        compute_particles(x.compute_args)
-        if (step_counter % 300 == 0) {
-            // await compute_gravity(x.compute_args)
-        }
+        await compute_particles(x.compute_args)
     }
     draw_01({
         device: x.device,
