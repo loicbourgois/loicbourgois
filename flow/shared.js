@@ -13,7 +13,7 @@ const sort_metadata_buffer_gpu_size = 4 * 4;
 let gpu_timing_pending = false
 const BITONIC_WORKGROUP_SIZE = 256;
 const sort_item_size = 8;
-const REGION_SIDE = 64*4*4;
+const REGION_SIDE = 64;
 const REGION_COUNT = REGION_SIDE * REGION_SIDE;
 const region_range_size = 8;
 
@@ -40,4 +40,5 @@ export {
     sort_item_size,
     sort_metadata_buffer_gpu_size,
     BITONIC_WORKGROUP_SIZE,
+    REGION_SIDE,
 }

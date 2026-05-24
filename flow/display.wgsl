@@ -21,18 +21,20 @@ struct VSOutput {
   @builtin(instance_index) instanceIndex: u32,
 ) -> VSOutput {
   // DISK_GENERATED //
-  let position_index = vertexIndex % 48;
-  let particle_position = particles[vertexIndex/48].p*2.0 ;
+  let position_index = vertexIndex % 48u;
+  let particle = particles[instanceIndex];
+  let particle_position = particle.p * 2.0;
   let zoom = 0.1;
+
   var vsOut: VSOutput;
   vsOut.position = vec4f(
-    positions[position_index] * DIAMETER * diameter_ratio + particle_position, 
-    0.0, 1.0
+    positions[position_index] * DIAMETER * diameter_ratio + particle_position,
+    0.0,
+    1.0
   );
   vsOut.position.x = vsOut.position.x * m.canvas.y / m.canvas.x * zoom;
   vsOut.position.y = vsOut.position.y * zoom;
-  vsOut.e = particles[vertexIndex/48].e;
-  vsOut.e = norm_sqrd(particles[vertexIndex/48].v);
+  vsOut.e = norm_sqrd(particle.v);
   return vsOut;
 }
 

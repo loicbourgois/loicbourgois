@@ -13,6 +13,7 @@ import {
     sort_item_size,
     sort_metadata_buffer_gpu_size,
     BITONIC_WORKGROUP_SIZE,
+    REGION_SIDE,
 } from './shared.js'
 
 
@@ -23,12 +24,10 @@ const setup_bitonic_sort = async ({
     if ((particles_count & (particles_count - 1)) !== 0) {
         throw new Error('Bitonic sort requires particles_count to be a power of 2.');
     }
-
     const region_ranges_buffer_gpu = device.createBuffer({
         size: REGION_COUNT * region_range_size,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
     });
-
     const sort_items_buffer_gpu = device.createBuffer({
         size: particles_count * sort_item_size,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
@@ -76,47 +75,39 @@ const setup_bitonic_sort = async ({
         },
     });
     const initialise_bind_group = device.createBindGroup({
-    layout: initialise_pipeline.getBindGroupLayout(0),
-    entries: [
-        { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
-        { binding: 2, resource: { buffer: buffer_particle_region_gpu }},
-        // { binding: 3, resource: { buffer: region_ranges_buffer_gpu }},
-    ],
-});
-
-const sort_bind_group = device.createBindGroup({
-    layout: sort_pipeline.getBindGroupLayout(0),
-    entries: [
-        { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
-        { binding: 1, resource: { buffer: sort_params_buffer_gpu }},
-        // { binding: 3, resource: { buffer: region_ranges_buffer_gpu }},
-    ],
-});
-
-const region_ranges_bind_group = device.createBindGroup({
-    layout: region_ranges_pipeline.getBindGroupLayout(0),
-    entries: [
-        { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
-        // { binding: 2, resource: { buffer: buffer_particle_region_gpu }},
-        { binding: 3, resource: { buffer: region_ranges_buffer_gpu }},
-    ],
-});
+        layout: initialise_pipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
+            { binding: 2, resource: { buffer: buffer_particle_region_gpu }},
+        ],
+    });
+    const sort_bind_group = device.createBindGroup({
+        layout: sort_pipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
+            { binding: 1, resource: { buffer: sort_params_buffer_gpu }},
+        ],
+    });
+    const region_ranges_bind_group = device.createBindGroup({
+        layout: region_ranges_pipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
+            { binding: 3, resource: { buffer: region_ranges_buffer_gpu }},
+        ],
+    });
     return {
         initialise_pipeline,
-    sort_pipeline,
-    region_ranges_pipeline,
-
-    initialise_bind_group,
-    sort_bind_group,
-    region_ranges_bind_group,
-
-    sort_params_buffer_gpu,
-    sort_items_buffer_gpu,
-    sort_items_buffer_gpu_read,
-    region_ranges_buffer_gpu,
-
-    workgroups: Math.ceil(particles_count / BITONIC_WORKGROUP_SIZE),
-    region_ranges_workgroups: Math.ceil(Math.max(particles_count, REGION_COUNT) / BITONIC_WORKGROUP_SIZE),
+        sort_pipeline,
+        region_ranges_pipeline,
+        initialise_bind_group,
+        sort_bind_group,
+        region_ranges_bind_group,
+        sort_params_buffer_gpu,
+        sort_items_buffer_gpu,
+        sort_items_buffer_gpu_read,
+        region_ranges_buffer_gpu,
+        workgroups: Math.ceil(particles_count / BITONIC_WORKGROUP_SIZE),
+        region_ranges_workgroups: Math.ceil(Math.max(particles_count, REGION_COUNT) / BITONIC_WORKGROUP_SIZE),
     };
 };
 
@@ -142,6 +133,7 @@ const setup_compute = async ({
             '__PARTICLE_COUNT__': field_particle.cells_count,
             '__WORKGROUP_SIZE__': field_particle.workgroup_size,
             '__THREADS_PER_WORK_GROUP__': field_particle.numThreadsPerWorkgroup,
+            '__REGION_SIDE__': REGION_SIDE,
         }
     })
     const pipeline = device.createComputePipeline({
@@ -178,7 +170,6 @@ const setup_compute = async ({
 }
 
 
-
 const setup_particles = (bounds, particles_count) => {
     let ps = []
     let max_x = -Infinity
@@ -187,8 +178,6 @@ const setup_particles = (bounds, particles_count) => {
     let min_y = Infinity
     for (let xi = 0; xi < side_size; xi++) {
         for (let yi = 0; yi < side_size; yi++) {
-            // const x = ((xi+0.5)/(side_size)-0.5) * bounds.w_max * 2
-            // const y = ((yi+0.5)/(side_size)-0.5) * 7 - 1.5
             const x = Math.random() * bounds.w_max * 2 - bounds.w_max
             const y = (Math.random() * bounds.h_max *0.5 - bounds.h_max) 
             max_x = Math.max(max_x, x)
@@ -293,7 +282,6 @@ const setup = async ({
         workgroup_size: workgroupSize,
         data: particles_array,
     })
-
     const buffer_particle_region_js = new Uint32Array(particles_count);
     const buffer_particle_region_gpu = device.createBuffer({
         size: buffer_particle_region_js.byteLength,
@@ -303,52 +291,31 @@ const setup = async ({
         size: buffer_particle_region_js.byteLength,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     });
-
     const metadata_buffer_gpu = device.createBuffer({
         size: metadata_buffer_gpu_size,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     const uniformValues = new Float32Array(metadata_buffer_gpu_size / 4);
-    const source_code = await (await fetch(`./display.wgsl`, {cache: "no-store"})).text()
-    const source_code_line = await (await fetch(`./display_line.wgsl`, {cache: "no-store"})).text()
-    const source_code_draw_01 = await (await fetch(`./display_01.wgsl`, {cache: "no-store"})).text()
     const disk_generated_code = await (await fetch(`./disk_generated.wgsl`, {cache: "no-store"})).text()
-    const shared_code = await (await fetch(`./shared.wgsl`, {cache: "no-store"})).text()
-    const module = device.createShaderModule({
-        label: 'shaders',
-        code: source_code.replace(
-            "// DISK_GENERATED //", disk_generated_code
-        ).replace(
-            "__DIAMETER__", DIAMETER,
-        ).replace(
-            "__PARTICLE_COUNT__", particles_count,
-        ).replace(
-            "// import file://./shared.wgsl", shared_code,
-        ),
+    const module = await create_shader_module({
+        device,
+        source: './display.wgsl',
+        imports: ['./shared.wgsl'],
+        formatting: {
+            '// DISK_GENERATED //': disk_generated_code,
+            '__DIAMETER__': DIAMETER,
+            '__PARTICLE_COUNT__': particles_count,
+        },
     });
-    const module_line = device.createShaderModule({
-        label: 'shaders',
-        code: source_code_line.replace(
-            "// DISK_GENERATED //", disk_generated_code
-        ).replace(
-            "__DIAMETER__", DIAMETER,
-        ).replace(
-            "__PARTICLE_COUNT__", particles_count,
-        ).replace(
-            "// import file://./shared.wgsl", shared_code,
-        ),
-    });
-    const module_draw_01 = device.createShaderModule({
-        label: 'shaders',
-        code: source_code_draw_01.replace(
-            "// DISK_GENERATED //", disk_generated_code
-        ).replace(
-            "__DIAMETER__", DIAMETER,
-        ).replace(
-            "__PARTICLE_COUNT__", particles_count,
-        ).replace(
-            "// import file://./shared.wgsl", shared_code,
-        ),
+    const module_draw_01 = await create_shader_module({
+        device,
+        source: './display_01.wgsl',
+        imports: ['./shared.wgsl'],
+        formatting: {
+            '// DISK_GENERATED //': disk_generated_code,
+            '__DIAMETER__': DIAMETER,
+            '__PARTICLE_COUNT__': particles_count,
+        },
     });
     const draw_01_pipeline = device.createRenderPipeline({
         layout: 'auto',
@@ -377,33 +344,12 @@ const setup = async ({
             targets: [{ format: presentationFormat }],
         },
     });
-    const pipeline_line = device.createRenderPipeline({
-        layout: 'auto',
-        vertex: {
-            module: module_line,
-            entryPoint: 'vs_line',
-        },
-        fragment: {
-            module: module_line,
-            entryPoint: 'fs_line',
-            targets: [{ format: presentationFormat }],
-        },
-        primitive: {
-            topology: 'line-strip',
-        },
-    });
     let bindGroup2 = device.createBindGroup({
         layout: pipeline_2.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: { buffer: metadata_buffer_gpu }},
             { binding: 1, resource: { buffer: field_particle.buffer_gpu_in }},
             { binding: 2, resource: { buffer: field_gravity.buffer_gpu_in }},
-        ],
-    });
-    let bindGroup_line = device.createBindGroup({
-        layout: pipeline_line.getBindGroupLayout(0),
-        entries: [
-            { binding: 1, resource: { buffer: field_particle.buffer_gpu_in }},
         ],
     });
     const renderPassDescriptor = {
@@ -458,8 +404,6 @@ const setup = async ({
         speed: 1.0,
         particles_count: particles_count,
         compute_args: compute_args,
-        pipeline_line: pipeline_line,
-        bindGroup_line: bindGroup_line,
         gravity_resolution: background_resolution,
         draw_01: {
             render_pass_descriptor: draw_01_renderPassDescriptor,

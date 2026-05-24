@@ -15,7 +15,7 @@
 const PARTICLE_COUNT = __PARTICLE_COUNT__;
 const DIAMETER = __DIAMETER__;
 const THREADS_PER_WORK_GROUP = __THREADS_PER_WORK_GROUP__;
-const REGION_SIDE: i32 = 64;
+const REGION_SIDE: i32 = __REGION_SIDE__;
 
 
 fn collision_response(p1: Particle, p2: Particle) -> vec2f {
@@ -45,7 +45,6 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
     + local_invocation_index;
   let ordp = 0.01; // overlap response delta (position) ratio
   let crdv = 0.2; // collision response delta (velocity)
-  let border_rebound = 0.95;
   let diameter_sqrd = DIAMETER * DIAMETER;
   var dv = vec2f(0.0, 0.0);
   var odp = vec2f(0.0, 0.0);
@@ -107,8 +106,6 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
 
   let g = -0.000005;
   let gravity = vec2f(0.0, g);
-  let side_size = u32(m.side_size);
-  let limit = 1000000.0;
   po[i].v = pi[i].v + gravity + dv + odp;
   po[i].p = pi[i].p + po[i].v + gravity;
   if po[i].p.x < m.bounds.min_x * 0.5 && po[i].p.y < m.bounds.max_y * 0.25 {

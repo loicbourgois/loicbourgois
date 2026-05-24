@@ -37,17 +37,17 @@ const bitonic_sort = ({
             device.queue.submit([encoder.finish()]);
         }
     }
-    {
-        const encoder = device.createCommandEncoder();
-        encoder.copyBufferToBuffer(
-            bitonic_sort.sort_items_buffer_gpu,
-            0,
-            bitonic_sort.sort_items_buffer_gpu_read,
-            0,
-            particles_count * sort_item_size,
-        );
-        device.queue.submit([encoder.finish()]);
-    }
+    // {
+    //     const encoder = device.createCommandEncoder();
+    //     encoder.copyBufferToBuffer(
+    //         bitonic_sort.sort_items_buffer_gpu,
+    //         0,
+    //         bitonic_sort.sort_items_buffer_gpu_read,
+    //         0,
+    //         particles_count * sort_item_size,
+    //     );
+    //     device.queue.submit([encoder.finish()]);
+    // }
     {
         const encoder = device.createCommandEncoder({ label: 'encode_bitonic_region_ranges' });
         const pass = encoder.beginComputePass({ label: 'bitonic region ranges pass' });
@@ -104,7 +104,8 @@ const draw_02 = (x) => {
     const pass = encoder.beginRenderPass(x.renderPassDescriptor);
     pass.setPipeline(x.pipeline_2);
     pass.setBindGroup(0, x.bindGroup2);
-    pass.draw(16*3 * (x.particles_count));
+    // pass.draw(16*3 * (x.particles_count));
+    pass.draw(48, x.particles_count);
     pass.end();
     const commandBuffer = encoder.finish();
     x.device.queue.submit([commandBuffer]);
@@ -130,14 +131,19 @@ const run = async (
     track_gpu_completion(x.device, start)
     // Grid cells are big enough that we don't need to update the grid before
     // each compute.
-    // It's fine to do 1 grid update, N compute 
-    bitonic_sort({
-        device: x.device,
-        bitonic_sort: x.compute_args.bitonic_sort,
-    });
+    // It's fine to do 1 grid update, N compute
     const compute_count = 30
+    // const sortEveryNSteps = 1; // correctness
+    // const sortEveryNSteps = compute_count; // fastest approximation
+    const sortEveryNSteps = compute_count;
     for (let index = 0; index < compute_count; index++) {
         step_counter += 1;
+        if (index % sortEveryNSteps === 0) {
+            bitonic_sort({
+                device: x.device,
+                bitonic_sort: x.compute_args.bitonic_sort,
+            });
+        }
         x.uniformValues.set([
             x.gravity_resolution,
             64,
