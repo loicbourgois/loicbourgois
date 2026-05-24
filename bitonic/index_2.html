@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bitonic Sort - WebGPU</title>
+</head>
+<body>
+  <h2>Bitonic Sort (WebGPU)</h2>
+  <pre id="output"></pre>
+
+  <script type="module">
+  // --- Initialize WebGPU device ---
+  async function initDevice() {
+    if (!navigator.gpu) throw new Error("WebGPU not supported.");
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) throw new Error("No suitable GPU adapter found.");
+    return await adapter.requestDevice();
+  }
+
+  // --- WGSL Compute Shader ---
+  const bitonicShaderCode = /* wgsl */`
+    struct Item {
+        value: f32,
+        index: u32,
+    };
+
+    struct Data {
+        items: array<Item>,
+    };
+
+    struct StageParam {
+        j: u32,
+        k: u32,
+    };
+
+    struct Params {
+        stages: array<StageParam>,
+    };
+
+    @group(0) @binding(0)
+    var<storage, read_write> data : Data;
+
+    @group(0) @binding(1)
+    var<storage, read> params : Params;
+
+    @compute @workgroup_size(256)
+    fn main(
+        @builtin(global_invocation_id) global_id : vec3u,
+        @builtin(workgroup_id) workgroup_id : vec3u,
+        @builtin(num_workgroups) num_workgroups : vec3u
+    ) {
+        let stage_index = workgroup_id.x / num_workgroups.z;
+        let i = global_id.x;
+        let j = params.stages[stage_index].j;
+        let k = params.stages[stage_index].k;
+        let ixj = i ^ j;
+
+        if (ixj > i) {
+            let ascending = (i & k) == 0u;
+            let a = data.items[i];
+            let b = data.items[ixj];
+            let swap = (ascending && a.value > b.value) || (!ascending && a.value < b.value);
+            if (swap) {
+                data.items[i] = b;
+                data.items[ixj] = a;
+            }
+        }
+    }
+  `;
+
+  // --- Perform Bitonic Sort on GPU ---
+  async function bitonicSort(device, inputArray) {
+    const length = inputArray.length;
+    if ((length & (length - 1)) !== 0)
+      throw new Error("Array length must be a power of 2.");
+
+    const itemSize = 8; // f32 value + u32 original index
+    const bufferSize = length * itemSize;
+    const workgroupSize = 256;
+    const workgroups = Math.ceil(length / workgroupSize);
+
+    const initialData = new ArrayBuffer(bufferSize);
+    const initialView = new DataView(initialData);
+
+    for (let i = 0; i < length; i += 1) {
+      const offset = i * itemSize;
+      initialView.setFloat32(offset, inputArray[i], true);
+      initialView.setUint32(offset + 4, i, true);
+    }
+
+    const stages = [];
+    for (let k = 2; k <= length; k <<= 1) {
+      for (let j = k >> 1; j > 0; j >>= 1) {
+        stages.push(j, k);
+      }
+    }
+
+    const stageCount = stages.length / 2;
+    const stageParams = new Uint32Array(stages);
+
+    const dataBuffer = device.createBuffer({
+      size: bufferSize,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Uint8Array(dataBuffer.getMappedRange()).set(new Uint8Array(initialData));
+    dataBuffer.unmap();
+
+    const paramBuffer = device.createBuffer({
+      size: stageParams.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(paramBuffer, 0, stageParams);
+
+    const shaderModule = device.createShaderModule({ code: bitonicShaderCode });
+    const pipeline = device.createComputePipeline({
+      layout: "auto",
+      compute: { module: shaderModule, entryPoint: "main" },
+    });
+
+    const bindGroup = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: dataBuffer } },
+        { binding: 1, resource: { buffer: paramBuffer } },
+      ],
+    });
+
+    // --- Main sorting loop ---
+    console.log("start");
+    const start = performance.now();
+
+    const encoder = device.createCommandEncoder();
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bindGroup);
+
+    for (let stage = 0; stage < stageCount; stage += 1) {
+      pass.dispatchWorkgroups(workgroups, 1, stageCount);
+    }
+
+    pass.end();
+    device.queue.submit([encoder.finish()]);
+
+    await device.queue.onSubmittedWorkDone();
+    console.log(`duration: ${performance.now() - start}`);
+    console.log("end");
+
+    // --- Read back sorted data ---
+    const readBuffer = device.createBuffer({
+      size: bufferSize,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+
+    const copyEncoder = device.createCommandEncoder();
+    copyEncoder.copyBufferToBuffer(dataBuffer, 0, readBuffer, 0, bufferSize);
+    device.queue.submit([copyEncoder.finish()]);
+
+    await readBuffer.mapAsync(GPUMapMode.READ);
+
+    const mappedResult = readBuffer.getMappedRange();
+    const resultView = new DataView(mappedResult);
+
+    const values = new Float32Array(length);
+    const indexes = new Uint32Array(length);
+
+    for (let i = 0; i < length; i += 1) {
+      const offset = i * itemSize;
+      values[i] = resultView.getFloat32(offset, true);
+      indexes[i] = resultView.getUint32(offset + 4, true);
+    }
+
+    readBuffer.unmap();
+
+    return { values, indexes };
+  }
+
+  // --- Entry point ---
+  async function main() {
+    const output = document.getElementById("output");
+
+    try {
+      const device = await initDevice();
+
+      const length = 4096 * 16;
+      const input = new Float32Array(length);
+      for (let i = 0; i < length; i += 1) {
+        input[i] = Math.random();
+      }
+
+      output.textContent += "Input length:  " + input.length + "\n";
+
+      const { values: sorted, indexes: sortedIndexes } = await bitonicSort(device, input);
+
+      output.textContent += "First sorted values: " + Array.from(sorted.slice(0, 16)).join(", ") + "\n";
+      output.textContent += "First sorted indexes: " + Array.from(sortedIndexes.slice(0, 16)).join(", ") + "\n";
+      console.log("Sorted result:", sorted);
+      console.log("Sorted indexes:", sortedIndexes);
+
+    } catch (err) {
+      output.textContent = "Error: " + err.message;
+      console.error(err);
+    }
+  }
+
+  main();
+</script>
+</body>
+</html>
