@@ -50,96 +50,58 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   var dv = vec2f(0.0, 0.0);
   var odp = vec2f(0.0, 0.0);
 
-  // TODO: create a struct to map region_id -> first_particle
-  // the goal is to not loop through all particles anymore
-  // only loop through the particles in the 3x3 regions 
-  // let current_region = pi[i].region_id;
-  // let current_region_x = current_region % REGION_SIDE;
-  // let current_region_y = current_region / REGION_SIDE;
-  // for (var sorted_i: u32 = 0; sorted_i < PARTICLE_COUNT; sorted_i++) {
-  //   let candidate_region = i32(sorted_items[sorted_i].value);
-  //   if candidate_region < 0 {
-  //     continue;
-  //   }
-  //   let candidate_region_x = candidate_region % REGION_SIDE;
-  //   let candidate_region_y = candidate_region / REGION_SIDE;
-  //   if abs(candidate_region_x - current_region_x) > 1 {
-  //     continue;
-  //   }
-  //   if abs(candidate_region_y - current_region_y) > 1 {
-  //     continue;
-  //   }
-  //   let i2 = sorted_items[sorted_i].index;
-  //   if i2 == i {
-  //     continue;
-  //   }
-  //   let d_sqrd = distance_sqrd(pi[i].p, pi[i2].p);
-  //   if d_sqrd <= 0.00000001 {
-  //     continue;
-  //   }
-  //   if d_sqrd >= diameter_sqrd {
-  //     continue;
-  //   }
-  //   let cr = collision_response(pi[i], pi[i2]);
-  //   dv += cr * crdv;
-  //   var or = pi[i2].p - pi[i].p;
-  //   or = normalize(or) * (DIAMETER - sqrt(norm_sqrd(or)));
-  //   odp -= or * ordp;
-  // }
-
-
   let current_region = pi[i].region_id;
-let current_region_x = current_region % REGION_SIDE;
-let current_region_y = current_region / REGION_SIDE;
+  let current_region_x = current_region % REGION_SIDE;
+  let current_region_y = current_region / REGION_SIDE;
 
-for (var region_dy: i32 = -1; region_dy <= 1; region_dy++) {
-  let candidate_region_y = current_region_y + region_dy;
+  for (var region_dy: i32 = -1; region_dy <= 1; region_dy++) {
+    let candidate_region_y = current_region_y + region_dy;
 
-  if (candidate_region_y < 0 || candidate_region_y >= REGION_SIDE) {
-    continue;
-  }
-
-  for (var region_dx: i32 = -1; region_dx <= 1; region_dx++) {
-    let candidate_region_x = current_region_x + region_dx;
-
-    if (candidate_region_x < 0 || candidate_region_x >= REGION_SIDE) {
+    if (candidate_region_y < 0 || candidate_region_y >= REGION_SIDE) {
       continue;
     }
 
-    let candidate_region = candidate_region_y * REGION_SIDE + candidate_region_x;
-    let range_start = atomicLoad(&region_ranges[u32(candidate_region)].start);
-    let range_end = atomicLoad(&region_ranges[u32(candidate_region)].end);
+    for (var region_dx: i32 = -1; region_dx <= 1; region_dx++) {
+      let candidate_region_x = current_region_x + region_dx;
 
-    if (range_start >= range_end) {
-      continue;
-    }
-
-    for (var sorted_i: u32 = range_start; sorted_i < range_end; sorted_i++) {
-      let i2 = sorted_items[sorted_i].index;
-
-      if (i2 == i) {
+      if (candidate_region_x < 0 || candidate_region_x >= REGION_SIDE) {
         continue;
       }
 
-      let d_sqrd = distance_sqrd(pi[i].p, pi[i2].p);
+      let candidate_region = candidate_region_y * REGION_SIDE + candidate_region_x;
+      let range_start = atomicLoad(&region_ranges[u32(candidate_region)].start);
+      let range_end = atomicLoad(&region_ranges[u32(candidate_region)].end);
 
-      if (d_sqrd <= 0.00000001) {
+      if (range_start >= range_end) {
         continue;
       }
 
-      if (d_sqrd >= diameter_sqrd) {
-        continue;
+      for (var sorted_i: u32 = range_start; sorted_i < range_end; sorted_i++) {
+        let i2 = sorted_items[sorted_i].index;
+
+        if (i2 == i) {
+          continue;
+        }
+
+        let d_sqrd = distance_sqrd(pi[i].p, pi[i2].p);
+
+        if (d_sqrd <= 0.00000001) {
+          continue;
+        }
+
+        if (d_sqrd >= diameter_sqrd) {
+          continue;
+        }
+
+        let cr = collision_response(pi[i], pi[i2]);
+        dv += cr * crdv;
+
+        var or = pi[i2].p - pi[i].p;
+        or = normalize(or) * (DIAMETER - sqrt(norm_sqrd(or)));
+        odp -= or * ordp;
       }
-
-      let cr = collision_response(pi[i], pi[i2]);
-      dv += cr * crdv;
-
-      var or = pi[i2].p - pi[i].p;
-      or = normalize(or) * (DIAMETER - sqrt(norm_sqrd(or)));
-      odp -= or * ordp;
     }
   }
-}
 
 
 

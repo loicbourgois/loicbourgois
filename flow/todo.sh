@@ -7,7 +7,3 @@ cargo run --release \
     $HOME/github.com/loicbourgois/loicbourgois/flow/webgpu.js \
     $HOME/github.com/loicbourgois/loicbourgois/flow/shared.wgsl \
     $HOME/github.com/loicbourgois/loicbourgois/flow/physic.wgsl
-
-
-    # $HOME/github.com/loicbourgois/loicbourgois/flow/disk_generated.wgsl
-    # $HOME/github.com/loicbourgois/loicbourgois/flow/display.wgsl \

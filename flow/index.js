@@ -1,4 +1,5 @@
-import {setup_webgpu, run} from './webgpu.js'
+import {run} from './run.js'
+import {setup} from './setup.js'
 import {resize_fullpage} from './canvas.js'
 
 
@@ -11,9 +12,9 @@ const main = async () => {
     resolution_scaling: 2, 
     alignement: background_resolution,
   })
-  run(await setup_webgpu({
-    canvas: canvas,
-    gravity_resolution: background_resolution,
+  run(await setup({
+    canvas,
+    background_resolution,
     dispatch_count: [4, 4, 4],
   }))
 }

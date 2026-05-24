@@ -80,5 +80,4 @@ fn rand(v: vec2f) -> f32 {
   return fract(sin(dot(v, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
-// const diameter_ratio: f32 = 2.;
 const diameter_ratio: f32 = 1.5;
