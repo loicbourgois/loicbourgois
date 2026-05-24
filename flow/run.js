@@ -60,7 +60,7 @@ const bitonic_sort = ({
 };
 
 
-const compute_particles = async (
+const compute_particles = (
     x,
 ) => {
     const start = performance.now()
@@ -75,8 +75,7 @@ const compute_particles = async (
         x.field_particle.buffer_gpu_in, 0,
         x.field_particle.buffer_js.byteLength,
     );
-    await x.device.queue.submit([encoder.finish()]);
-    
+    x.device.queue.submit([encoder.finish()]);
 }
 
 
@@ -129,11 +128,15 @@ const run = async (
 ) => {
     const start = performance.now()
     track_gpu_completion(x.device, start)
+    // Grid cells are big enough that we don't need to update the grid before
+    // each compute.
+    // It's fine to do 1 grid update, N compute 
     bitonic_sort({
         device: x.device,
         bitonic_sort: x.compute_args.bitonic_sort,
     });
-    for (let index = 0; index < 16; index++) {
+    const compute_count = 30
+    for (let index = 0; index < compute_count; index++) {
         step_counter += 1;
         x.uniformValues.set([
             x.gravity_resolution,
@@ -158,8 +161,6 @@ const run = async (
         x.device.queue.writeBuffer(x.metadata_buffer_gpu, 0, x.uniformValues);
         compute_particles(x.compute_args)
     }
-
-
     draw_01({
         device: x.device,
         context: x.context,
@@ -178,6 +179,7 @@ const run = async (
     const elapsed_ms = starts.length > 1 ? start - starts[0] : 0;
     const fps = elapsed_ms > 0 ? ((starts.length - 1) * 1000) / elapsed_ms : 0;
     document.querySelector('#fps_value').textContent = fps.toFixed(1);
+    document.querySelector('#ups_value').textContent = (fps*compute_count).toFixed(1);
     const duration = performance.now() - start
     durations.push(duration)
     while (durations.length > metrics_size) {
@@ -199,9 +201,9 @@ const run = async (
     // Loop
     requestAnimationFrame(()=>{
         requestAnimationFrame(()=>{
-        // requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
             run(x)
-        // })
+        })
         })
     })
 

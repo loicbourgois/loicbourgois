@@ -1,7 +1,11 @@
+// const DIAMETER = 0.1;
+// const workgroupSize = [4, 4, 4];
+// const dispatchCount = [4, 4, 4];
+// const particles_count = 4096
 const DIAMETER = 0.07;
-const workgroupSize = [4, 8, 4];
+const workgroupSize = [4, 8, 8];
 const dispatchCount = [4, 4, 4];
-const particles_count = 4096*2
+const particles_count = 4096*4
 const side_size = Math.sqrt(particles_count)
 const particle_fields = 10
 const metadata_buffer_gpu_size = 18 * 4;
@@ -9,7 +13,7 @@ const sort_metadata_buffer_gpu_size = 4 * 4;
 let gpu_timing_pending = false
 const BITONIC_WORKGROUP_SIZE = 256;
 const sort_item_size = 8;
-const REGION_SIDE = 64;
+const REGION_SIDE = 64*4*4;
 const REGION_COUNT = REGION_SIDE * REGION_SIDE;
 const region_range_size = 8;
 

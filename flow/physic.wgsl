@@ -43,8 +43,8 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   let i =
     workgroup_index * THREADS_PER_WORK_GROUP
     + local_invocation_index;
-  let ordp = 0.06; // overlap response delta (position) ratio
-  let crdv = 0.32; // collision response delta (velocity)
+  let ordp = 0.01; // overlap response delta (position) ratio
+  let crdv = 0.2; // collision response delta (velocity)
   let border_rebound = 0.95;
   let diameter_sqrd = DIAMETER * DIAMETER;
   var dv = vec2f(0.0, 0.0);
@@ -111,12 +111,15 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   let limit = 1000000.0;
   po[i].v = pi[i].v + gravity + dv + odp;
   po[i].p = pi[i].p + po[i].v + gravity;
-  if po[i].p.x < m.bounds.min_x * 0.8 && po[i].p.y < m.bounds.max_y * 0.75 {
-    po[i].v.y -= g*1.05;
+  if po[i].p.x < m.bounds.min_x * 0.5 && po[i].p.y < m.bounds.max_y * 0.25 {
+    // po[i].v.y -= g*1.05;
+  }
+  if po[i].p.y < m.bounds.min_y * 0.9  && po[i].p.x >  m.bounds.min_y * 0.95 {
+    po[i].v.x += g;
   }
   if po[i].p.x > m.bounds.min_x * 0.2 
     && po[i].p.x < m.bounds.max_x * 0.2 
-    && po[i].p.y < m.bounds.max_y * 0.75 {
+    && po[i].p.y < m.bounds.max_y * 0.15 {
     // po[i].v.y -= g*1.05;
     // po[i].v.x *= .999;
   }
@@ -128,6 +131,9 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   }
   if po[i].p.y < m.bounds.min_y + DIAMETER*0.5*diameter_ratio {
     po[i].v.y += 0.0001;
+  }
+  if po[i].p.y > m.bounds.max_y + DIAMETER*0.5*diameter_ratio {
+    po[i].v.y -= 0.0001;
   }
 
 

@@ -179,7 +179,7 @@ const setup_compute = async ({
 
 
 
-const setup_particles = (bounds) => {
+const setup_particles = (bounds, particles_count) => {
     let ps = []
     let max_x = -Infinity
     let max_y = -Infinity
@@ -187,8 +187,10 @@ const setup_particles = (bounds) => {
     let min_y = Infinity
     for (let xi = 0; xi < side_size; xi++) {
         for (let yi = 0; yi < side_size; yi++) {
-            const x = ((xi+0.5)/(side_size)-0.5) * bounds.w_max * 2
-            const y = ((yi+0.5)/(side_size)-0.5) * 7 - 1.5
+            // const x = ((xi+0.5)/(side_size)-0.5) * bounds.w_max * 2
+            // const y = ((yi+0.5)/(side_size)-0.5) * 7 - 1.5
+            const x = Math.random() * bounds.w_max * 2 - bounds.w_max
+            const y = (Math.random() * bounds.h_max *0.5 - bounds.h_max) 
             max_x = Math.max(max_x, x)
             max_y = Math.max(max_y, y)
             min_x = Math.min(min_x, x)
@@ -270,7 +272,7 @@ const setup = async ({
         alphaMode: "premultiplied",
     });
     const particles_array = []
-    const particles = setup_particles(bounds)
+    const particles = setup_particles(bounds, particles_count)
     for (let index = 0; index < particles_count; index++) {
         particles_array.push(particles[index].xi)
         particles_array.push(particles[index].yi)
@@ -278,8 +280,8 @@ const setup = async ({
         particles_array.push(0.0)
         particles_array.push(particles[index].x)
         particles_array.push(particles[index].y)
-        particles_array.push((Math.random()-0.5)*0.0001)
-        particles_array.push((Math.random()-0.5)*0.0001)
+        particles_array.push((Math.random()-0.5)*0.000)
+        particles_array.push((Math.random()-0.5)*0.000)
         particles_array.push(0.0)
         particles_array.push(0.0)
     }
@@ -292,7 +294,7 @@ const setup = async ({
         data: particles_array,
     })
 
-    const buffer_particle_region_js = new Int32Array(particles_count);
+    const buffer_particle_region_js = new Uint32Array(particles_count);
     const buffer_particle_region_gpu = device.createBuffer({
         size: buffer_particle_region_js.byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,

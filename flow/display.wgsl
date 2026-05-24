@@ -8,10 +8,6 @@
 
 const PARTICLE_COUNT = __PARTICLE_COUNT__;
 const DIAMETER = __DIAMETER__;
-const LINE_SEGMENTS = 32u;
-const LINE_VERTICES = LINE_SEGMENTS + 1u;
-const LINE_AMPLITUDE = 0.04;
-const LINE_COS_PERIODS = 2.0;
 
 
 struct VSOutput {
@@ -51,7 +47,7 @@ struct VSOutput {
     var i_gravity = x_gravity + y_gravity * u32(m.field_gravity.resolution);
     var gravity = cells_gravity[i_gravity].e;
     var energy = vsOut.e;
-    var ratio = energy * 50000.0;
+    var ratio = energy * 25000.0;
     var start = vec4f(0.0, 0.4, 1.0, 1.0);
     var end = vec4f(0.8, 0.8, 1.0, 1.0);
     return mix(start, end, clamp(ratio, 0.0, 1.0));
