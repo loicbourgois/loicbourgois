@@ -2,10 +2,26 @@ import {Field} from './field.js'
 import {create_shader_module} from './create_shader_module.js'
 
 
-const DIAMETER = 0.1;
-const dispatchCount = [2, 4, 8];
-const workgroupSize = [4, 4, 4];
-const particles_count = 64*16*4
+const DIAMETER = 0.07;
+
+// const workgroupSize = [4, 4, 1];
+// const dispatchCount = [1, 1, 1];
+// const particles_count = 16
+
+// const workgroupSize = [4, 4, 4];
+// const dispatchCount = [1, 1, 1];
+// const particles_count = 64
+
+// const workgroupSize = [4, 2, 2];
+// const dispatchCount = [4, 4, 4];
+// const particles_count = 1024
+
+
+const workgroupSize = [4, 8, 4];
+const dispatchCount = [4, 4, 4];
+const particles_count = 4096*2
+
+
 const side_size = Math.sqrt(particles_count)
 
 const particle_fields = 10
@@ -23,6 +39,169 @@ let gpu_timing_pending = false
 console.log(`particles_count: ${particles_count}`)
 console.log(`side_size: ${side_size}`)
 
+const BITONIC_WORKGROUP_SIZE = 256;
+const sort_item_size = 8;
+
+const REGION_SIDE = 64;
+const REGION_COUNT = REGION_SIDE * REGION_SIDE;
+const region_range_size = 8;
+
+
+const setup_bitonic_sort = async ({
+    device,
+    buffer_particle_region_gpu,
+}) => {
+    if ((particles_count & (particles_count - 1)) !== 0) {
+        throw new Error('Bitonic sort requires particles_count to be a power of 2.');
+    }
+
+    const region_ranges_buffer_gpu = device.createBuffer({
+        size: REGION_COUNT * region_range_size,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+    });
+
+    const sort_items_buffer_gpu = device.createBuffer({
+        size: particles_count * sort_item_size,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+    });
+    const sort_items_buffer_gpu_read = device.createBuffer({
+        size: particles_count * sort_item_size,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+    const sort_params_buffer_gpu = device.createBuffer({
+        size: sort_metadata_buffer_gpu_size,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    const module = await create_shader_module({
+        device: device,
+        source: './bitonic.wgsl',
+        imports: [],
+        formatting: {
+            '__BITONIC_WORKGROUP_SIZE__': BITONIC_WORKGROUP_SIZE,
+            '__particles_count__': particles_count,
+            '__REGION_COUNT__': REGION_COUNT,
+        }
+    })
+    const initialise_pipeline = device.createComputePipeline({
+        label: 'pipeline_bitonic_sort_initialise',
+        layout: 'auto',
+        compute: {
+            module,
+            entryPoint: 'initialise',
+        },
+    });
+    const sort_pipeline = device.createComputePipeline({
+        label: 'pipeline_bitonic_sort',
+        layout: 'auto',
+        compute: {
+            module,
+            entryPoint: 'sort',
+        },
+    });
+    const region_ranges_pipeline = device.createComputePipeline({
+        label: 'pipeline_bitonic_region_ranges',
+        layout: 'auto',
+        compute: {
+            module,
+            entryPoint: 'build_region_ranges',
+        },
+    });
+    const initialise_bind_group = device.createBindGroup({
+    layout: initialise_pipeline.getBindGroupLayout(0),
+    entries: [
+        { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
+        { binding: 2, resource: { buffer: buffer_particle_region_gpu }},
+        // { binding: 3, resource: { buffer: region_ranges_buffer_gpu }},
+    ],
+});
+
+const sort_bind_group = device.createBindGroup({
+    layout: sort_pipeline.getBindGroupLayout(0),
+    entries: [
+        { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
+        { binding: 1, resource: { buffer: sort_params_buffer_gpu }},
+        // { binding: 3, resource: { buffer: region_ranges_buffer_gpu }},
+    ],
+});
+
+const region_ranges_bind_group = device.createBindGroup({
+    layout: region_ranges_pipeline.getBindGroupLayout(0),
+    entries: [
+        { binding: 0, resource: { buffer: sort_items_buffer_gpu }},
+        // { binding: 2, resource: { buffer: buffer_particle_region_gpu }},
+        { binding: 3, resource: { buffer: region_ranges_buffer_gpu }},
+    ],
+});
+    return {
+        initialise_pipeline,
+    sort_pipeline,
+    region_ranges_pipeline,
+
+    initialise_bind_group,
+    sort_bind_group,
+    region_ranges_bind_group,
+
+    sort_params_buffer_gpu,
+    sort_items_buffer_gpu,
+    sort_items_buffer_gpu_read,
+    region_ranges_buffer_gpu,
+
+    workgroups: Math.ceil(particles_count / BITONIC_WORKGROUP_SIZE),
+    region_ranges_workgroups: Math.ceil(Math.max(particles_count, REGION_COUNT) / BITONIC_WORKGROUP_SIZE),
+    };
+};
+
+
+const bitonic_sort = ({
+    device,
+    bitonic_sort,
+}) => {
+    {
+        const encoder = device.createCommandEncoder({ label: 'encode_bitonic_sort' });
+        const pass = encoder.beginComputePass({ label: 'bitonic sort initialise pass' });
+        pass.setPipeline(bitonic_sort.initialise_pipeline);
+        pass.setBindGroup(0, bitonic_sort.initialise_bind_group);
+        pass.dispatchWorkgroups(bitonic_sort.workgroups);
+        pass.end();
+        device.queue.submit([encoder.finish()]);
+    }
+    let ii = 0
+    for (let k = 2; k <= particles_count; k <<= 1) {
+        for (let j = k >> 1; j > 0; j >>= 1) {
+            device.queue.writeBuffer(bitonic_sort.sort_params_buffer_gpu, 0, new Uint32Array([j, k]));
+            const encoder = device.createCommandEncoder();
+            const pass = encoder.beginComputePass();
+            pass.setPipeline(bitonic_sort.sort_pipeline);
+            pass.setBindGroup(0, bitonic_sort.sort_bind_group);
+            pass.dispatchWorkgroups(bitonic_sort.workgroups);
+            pass.end();
+            device.queue.submit([encoder.finish()]);
+        }
+    }
+    {
+        const encoder = device.createCommandEncoder();
+        encoder.copyBufferToBuffer(
+            bitonic_sort.sort_items_buffer_gpu,
+            0,
+            bitonic_sort.sort_items_buffer_gpu_read,
+            0,
+            particles_count * sort_item_size,
+        );
+        device.queue.submit([encoder.finish()]);
+    }
+    {
+        const encoder = device.createCommandEncoder({ label: 'encode_bitonic_region_ranges' });
+        const pass = encoder.beginComputePass({ label: 'bitonic region ranges pass' });
+
+        pass.setPipeline(bitonic_sort.region_ranges_pipeline);
+        pass.setBindGroup(0, bitonic_sort.region_ranges_bind_group);
+        pass.dispatchWorkgroups(bitonic_sort.region_ranges_workgroups);
+
+        pass.end();
+        device.queue.submit([encoder.finish()]);
+    }
+};
+
 
 const setup_compute = async ({
     field_particle,
@@ -32,6 +211,7 @@ const setup_compute = async ({
     buffer_particle_region_gpu,
     buffer_particle_region_gpu_read,
     buffer_particle_region_js,
+    bitonic_sort,
 }) => {
     const module = await create_shader_module({
         device: device,
@@ -55,14 +235,16 @@ const setup_compute = async ({
         },
     });
     const bindGroup = device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: [
-            { binding: 0, resource: { buffer: field_particle.buffer_gpu_in }},
-            { binding: 1, resource: { buffer: field_particle.buffer_gpu_out }},
-            { binding: 2, resource: { buffer: metadata_buffer_gpu }},
-            { binding: 3, resource: { buffer: buffer_particle_region_gpu }},
-        ],
-    });
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+        { binding: 0, resource: { buffer: field_particle.buffer_gpu_in }},
+        { binding: 1, resource: { buffer: field_particle.buffer_gpu_out }},
+        { binding: 2, resource: { buffer: metadata_buffer_gpu }},
+        { binding: 3, resource: { buffer: buffer_particle_region_gpu }},
+        { binding: 4, resource: { buffer: bitonic_sort.sort_items_buffer_gpu }},
+        { binding: 5, resource: { buffer: bitonic_sort.region_ranges_buffer_gpu }},
+    ],
+});
     const r = {
         device: device,
         pipeline: pipeline,
@@ -72,12 +254,16 @@ const setup_compute = async ({
         buffer_particle_region_gpu: buffer_particle_region_gpu,
         buffer_particle_region_gpu_read: buffer_particle_region_gpu_read,
         buffer_particle_region_js: buffer_particle_region_js,
+        bitonic_sort: bitonic_sort,
     }
     return r
 }
 
 
-const compute_particles = async (x) => {
+const compute_particles = async (
+    x,
+) => {
+    const start = performance.now()
     const encoder = x.device.createCommandEncoder({ label: 'compute builtin encoder' });
     const pass = encoder.beginComputePass({ label: 'compute builtin pass' });
     pass.setPipeline(x.pipeline);
@@ -89,19 +275,8 @@ const compute_particles = async (x) => {
         x.field_particle.buffer_gpu_in, 0,
         x.field_particle.buffer_js.byteLength,
     );
-    encoder.copyBufferToBuffer(
-        x.buffer_particle_region_gpu, 0,
-        x.buffer_particle_region_gpu_read, 0,
-        x.buffer_particle_region_js.byteLength,
-    );
-    const commandBuffer = encoder.finish();
-    await x.device.queue.submit([commandBuffer]);
-    // await x.buffer_particle_region_gpu_read.mapAsync(GPUMapMode.READ)
-    // const mapped_region = x.buffer_particle_region_gpu_read.getMappedRange();
-    // x.buffer_particle_region_js.set(new Int32Array(mapped_region));
-    // x.buffer_particle_region_gpu_read.unmap();
-    // x.buffer_particle_region_js.sort((a, b) => a - b);
-    // console.log(x.buffer_particle_region_js)
+    await x.device.queue.submit([encoder.finish()]);
+    
 }
 
 
@@ -339,6 +514,10 @@ const setup_webgpu = async ({
             },
         ],
     };
+    const bitonic_sort = await setup_bitonic_sort({
+        device: device,
+        buffer_particle_region_gpu: buffer_particle_region_gpu,
+    });
     const compute_args = await setup_compute({
         device: device,
         metadata_buffer_gpu: metadata_buffer_gpu,
@@ -347,6 +526,7 @@ const setup_webgpu = async ({
         buffer_particle_region_gpu: buffer_particle_region_gpu,
         buffer_particle_region_gpu_read: buffer_particle_region_gpu_read,
         buffer_particle_region_js: buffer_particle_region_js,
+        bitonic_sort: bitonic_sort,
     })
     const draw_01_renderPassDescriptor = {
         colorAttachments: [
@@ -426,10 +606,6 @@ const draw_02 = (x) => {
 
 
 const track_gpu_completion = (device, frame_start) => {
-    if (gpu_timing_pending) {
-        return
-    }
-    gpu_timing_pending = true
     device.queue.onSubmittedWorkDone().then(() => {
         gpu_durations.push(performance.now() - frame_start)
         while (gpu_durations.length > metrics_size) {
@@ -437,8 +613,6 @@ const track_gpu_completion = (device, frame_start) => {
         }
     }).catch((error) => {
         console.error('Failed while waiting for submitted GPU work:', error)
-    }).finally(() => {
-        gpu_timing_pending = false
     })
 }
 
@@ -446,16 +620,21 @@ const track_gpu_completion = (device, frame_start) => {
 const run = async (
     x,
 ) => {
+    // console.log("--------")
+    
+    
     const start = performance.now()
     track_gpu_completion(x.device, start)
-    starts.push(start)
-    while (starts.length > metrics_size) {
-        starts.shift()
-    }
-    const elapsed_ms = starts.length > 1 ? start - starts[0] : 0;
-    const fps = elapsed_ms > 0 ? ((starts.length - 1) * 1000) / elapsed_ms : 0;
-    document.querySelector('#fps_value').textContent = fps.toFixed(1);
-    for (let index = 0; index < 5; index++) {
+    
+
+    // console.log("d1", performance.now() -start)
+
+
+    bitonic_sort({
+        device: x.device,
+        bitonic_sort: x.compute_args.bitonic_sort,
+    });
+    for (let index = 0; index < 16; index++) {
         step_counter += 1;
         x.uniformValues.set([
             x.gravity_resolution,
@@ -478,8 +657,26 @@ const run = async (
             Math.random(),
         ]);
         x.device.queue.writeBuffer(x.metadata_buffer_gpu, 0, x.uniformValues);
-        await compute_particles(x.compute_args)
+        compute_particles(x.compute_args)
     }
+
+
+
+    // await x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.mapAsync(GPUMapMode.READ);
+    // const mapped = x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.getMappedRange();
+    // const values = new Uint32Array(mapped);
+    // const results = [];
+    // for (let index = 0; index < particles_count; index++) {
+    //     results.push({
+    //         key: values[index * 2],
+    //         particle_index: values[index * 2 + 1],
+    //     });
+    // }
+    // console.log('bitonic sort results:', JSON.stringify(results));
+    // x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.unmap();
+
+
+
     draw_01({
         device: x.device,
         context: x.context,
@@ -488,6 +685,16 @@ const run = async (
         bind_group: x.draw_01.bind_group,
     })
     draw_02(x)
+
+
+    // Perf
+    starts.push(start)
+    while (starts.length > metrics_size) {
+        starts.shift()
+    }
+    const elapsed_ms = starts.length > 1 ? start - starts[0] : 0;
+    const fps = elapsed_ms > 0 ? ((starts.length - 1) * 1000) / elapsed_ms : 0;
+    document.querySelector('#fps_value').textContent = fps.toFixed(1);
     const duration = performance.now() - start
     durations.push(duration)
     while (durations.length > metrics_size) {
@@ -504,12 +711,22 @@ const run = async (
         const usage_pct = avg_duration / target_ms * 100;
         document.querySelector('#gpu_usage_value').textContent = `${usage_pct.toFixed(1)}%`;
     }
+    
+    
+    // Loop
+    requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+        // requestAnimationFrame(()=>{
+            run(x)
+        // })
+        })
+    })
+
+
+    // Debug
     if (gpu_durations.length == 99) {
         console.log(gpu_durations)
     }
-    requestAnimationFrame(()=>{
-        run(x)
-    })
 }
 
 

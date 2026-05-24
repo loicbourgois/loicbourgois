@@ -48,6 +48,18 @@ struct CellGravity {
 };
 
 
+struct SortItem {
+  value: u32,
+  index: u32,
+};
+
+
+struct RegionRange {
+  start: atomic<u32>,
+  end: atomic<u32>,
+};
+
+
 fn dot_(a: vec2f, b: vec2f) -> f32 {
     return a.x * b.x + a.y * b.y;
 }
@@ -69,4 +81,4 @@ fn rand(v: vec2f) -> f32 {
 }
 
 // const diameter_ratio: f32 = 2.;
-const diameter_ratio: f32 = .5;
+const diameter_ratio: f32 = 1.5;

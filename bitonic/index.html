@@ -19,8 +19,13 @@
 
   // --- WGSL Compute Shader ---
   const bitonicShaderCode = /* wgsl */`
+    struct Item {
+        value: f32,
+        index: u32,
+    };
+
     struct Data {
-        numbers: array<f32>,
+        items: array<Item>,
     };
 
     @group(0) @binding(0)
@@ -38,12 +43,12 @@
 
         if (ixj > i) {
             let ascending = (i & k) == 0u;
-            let a = data.numbers[i];
-            let b = data.numbers[ixj];
-            let swap = (ascending && a > b) || (!ascending && a < b);
+            let a = data.items[i];
+            let b = data.items[ixj];
+            let swap = (ascending && a.value > b.value) || (!ascending && a.value < b.value);
             if (swap) {
-                data.numbers[i] = b;
-                data.numbers[ixj] = a;
+                data.items[i] = b;
+                data.items[ixj] = a;
             }
         }
     }
@@ -55,14 +60,24 @@
     if ((length & (length - 1)) !== 0)
       throw new Error("Array length must be a power of 2.");
 
-    const bufferSize = length * 4;
+    const itemSize = 8; // f32 value + u32 original index
+    const bufferSize = length * itemSize;
+
+    const initialData = new ArrayBuffer(bufferSize);
+    const initialValues = new Float32Array(initialData);
+    const initialIndexes = new Uint32Array(initialData);
+
+    for (let i = 0; i < length; i += 1) {
+      initialValues[i * 2] = inputArray[i];
+      initialIndexes[i * 2 + 1] = i;
+    }
 
     const dataBuffer = device.createBuffer({
       size: bufferSize,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
     });
-    new Float32Array(dataBuffer.getMappedRange()).set(inputArray);
+    new Uint8Array(dataBuffer.getMappedRange()).set(new Uint8Array(initialData));
     dataBuffer.unmap();
 
     const paramBuffer = device.createBuffer({
@@ -78,22 +93,20 @@
     const workgroups = Math.ceil(length / 256);
 
     // --- Main sorting loop ---
-    console.log("start")
-    const start = performance.now()
-    for (let k = 2; k <= length; k <<= 1) {
-      for (let j = k >> 1; j > 0; j >>= 1) {
-
-        // Update current parameters (j, k)
-        device.queue.writeBuffer(paramBuffer, 0, new Uint32Array([j, k]));
-
-        const bindGroup = device.createBindGroup({
+    const bindGroup = device.createBindGroup({
           layout: pipeline.getBindGroupLayout(0),
           entries: [
             { binding: 0, resource: { buffer: dataBuffer } },
             { binding: 1, resource: { buffer: paramBuffer } },
           ],
         });
-
+    await device.queue.onSubmittedWorkDone()
+    console.log("start");
+    const start = performance.now();
+    for (let k = 2; k <= length; k <<= 1) {
+      for (let j = k >> 1; j > 0; j >>= 1) {
+        // Update current parameters (j, k)
+        device.queue.writeBuffer(paramBuffer, 0, new Uint32Array([j, k]));
         // Encode one compute pass per stage
         const encoder = device.createCommandEncoder();
         const pass = encoder.beginComputePass();
@@ -101,14 +114,15 @@
         pass.setBindGroup(0, bindGroup);
         pass.dispatchWorkgroups(workgroups);
         pass.end();
-
         // Queue submissions are executed in order, so each stage naturally
         // runs after the previous one without waiting on the CPU.
         device.queue.submit([encoder.finish()]);
       }
     }
-    console.log(`duration: ${performance.now()-start}`)
-    console.log("end")
+
+    await device.queue.onSubmittedWorkDone()
+    console.log(`duration: ${performance.now() - start}`);
+    console.log("end");
 
     // --- Read back sorted data ---
     const readBuffer = device.createBuffer({
@@ -118,10 +132,26 @@
     const copyEncoder = device.createCommandEncoder();
     copyEncoder.copyBufferToBuffer(dataBuffer, 0, readBuffer, 0, bufferSize);
     device.queue.submit([copyEncoder.finish()]);
+    
+    
+
     await readBuffer.mapAsync(GPUMapMode.READ);
-    const result = new Float32Array(readBuffer.getMappedRange()).slice();
+
+    const mappedResult = readBuffer.getMappedRange();
+    const resultValuesAndPadding = new Float32Array(mappedResult);
+    const resultIndexesAndPadding = new Uint32Array(mappedResult);
+
+    const values = new Float32Array(length);
+    const indexes = new Uint32Array(length);
+
+    for (let i = 0; i < length; i += 1) {
+      values[i] = resultValuesAndPadding[i * 2];
+      indexes[i] = resultIndexesAndPadding[i * 2 + 1];
+    }
+
     readBuffer.unmap();
-    return result;
+
+    return { values, indexes };
   }
 
   // --- Entry point ---
@@ -131,16 +161,20 @@
     try {
       const device = await initDevice();
       let data = []
-      for(let i = 0 ; i < 4096*16*2*2 ; i +=1){
+      //for(let i = 0 ; i < 4096*16*2*2 ; i +=1){
+      for(let i = 0 ; i < 2 ; i +=1){
         data.push(Math.random())
       }
       const input = new Float32Array(data);
       output.textContent += "Input:  " + input.join(", ") + "\n";
       
-      const sorted = await bitonicSort(device, input);
+      const { values: sorted, indexes: sortedIndexes } = await bitonicSort(device, input);
       
       output.textContent += "Sorted: " + sorted.join(", ") + "\n";
+      output.textContent += "Indexes: " + sortedIndexes.join(", ") + "\n";
       console.log("Sorted result:", sorted);
+      console.log("Sorted indexes:", sortedIndexes);
+      
     } catch (err) {
       output.textContent = "Error: " + err.message;
       console.error(err);
