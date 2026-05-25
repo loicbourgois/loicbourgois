@@ -112,7 +112,7 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
     // po[i].v.y -= g*1.05;
   }
   if po[i].p.y < m.bounds.min_y * 0.9  && po[i].p.x >  m.bounds.min_y * 0.95 {
-    po[i].v.x += g;
+    po[i].v.x += g * m.pump.flow_rate;
   }
   if po[i].p.x > m.bounds.min_x * 0.2 
     && po[i].p.x < m.bounds.max_x * 0.2 

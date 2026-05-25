@@ -19,15 +19,24 @@ struct Field {
 
 struct Bounds {
   min_x:f32,
-        max_x:f32,
-        min_y:f32,
-        max_y:f32,
+  max_x:f32,
+  min_y:f32,
+  max_y:f32,
 };
+
+
+struct Pump {
+  flow_rate: f32,
+  _padding: f32,
+  _padding_2: f32,
+  _padding_3: f32,
+}
 
 
 struct Metadata {
   field_gravity: Field,
   bounds: Bounds,
+  pump: Pump,
   canvas: vec2f,
   time: f32,
   r: f32,

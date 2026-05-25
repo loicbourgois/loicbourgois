@@ -10,6 +10,7 @@ const starts = []
 const durations = []
 const gpu_durations = []
 const metrics_size = 100
+let flow_rate_input_ready = false
 
 
 const bitonic_sort = ({
@@ -124,10 +125,49 @@ const track_gpu_completion = (device, frame_start) => {
 }
 
 
+const pump = {
+    flow_rate: 1.0,
+}
+
+
+const get_flow_rate_input = () => document.querySelector('#flow_rate_input')
+
+
+const update_flow_rate_from_input = () => {
+    const input = get_flow_rate_input()
+    if (!input) {
+        return
+    }
+
+    const value = Number.parseFloat(input.value)
+    if (!Number.isFinite(value)) {
+        input.value = pump.flow_rate.toFixed(2)
+        return
+    }
+
+    pump.flow_rate = Math.max(0, value)
+    input.value = pump.flow_rate.toFixed(2)
+}
+
+
+const setup_flow_rate_input = () => {
+    const input = get_flow_rate_input()
+    if (!input) {
+        return
+    }
+
+    input.value = pump.flow_rate.toFixed(2)
+    input.addEventListener('change', update_flow_rate_from_input)
+}
+
 const run = async (
     x,
 ) => {
     const start = performance.now()
+    if (!flow_rate_input_ready) {
+        setup_flow_rate_input()
+        flow_rate_input_ready = true
+    }
     track_gpu_completion(x.device, start)
     // Grid cells are big enough that we don't need to update the grid before
     // each compute.
@@ -153,6 +193,10 @@ const run = async (
             x.bounds.w_max,
             x.bounds.h_min,
             x.bounds.h_max,
+            pump.flow_rate,
+            0.0,// pump.padding_
+            0.0,// pump.padding_
+            0.0,// pump.padding_
             x.canvas.width, 
             x.canvas.height, 
             performance.now(),
@@ -202,6 +246,7 @@ const run = async (
         const usage_pct = avg_duration / target_ms * 100;
         document.querySelector('#gpu_usage_value').textContent = `${usage_pct.toFixed(1)}%`;
     }
+    document.querySelector('#flow_rate_value').textContent = `${pump.flow_rate.toFixed(2)}`;
     
     
     // Loop

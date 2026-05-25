@@ -11,7 +11,3 @@ find "$HOME/github.com/loicbourgois/loicbourgois/flow" \
 | xargs -0 cargo run --release \
     --manifest-path "$HOME/gitlab.com/loicbourgois/bot/Cargo.toml" \
     -- cr
-# cargo run --release \
-#     --manifest-path "$HOME/gitlab.com/loicbourgois/bot/Cargo.toml" \
-#     -- cr \
-#     $HOME/github.com/loicbourgois/loicbourgois/flow/*

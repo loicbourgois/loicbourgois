@@ -21,20 +21,8 @@
     workgroup_index * __THREADS_PER_WORK_GROUP__
     + local_invocation_index;
   let aa = u32(m.field_gravity.resolution);
-  // let aa = 16;
-
   let c = fi[i];
   let i2 = (u32(c.x) + 1) % aa + u32(c.y) * aa;
-  // let i2 = (i-1) % u32(aa*aa);
-
-
-  // if fi[i].e > 0.5 {
-  //   fo[i].e = fi[i].e * 1.001;
-  // } else {
-  //   // fo[i].e = fi[i].e / 1.001;
-  // }
   fo[i].e = fi[i2].e;
-
-
   fo[i].e = min(fo[i].e, 1.0);
 }
