@@ -11,6 +11,4 @@ open http://localhost
 
 
 ## Movie Finder
-```sh
-$HOME/github.com/loicbourgois/loicbourgois/movie-finder/api/local.sh
-```
+[movie-finder/README.md](./movie-finder/README.md)
