@@ -13,6 +13,7 @@ const DIAMETER = __DIAMETER__;
 struct VSOutput {
   @builtin(position) position: vec4f,
   @location(0) e: f32,
+  @location(1) kind: f32,
 };
 
 
@@ -35,6 +36,7 @@ struct VSOutput {
   vsOut.position.x = vsOut.position.x * m.canvas.y / m.canvas.x * zoom;
   vsOut.position.y = vsOut.position.y * zoom;
   vsOut.e = norm_sqrd(particle.v);
+  vsOut.kind = particle.kind;
   return vsOut;
 }
 
@@ -52,5 +54,11 @@ struct VSOutput {
     var ratio = energy * 25000.0;
     var start = vec4f(0.0, 0.4, 1.0, 1.0);
     var end = vec4f(0.8, 0.8, 1.0, 1.0);
-    return mix(start, end, clamp(ratio, 0.0, 1.0));
+    if vsOut.kind == 0.0 {
+      return mix(start, end, clamp(ratio, 0.0, 1.0));
+    } else if (vsOut.kind == 1.0) {
+      return vec4f(1.0, 1.0, 0.0, 1.0);
+    } else {
+      return vec4f(1.0, 0.0, 1.0, 1.0);
+    }
 }

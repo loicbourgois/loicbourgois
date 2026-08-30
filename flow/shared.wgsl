@@ -1,12 +1,18 @@
+struct ParticleLink {
+  a: u32,
+  b: u32,
+};
+
+
 struct Particle {
   x: f32,
   y: f32,
-  i: f32,
+  i: f32, // index
   e: f32,
   p: vec2f,
   v: vec2f,
   region_id: i32,
-  _padding: f32,
+  kind: f32,
 };
 
 

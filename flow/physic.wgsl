@@ -10,12 +10,15 @@
 @group(0) @binding(3) var<storage, read_write> regions: array<i32>;
 @group(0) @binding(4) var<storage, read> sorted_items: array<SortItem>;
 @group(0) @binding(5) var<storage, read_write> region_ranges: array<RegionRange>;
+@group(0) @binding(6) var<storage, read> particle_links: array<ParticleLink>;
 
 
 const PARTICLE_COUNT = __PARTICLE_COUNT__;
 const DIAMETER = __DIAMETER__;
 const THREADS_PER_WORK_GROUP = __THREADS_PER_WORK_GROUP__;
 const REGION_SIDE: i32 = __REGION_SIDE__;
+const LINK_COUNT: u32 = __LINK_COUNT__;
+const LINK_REST_LENGTH: f32 = __LINK_REST_LENGTH__;
 
 
 fn collision_response(p1: Particle, p2: Particle) -> vec2f {
@@ -104,6 +107,28 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
 
 
 
+  let link_strength = 0.005;
+  let link_damping = 0.06;
+  for (var link_index: u32 = 0u; link_index < LINK_COUNT; link_index++) {
+    let link = particle_links[link_index];
+    if (link.a != i && link.b != i) {
+      continue;
+    }
+    let other_index = select(link.a, link.b, link.a == i);
+    let delta_position = pi[other_index].p - pi[i].p;
+    let distance_squared = norm_sqrd(delta_position);
+    if (distance_squared <= 0.00000001) {
+      continue;
+    }
+    let distance = sqrt(distance_squared);
+    let direction = delta_position / distance;
+    let stretch = distance - LINK_REST_LENGTH;
+    let relative_velocity = pi[other_index].v - pi[i].v;
+    let damping = dot_(relative_velocity, direction) * link_damping;
+    dv += direction * (stretch * link_strength + damping);
+  }
+
+
   let g = -0.000005;
   let gravity = vec2f(0.0, g);
   po[i].v = pi[i].v + gravity + dv + odp;
@@ -131,6 +156,12 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   }
   if po[i].p.y > m.bounds.max_y + DIAMETER*0.5*diameter_ratio {
     po[i].v.y -= 0.0001;
+  }
+
+
+  if i == 0 || pi[i].kind == 1.0 {
+  //   po[i].p = pi[i].p;
+    po[i].v.y += 0.00000;
   }
 
 

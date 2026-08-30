@@ -5,6 +5,7 @@ import {
 } from './shared.js'
 
 
+const DEBUG = false
 let step_counter = 0;
 const starts = []
 const durations = []
@@ -38,17 +39,6 @@ const bitonic_sort = ({
             device.queue.submit([encoder.finish()]);
         }
     }
-    // {
-    //     const encoder = device.createCommandEncoder();
-    //     encoder.copyBufferToBuffer(
-    //         bitonic_sort.sort_items_buffer_gpu,
-    //         0,
-    //         bitonic_sort.sort_items_buffer_gpu_read,
-    //         0,
-    //         particles_count * sort_item_size,
-    //     );
-    //     device.queue.submit([encoder.finish()]);
-    // }
     {
         const encoder = device.createCommandEncoder({ label: 'encode_bitonic_region_ranges' });
         const pass = encoder.beginComputePass({ label: 'bitonic region ranges pass' });
@@ -105,7 +95,6 @@ const draw_02 = (x) => {
     const pass = encoder.beginRenderPass(x.renderPassDescriptor);
     pass.setPipeline(x.pipeline_2);
     pass.setBindGroup(0, x.bindGroup2);
-    // pass.draw(16*3 * (x.particles_count));
     pass.draw(48, x.particles_count);
     pass.end();
     const commandBuffer = encoder.finish();
@@ -138,13 +127,11 @@ const update_flow_rate_from_input = () => {
     if (!input) {
         return
     }
-
     const value = Number.parseFloat(input.value)
     if (!Number.isFinite(value)) {
         input.value = pump.flow_rate.toFixed(2)
         return
     }
-
     pump.flow_rate = Math.max(0, value)
     input.value = pump.flow_rate.toFixed(2)
 }
@@ -155,10 +142,10 @@ const setup_flow_rate_input = () => {
     if (!input) {
         return
     }
-
     input.value = pump.flow_rate.toFixed(2)
     input.addEventListener('change', update_flow_rate_from_input)
 }
+
 
 const run = async (
     x,
@@ -252,33 +239,34 @@ const run = async (
     // Loop
     requestAnimationFrame(()=>{
         requestAnimationFrame(()=>{
-        requestAnimationFrame(()=>{
-            run(x)
-        })
+            requestAnimationFrame(()=>{
+                run(x)
+            })
         })
     })
 
 
-    // Debug
-    // try {
-    //     await x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.mapAsync(GPUMapMode.READ);
-    //     const mapped = x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.getMappedRange();
-    //     const values = new Uint32Array(mapped);
-    //     const results = [];
-    //     for (let index = 0; index < particles_count; index++) {
-    //         results.push({
-    //             key: values[index * 2],
-    //             particle_index: values[index * 2 + 1],
-    //         });
-    //     }
-    //     // console.log('bitonic sort results:', JSON.stringify(results));
-    //     x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.unmap();
-    // } catch (error) {
-    //     // 
-    // }
-    // if (gpu_durations.length == 99) {
-    //     console.log(gpu_durations)
-    // }
+    if (DEBUG) {
+        try {
+            await x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.mapAsync(GPUMapMode.READ);
+            const mapped = x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.getMappedRange();
+            const values = new Uint32Array(mapped);
+            const results = [];
+            for (let index = 0; index < particles_count; index++) {
+                results.push({
+                    key: values[index * 2],
+                    particle_index: values[index * 2 + 1],
+                });
+            }
+            // console.log('bitonic sort results:', JSON.stringify(results));
+            x.compute_args.bitonic_sort.sort_items_buffer_gpu_read.unmap();
+        } catch (error) {
+            // 
+        }
+        if (gpu_durations.length == 99) {
+            console.log(gpu_durations)
+        }
+    }
 }
 
 

@@ -17,6 +17,49 @@ import {
 } from './shared.js'
 
 
+const LINK_COUNT = 1000
+const LINK_ITEM_SIZE = 2 * Uint32Array.BYTES_PER_ELEMENT
+const LINK_REST_LENGTH = DIAMETER * 8
+
+
+const setup_particle_links = ({
+    particles,
+    link_count,
+}) => {
+    const linked_particle_indices = particles
+        .map((particle, index) => ({
+            index,
+            kind: particle.k,
+        }))
+        .filter((particle) => particle.kind === 1.0)
+        .map((particle) => particle.index)
+
+    if (linked_particle_indices.length < 2) {
+        return new Uint32Array(0)
+    }
+
+    const links = new Uint32Array(link_count * 2)
+
+    for (let link_index = 0; link_index < link_count; link_index++) {
+        const index_a = linked_particle_indices[
+            Math.floor(Math.random() * linked_particle_indices.length)
+        ]
+
+        let index_b = index_a
+        while (index_b === index_a) {
+            index_b = linked_particle_indices[
+                Math.floor(Math.random() * linked_particle_indices.length)
+            ]
+        }
+
+        links[link_index * 2] = index_a
+        links[link_index * 2 + 1] = index_b
+    }
+
+    return links
+}
+
+
 const setup_bitonic_sort = async ({
     device,
     buffer_particle_region_gpu,
@@ -121,6 +164,7 @@ const setup_compute = async ({
     buffer_particle_region_gpu_read,
     buffer_particle_region_js,
     bitonic_sort,
+    particle_links_buffer_gpu,
 }) => {
     const module = await create_shader_module({
         device: device,
@@ -134,6 +178,8 @@ const setup_compute = async ({
             '__WORKGROUP_SIZE__': field_particle.workgroup_size,
             '__THREADS_PER_WORK_GROUP__': field_particle.numThreadsPerWorkgroup,
             '__REGION_SIDE__': REGION_SIDE,
+            '__LINK_COUNT__': LINK_COUNT,
+            '__LINK_REST_LENGTH__': LINK_REST_LENGTH,
         }
     })
     const pipeline = device.createComputePipeline({
@@ -145,16 +191,17 @@ const setup_compute = async ({
         },
     });
     const bindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
-        { binding: 0, resource: { buffer: field_particle.buffer_gpu_in }},
-        { binding: 1, resource: { buffer: field_particle.buffer_gpu_out }},
-        { binding: 2, resource: { buffer: metadata_buffer_gpu }},
-        { binding: 3, resource: { buffer: buffer_particle_region_gpu }},
-        { binding: 4, resource: { buffer: bitonic_sort.sort_items_buffer_gpu }},
-        { binding: 5, resource: { buffer: bitonic_sort.region_ranges_buffer_gpu }},
-    ],
-});
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: { buffer: field_particle.buffer_gpu_in }},
+            { binding: 1, resource: { buffer: field_particle.buffer_gpu_out }},
+            { binding: 2, resource: { buffer: metadata_buffer_gpu }},
+            { binding: 3, resource: { buffer: buffer_particle_region_gpu }},
+            { binding: 4, resource: { buffer: bitonic_sort.sort_items_buffer_gpu }},
+            { binding: 5, resource: { buffer: bitonic_sort.region_ranges_buffer_gpu }},
+            { binding: 6, resource: { buffer: particle_links_buffer_gpu }},
+        ],
+    });
     const r = {
         device: device,
         pipeline: pipeline,
@@ -176,20 +223,31 @@ const setup_particles = (bounds, particles_count) => {
     let max_y = -Infinity
     let min_x = Infinity
     let min_y = Infinity
+    let index = 0
     for (let xi = 0; xi < side_size; xi++) {
         for (let yi = 0; yi < side_size; yi++) {
-            const x = Math.random() * bounds.w_max * 2 - bounds.w_max
-            const y = (Math.random() * bounds.h_max *0.5 - bounds.h_max) 
+            let x = Math.random() * bounds.w_max * 2 - bounds.w_max
+            let y = (Math.random() * bounds.h_max *0.5 - bounds.h_max) 
             max_x = Math.max(max_x, x)
             max_y = Math.max(max_y, y)
             min_x = Math.min(min_x, x)
             min_y = Math.min(min_y, y)
+            let k
+            if (index < 100) {
+                k = 1.0
+                x = (Math.random() - 0.5) * 1. - 7
+                y = (Math.random() - 0.5) * 1. + 4 
+            } else {
+                k = 0.0
+            }
             ps.push({
                 xi: xi,
                 yi: yi,
                 x: x,
                 y: y,
+                k: k,
             })
+            index += 1
         }
     }
     console.log(`particles bounds start: ${JSON.stringify({
@@ -272,7 +330,7 @@ const setup = async ({
         particles_array.push((Math.random()-0.5)*0.000)
         particles_array.push((Math.random()-0.5)*0.000)
         particles_array.push(0.0)
-        particles_array.push(0.0)
+        particles_array.push(particles[index].k)
     }
     const field_particle = new Field({
         device: device, 
@@ -291,6 +349,26 @@ const setup = async ({
         size: buffer_particle_region_js.byteLength,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     });
+
+
+
+    const particle_links_js = setup_particle_links({
+        particles,
+        link_count: LINK_COUNT,
+    })
+    const particle_links_buffer_gpu = device.createBuffer({
+        size: Math.max(particle_links_js.byteLength, LINK_ITEM_SIZE),
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    })
+    // if (particle_links_js.byteLength > 0) {
+        device.queue.writeBuffer(
+            particle_links_buffer_gpu,
+            0,
+            particle_links_js,
+        )
+    // }
+
+
     const metadata_buffer_gpu = device.createBuffer({
         size: metadata_buffer_gpu_size,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -374,6 +452,7 @@ const setup = async ({
         buffer_particle_region_gpu_read: buffer_particle_region_gpu_read,
         buffer_particle_region_js: buffer_particle_region_js,
         bitonic_sort: bitonic_sort,
+        particle_links_buffer_gpu: particle_links_buffer_gpu,
     })
     const draw_01_renderPassDescriptor = {
         colorAttachments: [
