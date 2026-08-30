@@ -1,15 +1,21 @@
+// Physics engine
+
+
 struct Particle {
   p: vec2f,
   v: vec2f,
 };
 
+
 fn dot_(a: vec2f, b: vec2f) -> f32 {
     return a.x * b.x + a.y * b.y;
 }
 
+
 fn norm_sqrd(v: vec2f) -> f32 {
   return v.x * v.x + v.y * v.y;
 }
+
 
 fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   let dv = p2.v - p1.v; // delta velocity
@@ -22,10 +28,12 @@ fn collision_response(p1: Particle, p2: Particle) -> vec2f {
   return dp * factor;
 }
 
+
 fn distance_sqrd(a: vec2f, b: vec2f) -> f32 {
     let dp = b - a;
     return dp.x * dp.x + dp.y * dp.y;
 }
+
 
 const PARTICLE_COUNT = __PARTICLE_COUNT__;
 const DIAMETER = __DIAMETER__;

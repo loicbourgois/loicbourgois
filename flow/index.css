@@ -1,0 +1,65 @@
+* {
+  padding: 0;
+  margin: 0;
+}
+body {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: #000;
+}
+canvas {
+  background: #000;
+  margin: auto;
+  image-rendering: pixelated;
+}
+#cursor {
+  width: 2px;
+  height: 2px;
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  background: #f0f;
+}
+#debug-center-square {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background-color: #f008;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    display: none;
+  }
+#infos {
+    position: fixed;
+    top: 0%;
+    left: 0%;
+    z-index: 999;
+    background: #fff3;
+  }
+#infos p {
+  color: aliceblue;
+  font-family: monospace;
+}
+
+#controls {
+    position: fixed;
+    top: 0%;
+    right: 0%;
+    z-index: 999;
+  }
+#controls p {
+  color: aliceblue;
+  font-family: monospace;
+}
+input {
+  border: none;
+  color: aliceblue;
+  background: None;
+  padding: 0.2rem;
+  font-family: monospace;
+  width: 8rem;
+  margin-left: 1rem;
+}
