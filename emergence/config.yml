@@ -1,0 +1,15 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/config.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+    # - openai/gpt-5.5
+
+
+files:
+    - file://./../emergence/config.py
+
+
+rules:
+    - preferences = map<thing, [min, max]>
+    - eg, hydratation, thirsty, hydrated
