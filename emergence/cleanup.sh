@@ -5,12 +5,10 @@ set -euo pipefail
 
 main() {
     local root="${HOME:?HOME must be set}/github.com/loicbourgois/loicbourgois/emergence"
-
     if [[ ! -d "$root" ]]; then
         printf 'Directory does not exist: %s\n' "$root" >&2
         return 1
     fi
-
     find "$root" \
         -type f \
         \( \

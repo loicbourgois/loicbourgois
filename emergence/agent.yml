@@ -1,4 +1,4 @@
-command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/agent.yml
+commands: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/agent.yml
 
 
 models:
@@ -7,13 +7,43 @@ models:
 
 files:
     - file://./../emergence/agent.py
+    - file://./../emergence/agent.yml
 
 
 rules:
     - |
-        each agent has 4 attributs
-        - hydration: from 0 to 1
-        - fullness (food): from 0 to 1
-        - hydration_sweet_spot: from 0 to 1
-        - fullness_sweet_spot: from 0 to 1
-    - constructor will set sweet_spot to a rand value, and other atributs to 0.5
+        each agent has N attributs, as a float from 0 to 1
+        - hydration: how much water they've had
+        - fullness: how much food they've had
+          oposite: hungry
+        - rest: how rested they feel
+          oposite: tired
+        - relaxation: 
+          oposite: stressed
+    - |
+        atributs are an object with 2 fields: v (value), s (sweet_spot)
+    - |
+        for each atributs, there's a sweet spot
+        defining where that agent prefers to be 
+        - hydration.sweet_spot: from 0 to 1
+        - ...
+    - constructor will set sweet_spot to a rand value, and atributs to 0.5
+    - the atributs describe the current state
+    - the sweet_spot describe what they aim for
+    - |
+        how actions work:
+        each turn, the agent will take the action for the state where they are farther from their sweet spot
+        we should not use absolute: action is taken only if state is below preference
+    - |
+        possible actions:
+        - drink: +hydration
+        - eat: +fullness
+        - sleep: +rest
+        - chill: +relaxation
+    - |
+        state updates:
+        - hydration.value < hydration.sweet_spot: -relaxation
+        - fullness.value < fullness.sweet_spot: -relaxation
+        - always: -rest
+        - always: -hydration
+        - always: -fullness

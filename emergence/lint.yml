@@ -7,11 +7,13 @@ models:
 
 files:
     - file://./../emergence/lint.sh
-    - file://./../emergence/setup.sh
+    # - file://./../emergence/setup.sh
+    - file://./../emergence/pyproject.toml
 
 
 rules:
-    - use uv to lint
+    - use uv to lint python
     - enable an agressive config
-    - create a config file if it's easier
     - we want to lint all of $HOME/github.com/loicbourgois/loicbourgois/emergence
+    - use something to lint .sh
+    - disable SC1007
