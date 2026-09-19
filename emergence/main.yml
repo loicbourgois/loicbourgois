@@ -7,10 +7,17 @@ models:
 
 files:
     - file://./../emergence/main.py
-    - file://./../emergence/agent.py
-    - file://./../emergence/logs/_latest.txt
+    - file://./../emergence/agent/definition.py
+    - file://./../emergence/logs/_latest_sh.txt
+    - file://./../emergence/requirements.txt
 
 
 rules:
+    - focus on main.py only. the rest is context
     - init simulation with random agents
     - print state. agent log should be formatted as df table
+    - |
+        at the end, print ascii chart of avg health through time
+        scale back width to span full with of terminal
+        scale height to 32
+        use asciichartpy

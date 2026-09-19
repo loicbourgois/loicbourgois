@@ -19,7 +19,7 @@ finish() {
     status=$?
 
     if [ "$status" -eq 0 ]; then
-        printf 'ok: emergence completed successfully\n' | tee -a "$LOG_FILE"
+        printf 'done\n' | tee -a "$LOG_FILE"
     else
         printf 'error: emergence exited with status %s\n' "$status" | tee -a "$LOG_FILE"
     fi

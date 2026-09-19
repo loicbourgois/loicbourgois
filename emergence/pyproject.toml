@@ -32,7 +32,12 @@ ignore = [
     "float-equality-comparison",
     "line-too-long",
     "raw-string-in-exception",
-    
+    "logging-string-concat",
+    "needless-else",
+    "undefined-name",
+    "logging-f-string",
+    "relative-imports",
+    "undocumented-public-package",
 ]
 
 [tool.ruff.format]

@@ -1,5 +1,5 @@
-POPULATION_SIZE = 1
-TURNS = 10
+POPULATION_SIZE = 100
+TURNS = 500
 
 
 preferences = {
