@@ -1,4 +1,5 @@
 import random
+from typing import TypedDict
 from dataclasses import dataclass, fields
 
 
@@ -51,14 +52,26 @@ class Agent:
         )
 
     def to_dict_compressed(self) -> CompressedAgent:
+        d = {
+            "age": self.age,
+            "health": f"{self.health():.2f}",
+        }
         return {
             "hydration": f"{self.state.hydration.v:.2f}/{self.state.hydration.s:.2f}",
             "fullness": f"{self.state.fullness.v:.2f}/{self.state.fullness.s:.2f}",
             "rest": f"{self.state.rest.v:.2f}/{self.state.rest.s:.2f}",
             "relaxation": f"{self.state.relaxation.v:.2f}/{self.state.relaxation.s:.2f}",
-            "age": self.age,
-            "health": f"{self.health():.2f}",
         }
+
+    def state_as_list(self):
+        return list(
+            {
+                "id": field.name,
+                "s": getattr(self.state, field.name).s,
+                "v": getattr(self.state, field.name).v,
+            }
+            for field in fields(self.state)
+        )
 
     def to_str(self) -> str:
         return (
