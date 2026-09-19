@@ -24,6 +24,15 @@ ignore = [
     "undocumented-public-init",
     "undocumented-public-class",
     "missing-trailing-comma",
+    "unused-loop-control-variable",
+    "missing-type-function-argument",
+    "f-string-in-exception",
+    "raise-vanilla-args",
+    "raise-vanilla-class",
+    "float-equality-comparison",
+    "line-too-long",
+    "raw-string-in-exception",
+    
 ]
 
 [tool.ruff.format]

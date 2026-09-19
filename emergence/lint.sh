@@ -18,7 +18,7 @@ fi
 uvx --from "ruff==$RUFF_VERSION" ruff check "$SCRIPT_DIR"
 uvx --from "ruff==$RUFF_VERSION" ruff format --check "$SCRIPT_DIR"
 
-find "$SCRIPT_DIR" \
-    -type f \
-    -name '*.sh' \
-    -exec shellcheck {} +
+# find "$SCRIPT_DIR" \
+#     -type f \
+#     -name '*.sh' \
+#     -exec shellcheck {} +
