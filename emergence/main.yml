@@ -15,9 +15,17 @@ files:
 rules:
     - focus on main.py only. the rest is context
     - init simulation with random agents
-    - print state. agent log should be formatted as df table
+    - |
+        print state. agent log should be formatted as df table
+        sort by food: highset at bottom
+        add back header at bottom
     - |
         at the end, print ascii chart of avg health through time
         scale back width to span full with of terminal
         scale height to 32
         use asciichartpy
+    - |
+        at the end, print charts to show correlation between age and different factors 
+        - motivation_sweet_spot
+        - min_sweet_spot
+        - max_sweet_spot

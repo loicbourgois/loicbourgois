@@ -9,6 +9,7 @@ files:
     - file://./../../emergence/agent/definition.py
     - file://./../../emergence/agent/README.md
     - file://./../../emergence/agent/step.py
+    - file://./../../emergence/config.py
 
 
 rules:

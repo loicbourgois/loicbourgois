@@ -34,10 +34,15 @@ ignore = [
     "raw-string-in-exception",
     "logging-string-concat",
     "needless-else",
-    "undefined-name",
     "logging-f-string",
     "relative-imports",
     "undocumented-public-package",
+    "undocumented-magic-method",
+    "typing-only-standard-library-import",
+    "boolean-positional-value-in-call",
+    "assert",
+    "magic-value-comparison",
+    "reimplemented-operator",
 ]
 
 [tool.ruff.format]

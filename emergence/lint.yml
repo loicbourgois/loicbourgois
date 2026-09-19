@@ -7,8 +7,8 @@ models:
 
 files:
     - file://./../emergence/lint.sh
-    # - file://./../emergence/setup.sh
     - file://./../emergence/pyproject.toml
+    - file://./../emergence/logs/_latest_sh.txt
 
 
 rules:

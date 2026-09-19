@@ -12,3 +12,4 @@ files:
 rules:
     - remove all $HOME/github.com/loicbourgois/loicbourgois/emergence/*.yml.prompt.md
     - remove all $HOME/github.com/loicbourgois/loicbourgois/emergence/*.yml.response.*.md
+    - remove all $HOME/github.com/loicbourgois/loicbourgois/emergence/*.todo.*.llm.md

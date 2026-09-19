@@ -1,28 +1,35 @@
 import random
-from typing import TypedDict
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
+from typing import Any
+from ..config import ATTRIBUTES
 
 
 @dataclass
 class AttributeState:
+    # Value
     v: float
+    # Sweet Spot
     s: float
 
 
 @dataclass
 class AgentState:
-    hydration: AttributeState
-    fullness: AttributeState
-    rest: AttributeState
-    relaxation: AttributeState
+    attributes: dict[str, AttributeState]
 
+    def __getitem__(self, name: str) -> AttributeState:
+        return self.attributes[name]
 
-class CompressedAgent(TypedDict):
-    hydration: str
-    fullness: str
-    rest: str
-    relaxation: str
-    age: int
+    def __getattr__(self, name: str) -> AttributeState:
+        # __getattr__ is called only after normal attributes were not found.
+        try:
+            return self.attributes[name]
+        except KeyError as exc:
+            raise AttributeError(
+                f"{type(self).__name__!s} has no attribute {name!r}"
+            ) from exc
+
+    def items(self):
+        return self.attributes.items()
 
 
 class Agent:
@@ -30,63 +37,52 @@ class Agent:
         self,
         *,
         rng: random.Random | None = None,
-        action_increment: float = 0.2,
-        passive_decay: float = 0.05,
     ) -> None:
-        if action_increment < 0:
-            raise ValueError("action_increment must be non-negative")
-        if passive_decay < 0:
-            raise ValueError("passive_decay must be non-negative")
-
         self._rng = rng if rng is not None else random.Random()
-        self.action_increment = action_increment
-        self.passive_decay = passive_decay
         self.alive = True
         self.age = 0
+        self.food = 0
 
         self.state = AgentState(
-            hydration=AttributeState(v=0.5, s=self._rng.random()),
-            fullness=AttributeState(v=0.5, s=self._rng.random()),
-            rest=AttributeState(v=0.5, s=self._rng.random()),
-            relaxation=AttributeState(v=0.5, s=self._rng.random()),
+            attributes={
+                name: AttributeState(v=0.5, s=self._rng.random()) for name in ATTRIBUTES
+            }
         )
 
-    def to_dict_compressed(self) -> CompressedAgent:
-        d = {
+    def to_dict_compressed(self):
+        result = {
             "age": self.age,
             "health": f"{self.health():.2f}",
+            "food": self.food,
         }
-        return {
-            "hydration": f"{self.state.hydration.v:.2f}/{self.state.hydration.s:.2f}",
-            "fullness": f"{self.state.fullness.v:.2f}/{self.state.fullness.s:.2f}",
-            "rest": f"{self.state.rest.v:.2f}/{self.state.rest.s:.2f}",
-            "relaxation": f"{self.state.relaxation.v:.2f}/{self.state.relaxation.s:.2f}",
-        }
+        result.update({
+            name: f"{attribute.v:.2f}/{attribute.s:.2f}"
+            for name, attribute in self.state.attributes.items()
+        })
+        return result
 
-    def state_as_list(self):
-        return list(
+    def state_as_list(self) -> list[dict[str, Any]]:
+        return [
             {
-                "id": field.name,
-                "s": getattr(self.state, field.name).s,
-                "v": getattr(self.state, field.name).v,
+                "id": name,
+                "s": attribute.s,
+                "v": attribute.v,
             }
-            for field in fields(self.state)
-        )
+            for name, attribute in self.state.attributes.items()
+        ]
 
     def to_str(self) -> str:
-        return (
-            f"{self.state.hydration.v:.2f}/{self.state.hydration.s:.2f} | "
-            f"{self.state.fullness.v:.2f}/{self.state.fullness.s:.2f} | "
-            f"{self.state.rest.v:.2f}/{self.state.rest.s:.2f} | "
-            f"{self.state.relaxation.v:.2f}/{self.state.relaxation.s:.2f}"
+        return " | ".join(
+            f"{attribute.v:.2f}/{attribute.s:.2f}"
+            for attribute in self.state.attributes.values()
         )
 
     def health(self) -> float:
-        attributes = (getattr(self.state, field.name) for field in fields(self.state))
+        attributes = self.state.attributes.values()
 
         def attribute_health(attribute: AttributeState) -> float:
             return max(0.0, 1.0 - 2.0 * abs(attribute.v - 0.5))
 
         return sum(attribute_health(attribute) for attribute in attributes) / len(
-            fields(self.state)
+            self.state.attributes
         )
