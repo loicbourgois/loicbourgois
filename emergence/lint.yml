@@ -1,0 +1,17 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/lint.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/lint.sh
+    - file://./../emergence/setup.sh
+
+
+rules:
+    - use uv to lint
+    - enable an agressive config
+    - create a config file if it's easier
+    - we want to lint all of $HOME/github.com/loicbourgois/loicbourgois/emergence

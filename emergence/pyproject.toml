@@ -1,0 +1,34 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+preview = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+# These two docstring rules conflict with each other.
+ignore = [
+    "incorrect-blank-line-before-class",
+    "multi-line-summary-second-line",
+    "undocumented-public-function",
+    "missing-copyright-notice",
+    "undocumented-public-module",
+    "import-outside-top-level",
+    "docstring-missing-returns",
+    "missing-return-type-undocumented-public-function",
+    "datetime-timezone-utc",
+    "unsorted-imports",
+    "undocumented-public-method",
+    "commented-out-code",
+    "suspicious-non-cryptographic-random-usage",
+    "undocumented-public-init",
+    "undocumented-public-class",
+    "missing-trailing-comma",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+docstring-code-format = true
