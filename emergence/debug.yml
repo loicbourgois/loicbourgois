@@ -1,0 +1,17 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/debug.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/logs/_latest_sh.txt
+    - file://./../emergence/run.sh
+    - file://./../emergence/setup.sh
+    - file://./../emergence/requirements.txt
+    - file://./../emergence/main.py
+
+
+rules:
+    - explain why we have an error

@@ -1,0 +1,18 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/run.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/run.sh
+    - file://./../emergence/main.py
+
+
+rules:
+    - use uv venv at $HOME/github.com/loicbourgois/loicbourgois/emergence/.venv
+    - write all logs to termianl and to a file
+    - log file should be $HOME/github.com/loicbourgois/loicbourgois/emergence/logs/_latest_sh.txt
+    - we want errors and ok logs
+    - make sure the logs make it to the terminal. maybe use `tee` ? 

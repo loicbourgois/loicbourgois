@@ -1,0 +1,19 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/agent.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/agent.py
+
+
+rules:
+    - |
+        each agent has 4 attributs
+        - hydration: from 0 to 1
+        - fullness (food): from 0 to 1
+        - hydration_sweet_spot: from 0 to 1
+        - fullness_sweet_spot: from 0 to 1
+    - constructor will set sweet_spot to a rand value, and other atributs to 0.5

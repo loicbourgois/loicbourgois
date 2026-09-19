@@ -1,0 +1,16 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/main.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/main.py
+    - file://./../emergence/agent.py
+    - file://./../emergence/logs/_latest.txt
+
+
+rules:
+    - init simulation with random agents
+    - print state. agent log should be formatted as df table

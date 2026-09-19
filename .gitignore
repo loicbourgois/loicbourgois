@@ -70,3 +70,5 @@ movie-finder/api/target
 
 *.yml.prompt.md
 *.yml.response.*.md
+__pycache__
+logs

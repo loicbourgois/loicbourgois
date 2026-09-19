@@ -1,0 +1,20 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/setup.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/setup.sh
+    - file://./../emergence/run.sh
+    - file://./../emergence/main.py
+
+
+rules:
+    - create a uv venv at $HOME/github.com/loicbourgois/loicbourgois/emergence/.venv
+    - use python 3.15
+    - run.sh should then use that env to run main.py
+    - you can create other config files if it's helpful
+    - setup should make sure we have pandas installed
+    - pandas version should be locked in a config file
