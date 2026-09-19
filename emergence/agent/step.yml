@@ -1,0 +1,16 @@
+commands: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/agent/step.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../../emergence/agent/definition.py
+    - file://./../../emergence/agent/README.md
+    - file://./../../emergence/agent/step.py
+
+
+rules:
+    - focus on step.py
+    - the other files are for context
