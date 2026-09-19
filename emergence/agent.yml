@@ -34,6 +34,9 @@ rules:
         how actions work:
         each turn, the agent will take the action for the state where they are farther from their sweet spot
         we should not use absolute: action is taken only if state is below preference
+        the distance should be relative
+            0.1/0.2 = 50% -> to be prioritized
+            0.7/0.9 = 77%
     - |
         possible actions:
         - drink: +hydration
@@ -42,8 +45,14 @@ rules:
         - chill: +relaxation
     - |
         state updates:
+        # we do one stress penalty per unmet need
         - hydration.value < hydration.sweet_spot: -relaxation
         - fullness.value < fullness.sweet_spot: -relaxation
+        # 
         - always: -rest
         - always: -hydration
         - always: -fullness
+    - |
+        def to_str() -> f"{}/{} | {}/{}"
+        will print all v/s
+    - we should access state value with self.hydration.v.  NOT self.hydration['v']

@@ -26,10 +26,13 @@ def main() -> None:
     agents = [Agent() for _ in range(POPULATION_SIZE)]
     logger.info("initialized %d agents", len(agents))
     print_agents(agents)
+    logger.info("--------")
+    logger.info(agents[0].to_str())
     for i in range(TURNS):
-        logger.info(f"-------- turn #{i}")
+        # logger.info(f"-------- turn #{i}")
         agents[0].step()
-        print_agents(agents)
+        # print_agents(agents)
+        logger.info(agents[0].to_str())
 
 
 if __name__ == "__main__":
