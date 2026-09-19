@@ -15,4 +15,3 @@ preferences = {
 # food_eaten = ...
 # hydration = hydration - external_temperature - effort
 # nutrition = nutrition - effort + food_eaten
-

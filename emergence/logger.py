@@ -73,4 +73,5 @@ def get_logger() -> logging.Logger:
 def time_gmtime(timestamp: float):
     """Return UTC time for logging.Formatter."""
     import time
+
     return time.gmtime(timestamp)
