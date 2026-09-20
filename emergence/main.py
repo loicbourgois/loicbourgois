@@ -74,10 +74,18 @@ def print_agents(agents) -> None:
     logger.info("agents:\n%s\n%s", table, header)
 
 
+# def average_health(agents) -> float:
+#     # TODO: only use agant where agant.alive == True
+#     if not agents:
+#         return 0.0
+#     return sum(agent.health() for agent in agents) / len(agents)
+
+
 def average_health(agents) -> float:
-    if not agents:
+    alive_agents = [agent for agent in agents if agent.alive]
+    if not alive_agents:
         return 0.0
-    return sum(agent.health() for agent in agents) / len(agents)
+    return sum(agent.health() for agent in alive_agents) / len(alive_agents)
 
 
 def get_grid(width, height, points):
