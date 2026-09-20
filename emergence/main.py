@@ -14,30 +14,34 @@ import shutil
 logger = get_logger()
 
 
-def motivation_age_correlation(
+def pearson(
     agents,
+    x,
+    y,
 ) -> float | None:
-    if len(agents) < 2:
-        return None
-    ages = [float(agent.age) for agent in agents]
-    motivations = [motivation_sweet_spot(agent) for agent in agents]
-    mean_age = sum(ages) / len(ages)
-    mean_motivation = sum(motivations) / len(motivations)
-    age_delta = [age - mean_age for age in ages]
-    motivation_delta = [motivation - mean_motivation for motivation in motivations]
+    xs = [x(agent) for agent in agents]
+    ys = [y(agent) for agent in agents]
+    mean_x = sum(xs) / len(xs)
+    mean_y = sum(ys) / len(ys)
+    x_delta = [x_ - mean_x for x_ in xs]
+    y_delta = [y_ - mean_y for y_ in ys]
     numerator = sum(
-        age_change * motivation_change
-        for age_change, motivation_change in zip(
-            age_delta,
-            motivation_delta,
+        x_change * y_change
+        for x_change, y_change in zip(
+            x_delta,
+            y_delta,
         )
     )
-    age_variance = sum(value * value for value in age_delta)
-    motivation_variance = sum(value * value for value in motivation_delta)
-    denominator = math.sqrt(age_variance * motivation_variance)
+    x_variance = sum(value * value for value in x_delta)
+    y_variance = sum(value * value for value in y_delta)
+    denominator = math.sqrt(x_variance * y_variance)
     if denominator == 0.0:
         return None
     return numerator / denominator
+
+
+def age(agent):
+    return agent.age
 
 
 def motivation_sweet_spot(agent) -> float:
@@ -73,7 +77,6 @@ def print_agents(agents) -> None:
 def average_health(agents) -> float:
     if not agents:
         return 0.0
-
     return sum(agent.health() for agent in agents) / len(agents)
 
 
@@ -88,30 +91,23 @@ def get_grid(width, height, points):
     return grid
 
 
-def print_motivation_age_chart(agents) -> None:
+def print_chart(data, title, x, y) -> None:
     height = 50
     width = 150
-    # points = [
-    #     (float(agent.age), motivation_sweet_spot(agent))
-    #     for agent in agents
-    # ]
-    points = [(float(agent.age), min_sweet_spot(agent)) for agent in agents]
-    grid = get_grid(width, height, points)
-    correlation = motivation_age_correlation(agents)
-    correlation_text = "undefined" if correlation is None else f"{correlation:+.3f}"
-    chart = "\n".join("".join(row) for row in grid)
+    chart = "\n".join(
+        "".join(row)
+        for row in get_grid(width, height, [(x(point), y(point)) for point in data])
+    )
     logger.info(
-        "Motivation by age\n%s\nPearson: %s",
+        f"{title}\n%s\nPearson: %s",
         chart,
-        correlation_text,
+        f"{pearson(data, x, y):+.3f}",
     )
 
 
 def print_health_chart(
-    health_history: list[float], *, height: int = 32, width: int = 200
+    health_history: list[float], *, height: int = 32, width: int = 150
 ) -> None:
-    if not health_history:
-        return
     # no direct width argument for asciichartpy
     # we need to downsample
     health_history_narrow = health_history[
@@ -138,7 +134,6 @@ def average_age(agents) -> float:
 def terminal_chart_width() -> int:
     """Return a usable chart width while leaving room for y-axis labels."""
     terminal_width = shutil.get_terminal_size((80, 24)).columns
-
     # asciichartpy uses some columns for labels and padding.
     return max(terminal_width - 12, 1)
 
@@ -161,16 +156,32 @@ def main() -> None:
 
         average_health_history.append(average_health(agents))
     print_agents(agents)
-    # print_health_chart(
-    #     average_health_history,
-    # )
+    print_health_chart(
+        average_health_history,
+    )
     logger.info("Average health: %.2f", average_health_history[-1])
     logger.info("Average age:    %.2f", average_age(agents))
     logger.info("Median age:     %.2f", median_age(agents))
     alive_count = sum(1 for agent in agents if agent.alive)
     logger.info("Alive at end:   %d/%d", alive_count, len(agents))
-
-    print_motivation_age_chart(agents)
+    print_chart(
+        data=agents,
+        title="Motivation by age",
+        x=age,
+        y=motivation_sweet_spot,
+    )
+    print_chart(
+        data=agents,
+        title="Min sweet spot by age",
+        x=age,
+        y=min_sweet_spot,
+    )
+    print_chart(
+        data=agents,
+        title="Max sweet spot by age",
+        x=age,
+        y=max_sweet_spot,
+    )
 
 
 if __name__ == "__main__":

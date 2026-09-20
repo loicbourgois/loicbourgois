@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 
-POPULATION_SIZE = 1000
-TURNS = 500
+POPULATION_SIZE = 500
+TURNS = 600
 ACTION_INCREMENT: float = 0.1
 PASSIVE_DECAY: float = 0.016
 
