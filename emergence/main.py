@@ -174,9 +174,6 @@ def main() -> None:
     logger.info("Median age:     %.2f", median_age(agents))
     alive_count = sum(1 for agent in agents if agent.alive)
 
-    # log: 2026-09-20 16:25:50 UTC - Alive at end:   293/500
-    # TODO: why not 500 ?
-    # with agents[agent.idx] = Agent(agent.idx), we should have new agents ?
     logger.info("Alive at end:   %d/%d", alive_count, len(agents))
 
     logger.info(f"community.food: {community.food}")
