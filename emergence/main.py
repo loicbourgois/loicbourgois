@@ -48,6 +48,10 @@ def motivation_sweet_spot(agent) -> float:
     return agent.state["motivation"].s
 
 
+def food(agent):
+    return agent.food
+
+
 def min_sweet_spot(agent):
     return min(attribute.s for attribute in agent.state.attributes.values())
 
@@ -74,13 +78,6 @@ def print_agents(agents) -> None:
     logger.info("agents:\n%s\n%s", table, header)
 
 
-# def average_health(agents) -> float:
-#     # TODO: only use agant where agant.alive == True
-#     if not agents:
-#         return 0.0
-#     return sum(agent.health() for agent in agents) / len(agents)
-
-
 def average_health(agents) -> float:
     alive_agents = [agent for agent in agents if agent.alive]
     if not alive_agents:
@@ -88,11 +85,47 @@ def average_health(agents) -> float:
     return sum(agent.health() for agent in alive_agents) / len(alive_agents)
 
 
-def get_grid(width, height, points):
+# TODO: propeor code
+# def get_grid(width, height, points):
+#     max_b = max(points[1])
+#     grid = [["·" for _ in range(width)] for _ in range(height)]
+#     for a, b in points:
+#         x = round((a) / TURNS * (width - 1))
+#         y = int((1.0 - b/max_b) * height)
+#         x = max(0, min(width - 1, x))
+#         y = max(0, min(height - 1, y))
+#         grid[y][x] = "x" if grid[y][x] == "·" else "●"
+#     return grid
+
+
+def get_grid(
+    width: int,
+    height: int,
+    points,
+) -> list[list[str]]:
+    """Render points into a fixed-size character grid."""
+    if width <= 0 or height <= 0:
+        return []
     grid = [["·" for _ in range(width)] for _ in range(height)]
-    for age, motivation in points:
-        x = round((age) / TURNS * (width - 1))
-        y = int((1.0 - motivation) * height)
+    if not points:
+        return grid
+    x_values = [point[0] for point in points]
+    y_values = [point[1] for point in points]
+    min_x = 0  # min(x_values)
+    max_x = max(max(x_values), 1)
+    min_y = 0  # min(y_values)
+    max_y = max(max(y_values), 1)
+    x_range = max_x - min_x
+    y_range = max_y - min_y
+    for x_value, y_value in points:
+        if x_range == 0:
+            x = 0
+        else:
+            x = round((x_value - min_x) / x_range * (width - 1))
+        if y_range == 0:
+            y = height // 2
+        else:
+            y = round((1.0 - (y_value - min_y) / y_range) * (height - 1))
         x = max(0, min(width - 1, x))
         y = max(0, min(height - 1, y))
         grid[y][x] = "x" if grid[y][x] == "·" else "●"
@@ -189,6 +222,12 @@ def main() -> None:
         title="Max sweet spot by age",
         x=age,
         y=max_sweet_spot,
+    )
+    print_chart(
+        data=agents,
+        title="food by age",
+        x=age,
+        y=food,
     )
 
 
