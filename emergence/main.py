@@ -10,42 +10,17 @@ from .logger import get_logger
 import asciichartpy
 import math
 import shutil
+from .pearson import pearson
+from .community import Community
+from .config import Rules
+import random
+
 
 logger = get_logger()
 
 
-def pearson(
-    agents,
-    x,
-    y,
-) -> float | None:
-    xs = [x(agent) for agent in agents]
-    ys = [y(agent) for agent in agents]
-    mean_x = sum(xs) / len(xs)
-    mean_y = sum(ys) / len(ys)
-    x_delta = [x_ - mean_x for x_ in xs]
-    y_delta = [y_ - mean_y for y_ in ys]
-    numerator = sum(
-        x_change * y_change
-        for x_change, y_change in zip(
-            x_delta,
-            y_delta,
-        )
-    )
-    x_variance = sum(value * value for value in x_delta)
-    y_variance = sum(value * value for value in y_delta)
-    denominator = math.sqrt(x_variance * y_variance)
-    if denominator == 0.0:
-        return None
-    return numerator / denominator
-
-
 def age(agent):
     return agent.age
-
-
-def motivation_sweet_spot(agent) -> float:
-    return agent.state["motivation"].s
 
 
 def food(agent):
@@ -63,13 +38,12 @@ def max_sweet_spot(agent):
 def print_agents(agents) -> None:
     rows = [
         {
-            "aid": index + 1,
             **agent.to_dict_compressed(),
         }
         for index, agent in enumerate(agents)
     ]
     state_df = pd.DataFrame(rows).sort_values(
-        by="food",
+        by="age",
         ascending=True,
         kind="stable",
     )
@@ -83,19 +57,6 @@ def average_health(agents) -> float:
     if not alive_agents:
         return 0.0
     return sum(agent.health() for agent in alive_agents) / len(alive_agents)
-
-
-# TODO: propeor code
-# def get_grid(width, height, points):
-#     max_b = max(points[1])
-#     grid = [["·" for _ in range(width)] for _ in range(height)]
-#     for a, b in points:
-#         x = round((a) / TURNS * (width - 1))
-#         y = int((1.0 - b/max_b) * height)
-#         x = max(0, min(width - 1, x))
-#         y = max(0, min(height - 1, y))
-#         grid[y][x] = "x" if grid[y][x] == "·" else "●"
-#     return grid
 
 
 def get_grid(
@@ -147,7 +108,7 @@ def print_chart(data, title, x, y) -> None:
 
 
 def print_health_chart(
-    health_history: list[float], *, height: int = 32, width: int = 150
+    health_history: list[float], *, height: int = 32, width: int = 200
 ) -> None:
     # no direct width argument for asciichartpy
     # we need to downsample
@@ -187,48 +148,68 @@ def median_age(agents) -> float:
 
 def main() -> None:
     logger.info("start")
-    agents = [Agent() for _ in range(POPULATION_SIZE)]
+    agents = [Agent(idx) for idx in range(POPULATION_SIZE)]
     logger.info("initialized %d agents", len(agents))
     # print_agents(agents)
+    community = Community()
+    rules = Rules()
     average_health_history = [average_health(agents)]
-    for _ in range(TURNS):
+    for turn in range(TURNS):
+        random.shuffle(agents)
         for agent in agents:
-            step(agent, verbose=False)
-
+            step(agent, community, rules, verbose=False)
+            if not agent.alive:
+                # print(f"{turn} - woop")
+                agents[agent.idx] = Agent(agent.idx)
         average_health_history.append(average_health(agents))
+
     print_agents(agents)
     print_health_chart(
-        average_health_history,
+        # we don't show the first turns, because simulation needs to get going
+        # before value stabilizes
+        average_health_history[10:],
     )
     logger.info("Average health: %.2f", average_health_history[-1])
     logger.info("Average age:    %.2f", average_age(agents))
     logger.info("Median age:     %.2f", median_age(agents))
     alive_count = sum(1 for agent in agents if agent.alive)
+
+    # log: 2026-09-20 16:25:50 UTC - Alive at end:   293/500
+    # TODO: why not 500 ?
+    # with agents[agent.idx] = Agent(agent.idx), we should have new agents ?
     logger.info("Alive at end:   %d/%d", alive_count, len(agents))
-    print_chart(
-        data=agents,
-        title="Motivation by age",
-        x=age,
-        y=motivation_sweet_spot,
-    )
-    print_chart(
-        data=agents,
-        title="Min sweet spot by age",
-        x=age,
-        y=min_sweet_spot,
-    )
-    print_chart(
-        data=agents,
-        title="Max sweet spot by age",
-        x=age,
-        y=max_sweet_spot,
-    )
-    print_chart(
-        data=agents,
-        title="food by age",
-        x=age,
-        y=food,
-    )
+
+    logger.info(f"community.food: {community.food}")
+    # print_chart(
+    #     data=agents,
+    #     title="Motivation by age",
+    #     x=age,
+    #     y=lambda agent: agent.state["motivation"].s,
+    # )
+    # print_chart(
+    #     data=agents,
+    #     title="Min sweet spot by age",
+    #     x=age,
+    #     y=min_sweet_spot,
+    # )
+    # print_chart(
+    #     data=agents,
+    #     title="Max sweet spot by age",
+    #     x=age,
+    #     y=max_sweet_spot,
+    # )
+    # print_chart(
+    #     data=agents,
+    #     title="food by age",
+    #     x=age,
+    #     y=food,
+    # )
+    # print_chart(
+    #     data=agents,
+    #     title="Altruism by age",
+    #     x=lambda agent: agent.age,
+    #     y=lambda agent: agent.altruism,
+    # )
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ def relative_deficit(state) -> float:
     return (state.s - state.v) / state.s
 
 
-def choose_action(agent, verbose) -> str:
+def choose_action(agent, verbose, community) -> str:
     deficits = [
         (attribute_name, attribute, relative_deficit(attribute))
         for attribute_name, attribute in agent.state.attributes.items()
@@ -30,20 +30,37 @@ def choose_action(agent, verbose) -> str:
             key=lambda item: item[2],
         )
         action = ATTRIBUTES[attribute_name].action
-    elif agent.state.motivation.v > random() and agent.food < 10:
-        action = "find-food"
+    elif agent.state.motivation.v > random():
+        if agent.altruism > random():
+            action = "give-food"
+        else:
+            action = "find-food"
     else:
         action = "chill"
 
     if action == "eat" and agent.food <= 0:
-        action = "find-food"
+        if agent.state.motivation.v > random():
+            action = "find-food"
+        else:
+            if community.food > 0:
+                action = "take-food"
+            else:
+                action = "find-food"
     if verbose:
         logger.info("action: %s", action)
     return action
 
 
-def apply_action(agent, action: str) -> None:
+def apply_action(agent, action: str, community) -> None:
     match action:
+        case "give-food":
+            agent.food -= 1
+            agent.state.rest.v -= ACTION_INCREMENT
+            community.food += 1
+        case "take-food":
+            agent.food += 1
+            agent.state.rest.v -= ACTION_INCREMENT * 0.5
+            community.food -= 1
         case "find-food":
             agent.food += 1
             agent.state.rest.v -= ACTION_INCREMENT
@@ -70,7 +87,7 @@ def apply_action(agent, action: str) -> None:
             raise ValueError(f"invalid action: {action}")
 
 
-def apply_passive_updates(agent) -> None:
+def apply_passive_updates(agent, rules, community) -> None:
     if agent.state.hydration.v < agent.state.hydration.s:
         agent.state.relaxation.v -= PASSIVE_DECAY
     if agent.state.fullness.v < agent.state.fullness.s:
@@ -78,13 +95,16 @@ def apply_passive_updates(agent) -> None:
     agent.state.rest.v -= PASSIVE_DECAY
     agent.state.hydration.v -= PASSIVE_DECAY
     agent.state.fullness.v -= PASSIVE_DECAY
+    if agent.food > rules.max_food_per_agent:
+        agent.food -= 1
+        community.food += 1
 
 
-def step(agent, verbose) -> None:
+def step(agent, community, rules, verbose) -> None:
     if agent.alive:
-        action = choose_action(agent, verbose)
-        apply_action(agent, action)
-        apply_passive_updates(agent)
+        action = choose_action(agent, verbose, community)
+        apply_action(agent, action, community)
+        apply_passive_updates(agent, rules, community)
         live_or_die(agent)
         agent.age += 1
     else:

@@ -4,7 +4,14 @@ from dataclasses import dataclass
 POPULATION_SIZE = 500
 TURNS = 600
 ACTION_INCREMENT: float = 0.1
-PASSIVE_DECAY: float = 0.016
+PASSIVE_DECAY: float = 0.015
+
+
+class Rules:
+    def __init__(
+        self,
+    ):
+        self.max_food_per_agent = 10
 
 
 @dataclass(frozen=True)

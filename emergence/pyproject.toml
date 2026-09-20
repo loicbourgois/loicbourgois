@@ -43,6 +43,10 @@ ignore = [
     "assert",
     "magic-value-comparison",
     "reimplemented-operator",
+    "zip-without-explicit-strict",
+    "if-else-block-instead-of-if-exp",
+    "nested-min-max",
+    "missing-return-type-special-method",
 ]
 
 [tool.ruff.format]

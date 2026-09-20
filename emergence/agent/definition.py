@@ -35,6 +35,7 @@ class AgentState:
 class Agent:
     def __init__(
         self,
+        idx,
         *,
         rng: random.Random | None = None,
     ) -> None:
@@ -42,18 +43,27 @@ class Agent:
         self.alive = True
         self.age = 0
         self.food = 0
+        self.altruism = self._rng.random()
+        self.idx = idx
 
         self.state = AgentState(
             attributes={
-                name: AttributeState(v=0.5, s=self._rng.random()) for name in ATTRIBUTES
+                name: AttributeState(
+                    # v=0.5,
+                    v=self._rng.random(),
+                    s=self._rng.random(),
+                )
+                for name in ATTRIBUTES
             }
         )
 
     def to_dict_compressed(self):
         result = {
+            "idx": self.idx,
             "age": self.age,
             "health": f"{self.health():.2f}",
             "food": self.food,
+            "altruism": f"{self.altruism:.2f}",
         }
         result.update({
             name: f"{attribute.v:.2f}/{attribute.s:.2f}"

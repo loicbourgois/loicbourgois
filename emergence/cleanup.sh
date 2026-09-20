@@ -14,6 +14,7 @@ main() {
         \( \
             -name '*.yml.prompt.md' \
             -o -name '*.yml.response.*.md' \
+            -o -name '*.todo.*.llm.md' \
         \) \
         -print \
         -exec rm -f -- {} +
