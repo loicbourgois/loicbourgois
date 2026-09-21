@@ -9,7 +9,6 @@ logger = get_logger()
 
 def live_or_die(agent) -> None:
     if any(attribute.v < 0.0 for attribute in agent.state.attributes.values()):
-        # logger.info("oopsie: %s", agent.age)
         agent.alive = False
 
 
@@ -31,6 +30,7 @@ def choose_action(agent, verbose, community) -> str:
         )
         action = ATTRIBUTES[attribute_name].action
     elif agent.state.motivation.v > random():
+        action = "find-food"
         if agent.altruism > random():
             action = "give-food"
         else:

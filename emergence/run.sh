@@ -19,7 +19,7 @@ finish() {
     status=$?
 
     if [ "$status" -eq 0 ]; then
-        printf 'done\n' | tee -a "$LOG_FILE"
+        printf '' | tee -a "$LOG_FILE"
     else
         printf 'error: emergence exited with status %s\n' "$status" | tee -a "$LOG_FILE"
     fi
@@ -50,7 +50,7 @@ set +e
     echo "----------------------------------------------------------------"
     "$PYTHON" -m emergence.main
     status=$?
-    echo "----------------------------------------------------------------"
+    # echo "----------------------------------------------------------------"
     printf '%s\n' "$status" > "$STATUS_FILE"
     exit "$status"
 } 2>&1 | tee "$LOG_FILE"

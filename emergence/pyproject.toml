@@ -47,6 +47,8 @@ ignore = [
     "if-else-block-instead-of-if-exp",
     "nested-min-max",
     "missing-return-type-special-method",
+    "loop-iterator-mutation",
+    "collapsible-else-if",
 ]
 
 [tool.ruff.format]

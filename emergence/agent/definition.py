@@ -45,7 +45,6 @@ class Agent:
         self.food = 0
         self.altruism = self._rng.random()
         self.idx = idx
-
         self.state = AgentState(
             attributes={
                 name: AttributeState(
