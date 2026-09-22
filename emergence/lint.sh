@@ -39,4 +39,7 @@ cargo clippy \
     --all-targets \
     --all-features \
     -- \
-    -D warnings
+    -D warnings \
+    -Aclippy::identity_op \
+    -Aclippy::erasing_op \
+    -Aclippy::needless_range_loop

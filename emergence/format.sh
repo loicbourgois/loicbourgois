@@ -12,3 +12,6 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 uvx --from "ruff==$RUFF_VERSION" ruff format "$SCRIPT_DIR"
+cargo fmt \
+    --manifest-path "$SCRIPT_DIR/Cargo.toml" \
+    --all

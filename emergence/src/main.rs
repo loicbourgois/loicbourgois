@@ -1,17 +1,16 @@
+use rand::Rng;
+use rand::seq::SliceRandom;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::error::Error;
 
-use rand::Rng;
-use serde::Deserialize;
-
-const AGENT_COUNT: usize = 2;
-const TURNS: usize = 100;
-const PASSIVE_DECAY: f32 = 0.03;
+const AGENT_COUNT: usize = 1000;
+const TURNS: usize = 2000;
+const PASSIVE_DECAY: f32 = 0.04;
 const ACTION_INCREMENT: f32 = 0.1;
 
-const DEATH_CHART_WIDTH: usize = 200;
+const DEATH_CHART_WIDTH: usize = 220;
 const DEATH_CHART_HEIGHT: usize = 24;
-
 
 #[derive(Debug, Default)]
 struct Community {
@@ -22,16 +21,12 @@ fn death_chart_y(deaths: usize, max_deaths: usize) -> usize {
     if max_deaths == 0 {
         DEATH_CHART_HEIGHT - 1
     } else {
-        let scaled = (deaths as f32 / max_deaths as f32)
-            * (DEATH_CHART_HEIGHT - 1) as f32;
+        let scaled = (deaths as f32 / max_deaths as f32) * (DEATH_CHART_HEIGHT - 1) as f32;
         DEATH_CHART_HEIGHT - 1 - scaled.round() as usize
     }
 }
 
-fn print_chart(
-    history: &[Metric], 
-    title: &str,
-) {
+fn print_chart(history: &[Metric], title: &str) {
     if history.is_empty() {
         println!("No metrics to display.");
         return;
@@ -53,16 +48,8 @@ fn print_chart(
         let end = ((bucket_index + 1) * history.len() / bucket_count).max(start + 1);
         let end = end.min(history.len());
         let bucket = &history[start..end];
-        let bucket_min = bucket
-            .iter()
-            .map(|metric| metric.deaths)
-            .min()
-            .unwrap_or(0);
-        let bucket_max = bucket
-            .iter()
-            .map(|metric| metric.deaths)
-            .max()
-            .unwrap_or(0);
+        let bucket_min = bucket.iter().map(|metric| metric.deaths).min().unwrap_or(0);
+        let bucket_max = bucket.iter().map(|metric| metric.deaths).max().unwrap_or(0);
         buckets.push((bucket_min, bucket_max));
     }
     let mut grid = vec![vec![' '; bucket_count]; DEATH_CHART_HEIGHT];
@@ -74,8 +61,7 @@ fn print_chart(
         }
     }
     for (row_index, row) in grid.iter().enumerate() {
-        let value = max_deaths as f32
-            * (DEATH_CHART_HEIGHT - 1 - row_index) as f32
+        let value = max_deaths as f32 * (DEATH_CHART_HEIGHT - 1 - row_index) as f32
             / (DEATH_CHART_HEIGHT - 1) as f32;
         println!("{:>4.0} │{}", value, row.iter().collect::<String>());
     }
@@ -87,12 +73,9 @@ fn print_chart(
     );
 }
 
-
 impl Community {
     fn new() -> Self {
-        Community {
-            food: 0,
-        }
+        Community { food: 0 }
     }
 }
 
@@ -116,11 +99,10 @@ enum Action {
     SelfMotivate,
 }
 
-
 fn apply_passive_updates(
     agent: &mut Agent,
     community: &mut Community,
-    rules: &Vec<Rule>,
+    rules: &[Rule],
     food_limit: usize,
 ) {
     agent.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
@@ -131,29 +113,21 @@ fn apply_passive_updates(
     }
 }
 
-fn choose_action(
-    agent: &Agent, 
-    community: &Community,
-    rng: &mut impl Rng
-) -> Action {
-    if agent.state["fullness"].v < agent.state["fullness"].s && agent.food > 0{
+fn choose_action(agent: &Agent, community: &Community, rng: &mut impl Rng) -> Action {
+    if agent.state["fullness"].v < agent.state["fullness"].s && agent.food > 0 {
         Action::Eat
-    }
-    else if agent.state["rest"].v < agent.state["rest"].s {
+    } else if agent.state["rest"].v < agent.state["rest"].s {
         Action::Chill
-    }
-    else if agent.state["motivation"].v < agent.state["motivation"].s {
+    } else if agent.state["motivation"].v < agent.state["motivation"].s {
         Action::SelfMotivate
-    }
-    else if agent.state["motivation"].v > rng.gen_range(0.0..=1.0) {
+    } else if agent.state["motivation"].v > rng.gen_range(0.0..=1.0) {
         Action::FindFood
     } else if community.food > 0 {
         Action::TakeFood
     } else {
-        Action::FindFood
+        Action::Chill
     }
 }
-
 
 fn apply_action(agent: &mut Agent, action: Action, community: &mut Community) {
     match action {
@@ -181,6 +155,7 @@ fn apply_action(agent: &mut Agent, action: Action, community: &mut Community) {
         Action::Eat => {
             if agent.food > 0 {
                 agent.food -= 1;
+                agent.state.get_mut("fullness").unwrap().v += ACTION_INCREMENT;
             } else {
                 panic!("invalid action: {action:?}");
             }
@@ -191,14 +166,11 @@ fn apply_action(agent: &mut Agent, action: Action, community: &mut Community) {
         Action::SelfMotivate => {
             agent.state.get_mut("motivation").unwrap().v += ACTION_INCREMENT;
         }
-        Action::Sleep
-        | Action::Drink
-        | Action::SelfMotivate => {
+        Action::Sleep | Action::Drink | Action::SelfMotivate => {
             panic!("invalid action: {action:?}");
         }
     }
 }
-
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -246,9 +218,7 @@ impl Agent {
     ) -> Self {
         let state = attribute_definitions
             .iter()
-            .map(|(name, definition)| {
-                (name.clone(), Attribut::new(definition, rng))
-            })
+            .map(|(name, definition)| (name.clone(), Attribut::new(definition, rng)))
             .collect();
 
         Self {
@@ -266,18 +236,16 @@ struct Rule {
     name: String,
 }
 
-
 fn live_or_die(agent: &mut Agent) {
     if agent.state.values().any(|attribute| attribute.v < 0.0) {
         agent.alive = false;
     }
 }
 
-
 fn step(
     agent: &mut Agent,
     community: &mut Community,
-    rules: &Vec<Rule>,
+    rules: &[Rule],
     rng: &mut impl Rng,
     food_limit: usize,
 ) {
@@ -285,7 +253,7 @@ fn step(
         return;
     }
     let action = choose_action(agent, community, rng);
-    println!("action:?");
+    // println!("{action:?}");
     apply_action(agent, action, community);
     apply_passive_updates(agent, community, rules, food_limit);
     live_or_die(agent);
@@ -305,7 +273,7 @@ struct Simulation {
 }
 
 impl Simulation {
-    fn new(config: &Config, rng: &mut impl Rng ) -> Self {
+    fn new(config: &Config, rng: &mut impl Rng) -> Self {
         let agents = (0..AGENT_COUNT)
             .map(|_| Agent::new(&config.attributs, rng))
             .collect();
@@ -316,7 +284,6 @@ impl Simulation {
         }
     }
 }
-
 
 fn main() -> Result<(), Box<dyn Error>> {
     let config = Config::load()?;
@@ -331,19 +298,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
     let mut history = Vec::new();
     for turn in 0..TURNS {
-        if turn == 0 {
+        simulation.agents.shuffle(&mut rng);
+        if turn == TURNS / 4 * 0 {
             simulation.food_limit = 0;
         }
-        if turn == TURNS/2 {
+        if turn == TURNS / 4 * 1 {
+            simulation.food_limit = 1;
+        }
+        if turn == TURNS / 4 * 2 {
             simulation.food_limit = 100;
         }
         for agent in &mut simulation.agents {
             step(
-                agent, 
-                &mut community, 
-                &simulation.rules, 
-                &mut rng, 
-                simulation.food_limit
+                agent,
+                &mut community,
+                &simulation.rules,
+                &mut rng,
+                simulation.food_limit,
             );
         }
         let deaths = simulation
@@ -351,7 +322,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .iter()
             .filter(|agent| !agent.alive)
             .count();
-        history.push(Metric{
+        history.push(Metric {
             deaths,
             community_food: community.food,
         });
