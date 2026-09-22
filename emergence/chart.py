@@ -2,6 +2,7 @@ from .pearson import pearson
 import math
 import asciichartpy
 from .logger import get_logger
+import shutil
 
 
 logger = get_logger()
@@ -91,6 +92,8 @@ def print_timeseries_min_max(
     width: int = 200,
 ) -> None:
     """Print bucketed min and max time series on the same chart."""
+    # we don't show the first turns, because simulation needs to get going
+    # before value stabilizes
     data = data[10:]
     data_min_narrow, data_max_narrow = _bucket_min_max(data, width)
     logger.info(

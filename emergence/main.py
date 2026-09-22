@@ -7,13 +7,12 @@ from .config import (
     TURNS,
 )
 from .logger import get_logger
-import shutil
 from .community import Community
 from .config import Rules
 import random
 from .chart import (
-    print_timeseries,
-    print_chart,
+    # print_timeseries,
+    # print_chart,
     print_timeseries_min_max,
 )
 import sys
@@ -170,8 +169,6 @@ def main() -> None:
         history.median_altruism.append(median_altruism(agents))
         history.median_health.append(median_health(agents))
     print_agents(agents)
-    # we don't show the first turns, because simulation needs to get going
-    # before value stabilizes
     # print_timeseries_min_max(
     #     "Alive agents through time",
     #     history.alive_count,

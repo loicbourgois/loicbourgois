@@ -22,3 +22,21 @@ uvx --from "ruff==$RUFF_VERSION" ruff format --check "$SCRIPT_DIR"
 #     -type f \
 #     -name '*.sh' \
 #     -exec shellcheck {} +
+
+cargo fmt \
+    --manifest-path "$SCRIPT_DIR/Cargo.toml" \
+    --all \
+    -- \
+    --check
+
+cargo check \
+    --manifest-path "$SCRIPT_DIR/Cargo.toml" \
+    --all-targets \
+    --all-features
+
+cargo clippy \
+    --manifest-path "$SCRIPT_DIR/Cargo.toml" \
+    --all-targets \
+    --all-features \
+    -- \
+    -D warnings

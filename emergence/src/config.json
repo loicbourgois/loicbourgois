@@ -1,0 +1,16 @@
+{
+    "attributs": {
+        "fullness": {
+            "min": "hungry",
+            "max": "full"
+        },
+        "rest": {
+            "min": "tired",
+            "max": "rested"
+        },
+        "motivation": {
+            "min": "unmotivated",
+            "max": "motivated"
+        }
+    }
+}

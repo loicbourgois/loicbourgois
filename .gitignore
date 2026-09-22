@@ -72,3 +72,4 @@ movie-finder/api/target
 *.yml.response.*.md
 __pycache__
 logs
+emergence/target/

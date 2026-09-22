@@ -49,6 +49,8 @@ ignore = [
     "missing-return-type-special-method",
     "loop-iterator-mutation",
     "collapsible-else-if",
+    "del-attr-with-constant",
+    "private-member-access",
 ]
 
 [tool.ruff.format]
