@@ -4,8 +4,8 @@ use std::error::Error;
 use rand::Rng;
 use serde::Deserialize;
 
-const AGENT_COUNT: usize = 200;
-const TURNS: usize = 10000;
+const AGENT_COUNT: usize = 2;
+const TURNS: usize = 100;
 const PASSIVE_DECAY: f32 = 0.03;
 const ACTION_INCREMENT: f32 = 0.1;
 
@@ -77,7 +77,6 @@ fn print_chart(
         let value = max_deaths as f32
             * (DEATH_CHART_HEIGHT - 1 - row_index) as f32
             / (DEATH_CHART_HEIGHT - 1) as f32;
-
         println!("{:>4.0} │{}", value, row.iter().collect::<String>());
     }
     println!("     └{}", "─".repeat(bucket_count));
@@ -286,6 +285,7 @@ fn step(
         return;
     }
     let action = choose_action(agent, community, rng);
+    println!("action:?");
     apply_action(agent, action, community);
     apply_passive_updates(agent, community, rules, food_limit);
     live_or_die(agent);
