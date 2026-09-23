@@ -268,6 +268,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 simulation.food_limit,
             );
         }
+        // spoilage
+        community.food *= 0.5;
         history.push(Metric {
             deaths: simulation
                 .agents
