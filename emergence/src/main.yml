@@ -15,3 +15,6 @@ files:
 rules:
     - proper code
     - load attibuts list from config.json
+    - |
+        health is the sum(distance(atribut.value, 0.5))
+        ideally, individual is at 0.5 for all atributs 

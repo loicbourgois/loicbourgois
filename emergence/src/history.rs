@@ -51,6 +51,14 @@ impl History {
     pub fn median_happiness(&self) -> Vec<f32> {
         self.iter().map(|metric| metric.median_happiness).collect()
     }
+
+    pub fn avg_health(&self) -> Vec<f32> {
+        self.iter().map(|metric| metric.avg_health).collect()
+    }
+
+    pub fn median_health(&self) -> Vec<f32> {
+        self.iter().map(|metric| metric.median_health).collect()
+    }
 }
 
 pub struct Metric {
@@ -61,4 +69,6 @@ pub struct Metric {
     pub avg_age: f32,
     pub avg_happiness: f32,
     pub median_happiness: f32,
+    pub avg_health: f32,
+    pub median_health: f32,
 }

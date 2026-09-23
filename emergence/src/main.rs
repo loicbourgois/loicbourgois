@@ -193,6 +193,13 @@ impl Agent {
                 / self.state.len() as f32
         }
     }
+
+    fn health(&self) -> f32 {
+        self.state
+            .values()
+            .map(|attribute| (attribute.v - 0.5).abs())
+            .sum()
+    }
 }
 
 #[derive(Debug)]
@@ -344,6 +351,27 @@ fn main() -> Result<(), Box<dyn Error>> {
                     happiness[happiness.len() / 2]
                 }
             },
+            avg_health: {
+                if simulation.agents.is_empty() {
+                    0.0
+                } else {
+                    simulation.agents.iter().map(Agent::health).sum::<f32>()
+                        / simulation.agents.len() as f32
+                }
+            },
+            median_health: {
+                let mut health: Vec<f32> = simulation.agents.iter().map(Agent::health).collect();
+
+                health.sort_by(|a, b| a.total_cmp(b));
+
+                if health.is_empty() {
+                    0.0
+                } else if health.len() % 2 == 0 {
+                    (health[health.len() / 2 - 1] + health[health.len() / 2]) / 2.0
+                } else {
+                    health[health.len() / 2]
+                }
+            },
         });
         for agent in &mut simulation.agents {
             if !agent.alive {
@@ -358,5 +386,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     print_chart_f32(&history.avg_age(), "avg_age");
     print_chart_f32(&history.avg_happiness(), "avg_happiness");
     print_chart_f32(&history.median_happiness(), "median_happiness");
+    print_chart_f32(&history.avg_health(), "avg_health");
+    print_chart_f32(&history.median_health(), "median_health");
+
     Ok(())
 }
