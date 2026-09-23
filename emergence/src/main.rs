@@ -15,6 +15,7 @@ const TURNS: usize = 10001;
 const PASSIVE_DECAY: f32 = 0.046;
 const ACTION_INCREMENT: f32 = 0.06;
 const EAT_INCREMENT: f32 = 0.5;
+const MORTALITY_CHANCE: f32 = 0.00001;
 
 #[derive(Debug, Default)]
 struct Community {
@@ -180,6 +181,18 @@ impl Agent {
             luck: rng.gen_range(0.0..=1.0),
         }
     }
+
+    fn happiness(&self) -> f32 {
+        if self.state.is_empty() {
+            0.0
+        } else {
+            self.state
+                .values()
+                .map(|attribute| (attribute.s - attribute.v).abs())
+                .sum::<f32>()
+                / self.state.len() as f32
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -187,8 +200,11 @@ struct Rule {
     name: String,
 }
 
-fn live_or_die(agent: &mut Agent) {
+fn live_or_die(agent: &mut Agent, rng: &mut impl Rng) {
     if agent.state.values().any(|attribute| attribute.v < 0.0) {
+        agent.alive = false;
+    }
+    if rng.gen_range(0.0..=1.0) < MORTALITY_CHANCE * (agent.age as f32) {
         agent.alive = false;
     }
 }
@@ -206,7 +222,7 @@ fn step(
     let action = choose_action(agent, community, rng);
     apply_action(agent, action, community);
     apply_passive_updates(agent, community, rules, food_limit, rng);
-    live_or_die(agent);
+    live_or_die(agent, rng);
     agent.age += 1;
 }
 
@@ -294,6 +310,40 @@ fn main() -> Result<(), Box<dyn Error>> {
                     ages[ages.len() / 2]
                 }
             },
+            avg_age: {
+                if simulation.agents.is_empty() {
+                    0.0
+                } else {
+                    simulation
+                        .agents
+                        .iter()
+                        .map(|agent| agent.age as f32)
+                        .sum::<f32>()
+                        / simulation.agents.len() as f32
+                }
+            },
+            avg_happiness: {
+                if simulation.agents.is_empty() {
+                    0.0
+                } else {
+                    simulation.agents.iter().map(Agent::happiness).sum::<f32>()
+                        / simulation.agents.len() as f32
+                }
+            },
+            median_happiness: {
+                let mut happiness: Vec<f32> =
+                    simulation.agents.iter().map(Agent::happiness).collect();
+
+                happiness.sort_by(|a, b| a.total_cmp(b));
+
+                if happiness.is_empty() {
+                    0.0
+                } else if happiness.len() % 2 == 0 {
+                    (happiness[happiness.len() / 2 - 1] + happiness[happiness.len() / 2]) / 2.0
+                } else {
+                    happiness[happiness.len() / 2]
+                }
+            },
         });
         for agent in &mut simulation.agents {
             if !agent.alive {
@@ -305,5 +355,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     print_chart_usize(&history.max_age(), "max_age");
     print_chart_usize(&history.median_age(), "median_age");
     print_chart_f32(&history.community_food(), "community_food");
+    print_chart_f32(&history.avg_age(), "avg_age");
+    print_chart_f32(&history.avg_happiness(), "avg_happiness");
+    print_chart_f32(&history.median_happiness(), "median_happiness");
     Ok(())
 }
