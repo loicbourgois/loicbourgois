@@ -1,0 +1,16 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/src/history.yml
+
+
+models:
+    - openai/gpt-6-luna
+    - deepseek/deepseek-v4-flash-0731
+
+
+files:
+    - file://./../../emergence/src/main.rs
+    - file://./../../emergence/src/history.rs
+
+
+rules:
+    - |
+        todo: median_age
