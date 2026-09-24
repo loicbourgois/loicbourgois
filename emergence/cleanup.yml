@@ -1,0 +1,15 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/cleanup.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/cleanup.sh
+
+
+rules:
+    - remove all $HOME/github.com/loicbourgois/loicbourgois/emergence/*.yml.prompt.md
+    - remove all $HOME/github.com/loicbourgois/loicbourgois/emergence/*.yml.response.*.md
+    - remove all $HOME/github.com/loicbourgois/loicbourgois/emergence/*.todo.*.llm.md

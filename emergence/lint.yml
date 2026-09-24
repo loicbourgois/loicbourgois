@@ -1,0 +1,19 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/lint.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/lint.sh
+    - file://./../emergence/pyproject.toml
+    - file://./../emergence/logs/_latest_sh.txt
+
+
+rules:
+    - use uv to lint python
+    - enable an agressive config
+    - we want to lint all of $HOME/github.com/loicbourgois/loicbourgois/emergence
+    - use something to lint .sh
+    - disable SC1007

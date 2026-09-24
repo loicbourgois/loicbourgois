@@ -1,0 +1,15 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/logger.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../emergence/logger.py
+
+
+rules:
+    - python logger that print to terminal and log to `$HOME/github.com/loicbourgois/loicbourgois/emergence/logs/yyyy-mm-dd-hh-mm-ss.txt`
+    - log format should be `{UTC dtatetime} - message`
+    - log should also be written to logs/_latest.txt

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bitonic Sort - WebGPU</title>
+</head>
+<body>
+  <h2>Bitonic Sort (WebGPU)</h2>
+  <pre id="output"></pre>
+
+  <script type="module">
+  // --- Initialize WebGPU device ---
+  async function initDevice() {
+    if (!navigator.gpu) throw new Error("WebGPU not supported.");
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) throw new Error("No suitable GPU adapter found.");
+    return await adapter.requestDevice();
+  }
+
+  // --- WGSL Compute Shader ---
+  const bitonicShaderCode = /* wgsl */`
+    struct Item {
+        value: f32,
+        index: u32,
+    };
+
+    struct Data {
+        items: array<Item>,
+    };
+
+    @group(0) @binding(0)
+    var<storage, read_write> data : Data;
+
+    @group(0) @binding(1)
+    var<uniform> params : vec2u; // x=j, y=k
+
+    @compute @workgroup_size(256)
+    fn main(@builtin(global_invocation_id) global_id : vec3u) {
+        let i = global_id.x;
+        let j = params.x;
+        let k = params.y;
+        let ixj = i ^ j;
+
+        if (ixj > i) {
+            let ascending = (i & k) == 0u;
+            let a = data.items[i];
+            let b = data.items[ixj];
+            let swap = (ascending && a.value > b.value) || (!ascending && a.value < b.value);
+            if (swap) {
+                data.items[i] = b;
+                data.items[ixj] = a;
+            }
+        }
+    }
+  `;
+
+  // --- Perform Bitonic Sort on GPU ---
+  async function bitonicSort(device, inputArray) {
+    const length = inputArray.length;
+    if ((length & (length - 1)) !== 0)
+      throw new Error("Array length must be a power of 2.");
+
+    const itemSize = 8; // f32 value + u32 original index
+    const bufferSize = length * itemSize;
+
+    const initialData = new ArrayBuffer(bufferSize);
+    const initialValues = new Float32Array(initialData);
+    const initialIndexes = new Uint32Array(initialData);
+
+    for (let i = 0; i < length; i += 1) {
+      initialValues[i * 2] = inputArray[i];
+      initialIndexes[i * 2 + 1] = i;
+    }
+
+    const dataBuffer = device.createBuffer({
+      size: bufferSize,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Uint8Array(dataBuffer.getMappedRange()).set(new Uint8Array(initialData));
+    dataBuffer.unmap();
+
+    const paramBuffer = device.createBuffer({
+      size: 8, // vec2u
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const shaderModule = device.createShaderModule({ code: bitonicShaderCode });
+    const pipeline = device.createComputePipeline({
+      layout: "auto",
+      compute: { module: shaderModule, entryPoint: "main" },
+    });
+    const workgroups = Math.ceil(length / 256);
+
+    // --- Main sorting loop ---
+    const bindGroup = device.createBindGroup({
+          layout: pipeline.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: { buffer: dataBuffer } },
+            { binding: 1, resource: { buffer: paramBuffer } },
+          ],
+        });
+    await device.queue.onSubmittedWorkDone()
+    console.log("start");
+    const start = performance.now();
+    for (let k = 2; k <= length; k <<= 1) {
+      for (let j = k >> 1; j > 0; j >>= 1) {
+        // Update current parameters (j, k)
+        device.queue.writeBuffer(paramBuffer, 0, new Uint32Array([j, k]));
+        // Encode one compute pass per stage
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginComputePass();
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, bindGroup);
+        pass.dispatchWorkgroups(workgroups);
+        pass.end();
+        // Queue submissions are executed in order, so each stage naturally
+        // runs after the previous one without waiting on the CPU.
+        device.queue.submit([encoder.finish()]);
+      }
+    }
+
+    await device.queue.onSubmittedWorkDone()
+    console.log(`duration: ${performance.now() - start}`);
+    console.log("end");
+
+    // --- Read back sorted data ---
+    const readBuffer = device.createBuffer({
+      size: bufferSize,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+    const copyEncoder = device.createCommandEncoder();
+    copyEncoder.copyBufferToBuffer(dataBuffer, 0, readBuffer, 0, bufferSize);
+    device.queue.submit([copyEncoder.finish()]);
+    
+    
+
+    await readBuffer.mapAsync(GPUMapMode.READ);
+
+    const mappedResult = readBuffer.getMappedRange();
+    const resultValuesAndPadding = new Float32Array(mappedResult);
+    const resultIndexesAndPadding = new Uint32Array(mappedResult);
+
+    const values = new Float32Array(length);
+    const indexes = new Uint32Array(length);
+
+    for (let i = 0; i < length; i += 1) {
+      values[i] = resultValuesAndPadding[i * 2];
+      indexes[i] = resultIndexesAndPadding[i * 2 + 1];
+    }
+
+    readBuffer.unmap();
+
+    return { values, indexes };
+  }
+
+  // --- Entry point ---
+  async function main() {
+    const output = document.getElementById("output");
+
+    try {
+      const device = await initDevice();
+      let data = []
+      //for(let i = 0 ; i < 4096*16*2*2 ; i +=1){
+      for(let i = 0 ; i < 2 ; i +=1){
+        data.push(Math.random())
+      }
+      const input = new Float32Array(data);
+      output.textContent += "Input:  " + input.join(", ") + "\n";
+      
+      const { values: sorted, indexes: sortedIndexes } = await bitonicSort(device, input);
+      
+      output.textContent += "Sorted: " + sorted.join(", ") + "\n";
+      output.textContent += "Indexes: " + sortedIndexes.join(", ") + "\n";
+      console.log("Sorted result:", sorted);
+      console.log("Sorted indexes:", sortedIndexes);
+      
+    } catch (err) {
+      output.textContent = "Error: " + err.message;
+      console.error(err);
+    }
+  }
+
+  main();
+</script>
+</body>
+</html>

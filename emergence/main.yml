@@ -1,0 +1,20 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/main.yml
+
+
+models:
+    # https://openrouter.ai/rankings?models=open#top-models
+    - openai/gpt-5.6-luna
+    - deepseek/deepseek-v4-pro-0813
+    - deepseek/deepseek-v4.1-flash
+    - z-ai/glm-5.3-flashx
+
+
+files:
+    - file://./../emergence/main.py
+    - file://./../emergence/agent/definition.py
+    - file://./../emergence/logs/_latest_sh.txt
+    - file://./../emergence/requirements.txt
+
+
+rules:
+    - focus on main.py only. the rest is context

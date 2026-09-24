@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Flow</title>
+    <link rel="stylesheet" href="./index.css">
+    <script type="module" src="./index.js"></script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <p id="cursor"></p>
+    <div id="debug-center-square"></div>
+    <div id="infos">
+      <p><label>FPS: </label><span id="fps_value">___</span></p>
+      <p><label>CPS: </label><span id="ups_value">___</span></p>
+      <p><label>CPU: </label><span id="cpu_usage_value">___</span></p>
+      <p><label>GPU: </label><span id="gpu_usage_value">___</span></p>
+      <p>
+        <label>Flow Rate: </label><span id="flow_rate_value">___</span><br>
+        <input id="flow_rate_input" type="number" min="0" step="0.01" value="1.00">
+      </p>
+    </div>
+    <div id="controls">
+    </div>
+  </body>
+</html>
