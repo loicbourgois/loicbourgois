@@ -48,6 +48,8 @@ enum Action {
 fn apply_passive_updates(
     agent: &mut Agent,
     community: &mut Community,
+    // How much food maxim per agent
+    // If an agent has more than `food_limit`, we take and give to the community
     food_limit: f32,
     rng: &mut impl Rng,
 ) {
@@ -168,13 +170,10 @@ fn step(
     if !agent.get_data().alive {
         return;
     }
-
     let action = choose_action(agent, community, rng);
-
     apply_action(agent, action, community);
     apply_passive_updates(agent, community, food_limit, rng);
     live_or_die(agent, rng);
-
     agent.get_data_mut().age += 1;
 }
 
@@ -212,21 +211,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut history = History::new();
     for turn in 0..TURNS {
         simulation.agents.shuffle(&mut rng);
-        if turn == TURNS / 5 * 0 {
-            simulation.food_limit = 100.0;
-        }
-        if turn == TURNS / 5 * 1 {
-            simulation.food_limit = 1.0;
-        }
-        if turn == TURNS / 5 * 2 {
-            simulation.food_limit = 1.2;
-        }
-        if turn == TURNS / 5 * 3 {
-            simulation.food_limit = 0.85;
-        }
-        if turn == TURNS / 5 * 4 {
-            simulation.food_limit = 0.75;
-        }
+        let food_limits = [100.0, 1.0, 1.2, 0.85, 0.75];
+        let phase = (turn * food_limits.len() / TURNS);
+        simulation.food_limit = food_limits[phase];
         for agent in &mut simulation.agents {
             step(
                 agent,
@@ -327,11 +314,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     print_chart_usize(&history.deaths(), "deaths");
     print_chart_usize(&history.max_age(), "max_age");
     print_chart_usize(&history.median_age(), "median_age");
-    print_chart_f32(&history.community_food(), "community_food");
-    print_chart_f32(&history.avg_age(), "avg_age");
     print_chart_f32(&history.avg_happiness(), "avg_happiness");
     print_chart_f32(&history.median_happiness(), "median_happiness");
     print_chart_f32(&history.avg_health(), "avg_health");
     print_chart_f32(&history.median_health(), "median_health");
+    print_chart_f32(&history.community_food(), "community_food");
+    print_chart_f32(&history.avg_age(), "avg_age");
     Ok(())
 }

@@ -7,14 +7,14 @@ models:
 
 
 files:
+    - file://./../../emergence/src/agent.rs
     - file://./../../emergence/src/main.rs
-    - file://./../../emergence/src/config.json
-    - file://./../../emergence/agent/step.py
+    # - file://./../../emergence/src/config.json
+    # - file://./../../emergence/agent/step.py
 
 
 rules:
-    - proper code
-    - load attibuts list from config.json
+    - load attributes list from config.json
     - |
         health is the sum(distance(atribut.value, 0.5))
         ideally, individual is at 0.5 for all atributs 
