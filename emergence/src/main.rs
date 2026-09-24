@@ -1,3 +1,4 @@
+// TODO: refactor using agent, not v0
 use rand::Rng;
 use rand::seq::SliceRandom;
 use serde::Deserialize;
@@ -9,6 +10,10 @@ use crate::history::History;
 use crate::history::Metric;
 use chart::print_chart_f32;
 use chart::print_chart_usize;
+mod agent;
+use crate::agent::Agent;
+mod attribute;
+use crate::attribute::AttributeDefinition;
 
 const AGENT_COUNT: usize = 1000;
 const TURNS: usize = 10001;
@@ -28,54 +33,55 @@ impl Community {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-struct AttributeDefinition {
-    // Only used for printing messages
-    // Not as numerical values
-    min: String,
-    max: String,
-}
-
 #[derive(Debug, Clone, Copy)]
 enum Action {
     FindFood,
     GiveFood,
     TakeFood,
     Eat,
-    Sleep,
+    // Sleep,
     Chill,
-    Drink,
+    // Drink,
     SelfMotivate,
 }
 
 fn apply_passive_updates(
     agent: &mut Agent,
     community: &mut Community,
-    rules: &[Rule],
     food_limit: f32,
     rng: &mut impl Rng,
 ) {
-    agent.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
-    agent.state.get_mut("fullness").unwrap().v -= PASSIVE_DECAY;
-    if agent.food > food_limit {
-        let tax = (agent.food - food_limit).min(1.0);
+    let data = agent.get_data_mut();
+
+    data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
+    data.state.get_mut("fullness").unwrap().v -= PASSIVE_DECAY;
+
+    if data.food > food_limit {
+        let tax = (data.food - food_limit).min(1.0);
         community.food += tax;
-        agent.food -= tax;
+        data.food -= tax;
     }
-    if agent.luck < rng.gen_range(0.0..=1.0) {
-        agent.food /= 2.0;
+
+    if data.luck < rng.gen_range(0.0..=1.0) {
+        data.food /= 2.0;
     }
 }
 
 fn choose_action(agent: &Agent, community: &Community, rng: &mut impl Rng) -> Action {
-    if agent.state["fullness"].v < agent.state["fullness"].s && agent.food > 0.0 {
+    let data = agent.get_data();
+
+    if data.state["fullness"].v < data.state["fullness"].s && data.food > 0.0 {
         Action::Eat
-    } else if agent.state["rest"].v < agent.state["rest"].s {
+    } else if data.state["rest"].v < data.state["rest"].s {
         Action::Chill
-    } else if agent.state["motivation"].v < agent.state["motivation"].s {
+    } else if data.state["motivation"].v < data.state["motivation"].s {
         Action::SelfMotivate
-    } else if agent.state["motivation"].v > rng.gen_range(0.0..=1.0) {
-        Action::FindFood
+    } else if data.state["motivation"].v > rng.gen_range(0.0..=1.0) {
+        if data.food >= 1.0 && data.altruism > rng.gen_range(0.0..=1.0) {
+            Action::GiveFood
+        } else {
+            Action::FindFood
+        }
     } else if community.food >= 1.0 {
         Action::TakeFood
     } else {
@@ -84,16 +90,18 @@ fn choose_action(agent: &Agent, community: &Community, rng: &mut impl Rng) -> Ac
 }
 
 fn apply_action(agent: &mut Agent, action: Action, community: &mut Community) {
+    let data = agent.get_data_mut();
+
     match action {
         Action::FindFood => {
-            agent.food += 1.0;
-            agent.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
+            data.food += 1.0;
+            data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
         }
         Action::GiveFood => {
-            if agent.food >= 1.0 {
-                agent.food -= 1.0;
+            if data.food >= 1.0 {
+                data.food -= 1.0;
                 community.food += 1.0;
-                agent.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
+                data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
             } else {
                 panic!("invalid action");
             }
@@ -101,24 +109,21 @@ fn apply_action(agent: &mut Agent, action: Action, community: &mut Community) {
         Action::TakeFood => {
             if community.food >= 1.0 {
                 community.food -= 1.0;
-                agent.food += 1.0;
+                data.food += 1.0;
             } else {
                 panic!("invalid action");
             }
         }
         Action::Eat => {
-            let v = agent.food.min(1.0);
-            agent.food -= v;
-            agent.state.get_mut("fullness").unwrap().v += EAT_INCREMENT * v;
+            let v = data.food.min(1.0);
+            data.food -= v;
+            data.state.get_mut("fullness").unwrap().v += EAT_INCREMENT * v;
         }
         Action::Chill => {
-            agent.state.get_mut("rest").unwrap().v += ACTION_INCREMENT;
+            data.state.get_mut("rest").unwrap().v += ACTION_INCREMENT;
         }
         Action::SelfMotivate => {
-            agent.state.get_mut("motivation").unwrap().v += ACTION_INCREMENT;
-        }
-        Action::Sleep | Action::Drink => {
-            panic!("invalid action: {action:?}");
+            data.state.get_mut("motivation").unwrap().v += ACTION_INCREMENT;
         }
     }
 }
@@ -136,83 +141,20 @@ impl Config {
     }
 }
 
-#[derive(Debug, Clone)]
-struct Attribut {
-    // Current value.
-    v: f32,
-    // Sweet spot.
-    s: f32,
-}
-
-impl Attribut {
-    fn new(definition: &AttributeDefinition, rng: &mut impl Rng) -> Self {
-        Self {
-            v: rng.gen_range(0.0..=1.0),
-            s: rng.gen_range(0.0..=1.0),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Agent {
-    age: usize,
-    state: HashMap<String, Attribut>,
-    food: f32,
-    altruism: f32,
-    alive: bool,
-    luck: f32,
-}
-
-impl Agent {
-    fn new(
-        attribute_definitions: &HashMap<String, AttributeDefinition>,
-        rng: &mut impl Rng,
-    ) -> Self {
-        let state = attribute_definitions
-            .iter()
-            .map(|(name, definition)| (name.clone(), Attribut::new(definition, rng)))
-            .collect();
-        Self {
-            age: 0,
-            state,
-            food: 0.0,
-            altruism: rng.gen_range(0.0..=1.0),
-            alive: true,
-            luck: rng.gen_range(0.0..=1.0),
-        }
-    }
-
-    fn happiness(&self) -> f32 {
-        if self.state.is_empty() {
-            0.0
-        } else {
-            self.state
-                .values()
-                .map(|attribute| (attribute.s - attribute.v).abs())
-                .sum::<f32>()
-                / self.state.len() as f32
-        }
-    }
-
-    fn health(&self) -> f32 {
-        self.state
-            .values()
-            .map(|attribute| (attribute.v - 0.5).abs())
-            .sum()
-    }
-}
-
 #[derive(Debug)]
 struct Rule {
     name: String,
 }
 
 fn live_or_die(agent: &mut Agent, rng: &mut impl Rng) {
-    if agent.state.values().any(|attribute| attribute.v < 0.0) {
-        agent.alive = false;
+    let data = agent.get_data_mut();
+
+    if data.state.values().any(|attribute| attribute.v < 0.0) {
+        data.alive = false;
     }
-    if rng.gen_range(0.0..=1.0) < MORTALITY_CHANCE * (agent.age as f32) {
-        agent.alive = false;
+
+    if rng.gen_range(0.0..=1.0) < MORTALITY_CHANCE * (data.age as f32) {
+        data.alive = false;
     }
 }
 
@@ -223,14 +165,17 @@ fn step(
     rng: &mut impl Rng,
     food_limit: f32,
 ) {
-    if !agent.alive {
+    if !agent.get_data().alive {
         return;
     }
+
     let action = choose_action(agent, community, rng);
+
     apply_action(agent, action, community);
-    apply_passive_updates(agent, community, rules, food_limit, rng);
+    apply_passive_updates(agent, community, food_limit, rng);
     live_or_die(agent, rng);
-    agent.age += 1;
+
+    agent.get_data_mut().age += 1;
 }
 
 #[derive(Debug)]
@@ -297,21 +242,25 @@ fn main() -> Result<(), Box<dyn Error>> {
             deaths: simulation
                 .agents
                 .iter()
-                .filter(|agent| !agent.alive)
+                .filter(|agent| !agent.get_data().alive)
                 .count(),
             community_food: community.food,
             max_age: simulation
                 .agents
                 .iter()
-                .map(|agent| agent.age)
+                .map(|agent| agent.get_data().age)
                 .max()
                 .unwrap_or(0),
             median_age: {
-                let mut ages: Vec<usize> = simulation.agents.iter().map(|a| a.age).collect();
+                let mut ages: Vec<usize> = simulation
+                    .agents
+                    .iter()
+                    .map(|agent| agent.get_data().age)
+                    .collect();
                 ages.sort();
                 if ages.is_empty() {
                     0
-                } else if ages.len() % 2 == 0 {
+                } else if ages.len().is_multiple_of(2) {
                     (ages[ages.len() / 2 - 1] + ages[ages.len() / 2]) / 2
                 } else {
                     ages[ages.len() / 2]
@@ -324,7 +273,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     simulation
                         .agents
                         .iter()
-                        .map(|agent| agent.age as f32)
+                        .map(|agent| agent.get_data().age as f32)
                         .sum::<f32>()
                         / simulation.agents.len() as f32
                 }
@@ -340,12 +289,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             median_happiness: {
                 let mut happiness: Vec<f32> =
                     simulation.agents.iter().map(Agent::happiness).collect();
-
                 happiness.sort_by(|a, b| a.total_cmp(b));
-
                 if happiness.is_empty() {
                     0.0
-                } else if happiness.len() % 2 == 0 {
+                } else if happiness.len().is_multiple_of(2) {
                     (happiness[happiness.len() / 2 - 1] + happiness[happiness.len() / 2]) / 2.0
                 } else {
                     happiness[happiness.len() / 2]
@@ -361,12 +308,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             },
             median_health: {
                 let mut health: Vec<f32> = simulation.agents.iter().map(Agent::health).collect();
-
                 health.sort_by(|a, b| a.total_cmp(b));
-
                 if health.is_empty() {
                     0.0
-                } else if health.len() % 2 == 0 {
+                } else if health.len().is_multiple_of(2) {
                     (health[health.len() / 2 - 1] + health[health.len() / 2]) / 2.0
                 } else {
                     health[health.len() / 2]
@@ -374,7 +319,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             },
         });
         for agent in &mut simulation.agents {
-            if !agent.alive {
+            if !agent.get_data().alive {
                 *agent = Agent::new(&config.attributs, &mut rng);
             }
         }
@@ -388,6 +333,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     print_chart_f32(&history.median_happiness(), "median_happiness");
     print_chart_f32(&history.avg_health(), "avg_health");
     print_chart_f32(&history.median_health(), "median_health");
-
     Ok(())
 }

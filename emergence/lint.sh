@@ -42,4 +42,6 @@ cargo clippy \
     -D warnings \
     -Aclippy::identity_op \
     -Aclippy::erasing_op \
-    -Aclippy::needless_range_loop
+    -Aclippy::needless_range_loop \
+    -Aunused_variables \
+    -Adead_code

@@ -15,13 +15,13 @@ impl History {
         self.metrics.iter()
     }
 
-    pub fn len(&self) -> usize {
-        self.metrics.len()
-    }
+    // pub fn len(&self) -> usize {
+    //     self.metrics.len()
+    // }
 
-    pub fn is_empty(&self) -> bool {
-        self.metrics.is_empty()
-    }
+    // pub fn is_empty(&self) -> bool {
+    //     self.metrics.is_empty()
+    // }
 
     pub fn deaths(&self) -> Vec<usize> {
         self.iter().map(|metric| metric.deaths).collect::<Vec<_>>()
