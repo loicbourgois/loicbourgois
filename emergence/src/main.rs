@@ -1,4 +1,3 @@
-// TODO: refactor using agent, not v0
 use rand::Rng;
 use rand::seq::SliceRandom;
 use serde::Deserialize;
@@ -8,15 +7,18 @@ mod chart;
 mod history;
 use crate::history::History;
 use crate::history::Metric;
+use chart::print_agent_kind_chart;
 use chart::print_chart_f32;
 use chart::print_chart_usize;
 mod agent;
 use crate::agent::Agent;
+use crate::agent::agent_kind::AgentKind;
 mod attribute;
+use crate::agent::ActionContext;
 use crate::attribute::AttributeDefinition;
 
-const AGENT_COUNT: usize = 1000;
-const TURNS: usize = 10001;
+const AGENT_COUNT: usize = 400;
+const TURNS: usize = 4001;
 const PASSIVE_DECAY: f32 = 0.046;
 const ACTION_INCREMENT: f32 = 0.06;
 const EAT_INCREMENT: f32 = 0.5;
@@ -39,9 +41,7 @@ enum Action {
     GiveFood,
     TakeFood,
     Eat,
-    // Sleep,
     Chill,
-    // Drink,
     SelfMotivate,
 }
 
@@ -54,46 +54,20 @@ fn apply_passive_updates(
     rng: &mut impl Rng,
 ) {
     let data = agent.get_data_mut();
-
     data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
     data.state.get_mut("fullness").unwrap().v -= PASSIVE_DECAY;
-
     if data.food > food_limit {
         let tax = (data.food - food_limit).min(1.0);
         community.food += tax;
         data.food -= tax;
     }
-
     if data.luck < rng.gen_range(0.0..=1.0) {
         data.food /= 2.0;
     }
 }
 
-fn choose_action(agent: &Agent, community: &Community, rng: &mut impl Rng) -> Action {
-    let data = agent.get_data();
-
-    if data.state["fullness"].v < data.state["fullness"].s && data.food > 0.0 {
-        Action::Eat
-    } else if data.state["rest"].v < data.state["rest"].s {
-        Action::Chill
-    } else if data.state["motivation"].v < data.state["motivation"].s {
-        Action::SelfMotivate
-    } else if data.state["motivation"].v > rng.gen_range(0.0..=1.0) {
-        if data.food >= 1.0 && data.altruism > rng.gen_range(0.0..=1.0) {
-            Action::GiveFood
-        } else {
-            Action::FindFood
-        }
-    } else if community.food >= 1.0 {
-        Action::TakeFood
-    } else {
-        Action::Chill
-    }
-}
-
 fn apply_action(agent: &mut Agent, action: Action, community: &mut Community) {
     let data = agent.get_data_mut();
-
     match action {
         Action::FindFood => {
             data.food += 1.0;
@@ -117,9 +91,7 @@ fn apply_action(agent: &mut Agent, action: Action, community: &mut Community) {
             }
         }
         Action::Eat => {
-            let v = data.food.min(1.0);
-            data.food -= v;
-            data.state.get_mut("fullness").unwrap().v += EAT_INCREMENT * v;
+            agent.eat();
         }
         Action::Chill => {
             data.state.get_mut("rest").unwrap().v += ACTION_INCREMENT;
@@ -170,7 +142,12 @@ fn step(
     if !agent.get_data().alive {
         return;
     }
-    let action = choose_action(agent, community, rng);
+    let action = agent.choose_action(
+        ActionContext {
+            community_food: community.food,
+        },
+        rng,
+    );
     apply_action(agent, action, community);
     apply_passive_updates(agent, community, food_limit, rng);
     live_or_die(agent, rng);
@@ -187,7 +164,9 @@ struct Simulation {
 impl Simulation {
     fn new(config: &Config, rng: &mut impl Rng) -> Self {
         let agents = (0..AGENT_COUNT)
-            .map(|_| Agent::new(&config.attributs, rng))
+            // .map(|_| Agent::new(AgentKind::RuleBased, &config.attributs, rng))
+            .map(|_| Agent::new_random(&config.attributs, rng))
+            // .map(|_| Agent::new(AgentKind::Neural, &config.attributs, rng))
             .collect();
         Self {
             agents,
@@ -212,7 +191,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for turn in 0..TURNS {
         simulation.agents.shuffle(&mut rng);
         let food_limits = [100.0, 1.0, 1.2, 0.85, 0.75];
-        let phase = (turn * food_limits.len() / TURNS);
+        let phase = turn * food_limits.len() / TURNS;
         simulation.food_limit = food_limits[phase];
         for agent in &mut simulation.agents {
             step(
@@ -304,10 +283,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                     health[health.len() / 2]
                 }
             },
+            count_by_kind: {
+                let mut count_by_kind = HashMap::new();
+
+                for agent in &simulation.agents {
+                    *count_by_kind.entry(agent.get_data().kind).or_insert(0) += 1;
+                }
+
+                count_by_kind
+            },
         });
         for agent in &mut simulation.agents {
             if !agent.get_data().alive {
-                *agent = Agent::new(&config.attributs, &mut rng);
+                agent.reset(&config.attributs, &mut rng);
             }
         }
     }
@@ -320,5 +308,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     print_chart_f32(&history.median_health(), "median_health");
     print_chart_f32(&history.community_food(), "community_food");
     print_chart_f32(&history.avg_age(), "avg_age");
+    print_agent_kind_chart(&history.count_by_kind(), "agent kind counts");
     Ok(())
 }

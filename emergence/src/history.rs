@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use crate::agent::agent_kind::AgentKind;
+
 pub struct History {
     metrics: Vec<Metric>,
 }
@@ -59,6 +63,12 @@ impl History {
     pub fn median_health(&self) -> Vec<f32> {
         self.iter().map(|metric| metric.median_health).collect()
     }
+
+    pub fn count_by_kind(&self) -> Vec<HashMap<AgentKind, usize>> {
+        self.iter()
+            .map(|metric| metric.count_by_kind.clone())
+            .collect()
+    }
 }
 
 pub struct Metric {
@@ -71,4 +81,5 @@ pub struct Metric {
     pub median_happiness: f32,
     pub avg_health: f32,
     pub median_health: f32,
+    pub count_by_kind: HashMap<AgentKind, usize>,
 }
