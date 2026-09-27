@@ -1,10 +1,13 @@
 mod agent_data;
 pub mod agent_kind;
-mod neural_agent;
+mod neural_agent_1;
+mod neural_agent_2;
 mod rule_based_agent;
+use crate::Action;
 use crate::AttributeDefinition;
 use crate::EAT_INCREMENT;
-use crate::agent::neural_agent::NeuralAgent;
+use crate::agent::neural_agent_1::NeuralAgent1;
+use crate::agent::neural_agent_2::NeuralAgent2;
 use crate::agent::rule_based_agent::RuleBasedAgent;
 use agent_data::AgentData;
 use agent_kind::AgentKind;
@@ -13,7 +16,8 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum Agent {
-    Neural(NeuralAgent),
+    Neural1(NeuralAgent1),
+    Neural2(NeuralAgent2),
     RuleBased(RuleBasedAgent),
 }
 
@@ -22,7 +26,18 @@ pub struct ActionContext {
     pub community_food: f32,
 }
 
-use crate::Action;
+fn action_from_output_index(index: usize) -> Action {
+    match index {
+        0 => Action::FindFood,
+        1 => Action::GiveFood,
+        2 => Action::TakeFood,
+        3 => Action::Eat,
+        4 => Action::Chill,
+        5 => Action::Meditate,
+        // _ => Action::Chill,
+        _ => panic!("invalid index"),
+    }
+}
 
 impl Agent {
     pub fn new(
@@ -34,9 +49,13 @@ impl Agent {
             AgentKind::RuleBased => Agent::RuleBased(RuleBasedAgent {
                 data: AgentData::new_data(kind, attribute_definitions, rng),
             }),
-            AgentKind::Neural => {
+            AgentKind::Neural1 => {
                 let data = AgentData::new_data(kind, attribute_definitions, rng);
-                Agent::Neural(NeuralAgent::new(rng, data, 3, 16))
+                Agent::Neural1(NeuralAgent1::new(rng, data, 3, 16))
+            }
+            AgentKind::Neural2 => {
+                let data = AgentData::new_data(kind, attribute_definitions, rng);
+                Agent::Neural2(NeuralAgent2::new(rng, data, 5, 6))
             }
         }
     }
@@ -45,10 +64,13 @@ impl Agent {
         attribute_definitions: &HashMap<String, AttributeDefinition>,
         rng: &mut impl Rng,
     ) -> Self {
-        if rng.gen_range(0.0..=1.0) > 0.5 {
+        let r = rng.gen_range(0.0..=1.0);
+        if r < 1.0 / 3.0 {
             Agent::new(AgentKind::RuleBased, attribute_definitions, rng)
+        } else if r < 2.0 / 3.0 {
+            Agent::new(AgentKind::Neural1, attribute_definitions, rng)
         } else {
-            Agent::new(AgentKind::Neural, attribute_definitions, rng)
+            Agent::new(AgentKind::Neural2, attribute_definitions, rng)
         }
     }
 
@@ -61,45 +83,46 @@ impl Agent {
         *self.get_data_mut() =
             AgentData::new_data(self.get_data().kind, attribute_definitions, rng);
         match self {
-            Agent::Neural(a) => {
-                if let Agent::Neural(rand_agent) = rand_alive_agent {
-                    // 33/33/33 chance of either
-                    // - random neurons
-                    // - evolving from a live agent, strong coefficient
-                    // - evolving from a live agent, small coefficient
-                    let choice = rng.gen_range(0.0..=1.0);
-                    if choice < 1.0 / 3.0 {
-                        a.neurons = NeuralAgent::new_random_neurons(rng, a.neurons.len());
-                    } else if choice < 2.0 / 3.0 {
-                        a.neurons = NeuralAgent::evolve_neurons(rng, &rand_agent.neurons, 0.1);
-                    } else {
-                        a.neurons = NeuralAgent::evolve_neurons(rng, &rand_agent.neurons, 0.01);
-                    }
-                } else {
-                    panic!("plouf");
-                }
+            Agent::Neural1(agent) => {
+                agent.evolve(rand_alive_agent, rng);
             }
-            Agent::RuleBased(a) => {}
+            Agent::Neural2(agent) => {
+                agent.evolve(rand_alive_agent, rng);
+            }
+            Agent::RuleBased(_agent) => {
+                // pass
+            }
         }
     }
 
     pub fn choose_action(&mut self, context: ActionContext, rng: &mut impl Rng) -> Vec<Action> {
         match self {
-            Agent::Neural(a) => a.choose_action(context),
+            Agent::Neural1(a) => a.choose_action(context),
+            Agent::Neural2(a) => a.choose_action(context),
             Agent::RuleBased(a) => a.choose_action(context, rng),
         }
     }
 
     pub fn get_data(&self) -> &AgentData {
         match self {
-            Agent::Neural(a) => &a.data,
+            Agent::Neural1(a) => &a.data,
+            Agent::Neural2(a) => &a.data,
             Agent::RuleBased(a) => &a.data,
         }
     }
 
+    pub fn set_action_taken(&mut self, action_taken: Option<Action>) {
+        self.get_data_mut().action_taken = action_taken;
+    }
+
+    pub fn get_action_taken(&self) -> Option<Action> {
+        self.get_data().action_taken
+    }
+
     pub fn get_data_mut(&mut self) -> &mut AgentData {
         match self {
-            Agent::Neural(a) => &mut a.data,
+            Agent::Neural1(a) => &mut a.data,
+            Agent::Neural2(a) => &mut a.data,
             Agent::RuleBased(a) => &mut a.data,
         }
     }

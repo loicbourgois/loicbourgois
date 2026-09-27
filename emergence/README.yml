@@ -3,11 +3,11 @@ command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/README.ym
 
 models:
     # https://openrouter.ai/rankings?models=open#top-models
-    # - openai/gpt-6-luna
-    # - openai/gpt-6-sol
-    - openai/gpt-6-sol-pro
+    # - openai/gpt-6-sol-pro
     # - deepseek/deepseek-v4-pro-0813
-    # - deepseek/deepseek-v4.1-flash
+    # - mistralai/devstral-2512
+    # - anthropic/claude-fable-5.1
+    - openai/gpt-6-luna
     # - z-ai/glm-5.3-flashx
 
 
@@ -22,7 +22,8 @@ files:
     - file://./../emergence/src/agent/agent_data.rs
     - file://./../emergence/src/agent/agent_kind.rs
     - file://./../emergence/src/agent/mod.rs
-    - file://./../emergence/src/agent/neural_agent.rs
+    - file://./../emergence/src/agent/neural_agent_1.rs
+    - file://./../emergence/src/agent/neural_agent_2.rs
     - file://./../emergence/src/agent/rule_based_agent.rs
     - file://./../emergence/src/attribute.rs
     - file://./../emergence/src/chart.rs
@@ -30,6 +31,9 @@ files:
     - file://./../emergence/src/config.rs
     - file://./../emergence/src/history.rs
     - file://./../emergence/src/main.rs
+    - file://./../emergence/src/math.rs
+    - file://./../emergence/src/metric.rs
+    - file://./../emergence/src/print.rs
     - file://./../emergence/src/simulation.rs
 
 

@@ -4,4 +4,7 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cargo fmt \
     --manifest-path "$SCRIPT_DIR/Cargo.toml" \
-    --all
+    --all \
+    -- \
+    --config reorder_imports=true
+# TODO: put all mod at top

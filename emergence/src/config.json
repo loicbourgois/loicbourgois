@@ -8,9 +8,9 @@
             "min": "tired",
             "max": "rested"
         },
-        "motivation": {
-            "min": "unmotivated",
-            "max": "motivated"
+        "peace_of_mind": {
+            "min": "not peaceful",
+            "max": "peaceful"
         }
     }
 }

@@ -1,4 +1,5 @@
 use super::agent_kind::AgentKind;
+use crate::Action;
 use crate::AttributeDefinition;
 use crate::attribute::Attribute;
 use rand::Rng;
@@ -13,6 +14,7 @@ pub struct AgentData {
     pub altruism: f32,
     pub alive: bool,
     pub luck: f32,
+    pub action_taken: Option<Action>,
 }
 
 impl AgentData {
@@ -22,8 +24,8 @@ impl AgentData {
         rng: &mut impl Rng,
     ) -> Self {
         let state = attribute_definitions
-            .iter()
-            .map(|(name, definition)| (name.clone(), Attribute::new(definition, rng)))
+            .keys()
+            .map(|name| (name.clone(), Attribute::new(rng)))
             .collect();
         Self {
             kind,
@@ -33,6 +35,7 @@ impl AgentData {
             altruism: rng.gen_range(0.0..=1.0),
             alive: true,
             luck: rng.gen_range(0.0..=1.0),
+            action_taken: None,
         }
     }
 }

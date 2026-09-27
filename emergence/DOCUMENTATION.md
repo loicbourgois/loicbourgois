@@ -1,14 +1,14 @@
 # Health
 health is a score from 0 to 1
 1 is best
-ideally, individual is at 0.5 for all atributs
-health = 1.0 - avg( distance(atribut.value, 0.5) ) * 2.0
+ideally, individual is at 0.5 for all attributes
+health = 1.0 - avg( distance(attribute.value, 0.5) ) * 2.0
 
 
-# Hapiness
-hapiness is a score from 0 to 1
+# Happiness
+happiness is a score from 0 to 1
 1 is best
-ideally, individual is at `Sweet Spot` for all atributs
+ideally, individual is at `Sweet Spot` for all attributes
 
 
 # Cause of death

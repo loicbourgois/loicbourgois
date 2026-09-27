@@ -2,12 +2,7 @@ use rand::Rng;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct AttributeDefinition {
-    // Only used for printing messages
-    // Not as numerical values
-    min: String,
-    max: String,
-}
+pub struct AttributeDefinition {}
 
 #[derive(Debug, Clone)]
 pub struct Attribute {
@@ -18,7 +13,7 @@ pub struct Attribute {
 }
 
 impl Attribute {
-    pub fn new(definition: &AttributeDefinition, rng: &mut impl Rng) -> Self {
+    pub fn new(rng: &mut impl Rng) -> Self {
         Self {
             v: rng.gen_range(0.0..=1.0),
             s: rng.gen_range(0.0..=1.0),

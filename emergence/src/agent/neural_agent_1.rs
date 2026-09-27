@@ -1,6 +1,10 @@
 use crate::Action;
 use crate::ActionContext;
+use crate::Agent;
+use crate::action::ACTION_COUNT;
 use crate::agent::AgentData;
+use crate::agent::action_from_output_index;
+use crate::math::rand;
 use rand::Rng;
 
 #[derive(Debug, Clone)]
@@ -8,25 +12,6 @@ pub struct Neuron {
     weights: Vec<f32>,
     output: f32,
     bias: f32,
-}
-
-pub fn rand(rng: &mut impl Rng, min_inclusive: f32, max_inclusive: f32) -> f32 {
-    rng.gen_range(min_inclusive..=max_inclusive)
-}
-
-const ACTION_COUNT: usize = 6;
-
-fn action_from_output_index(index: usize) -> Action {
-    match index {
-        0 => Action::FindFood,
-        1 => Action::GiveFood,
-        2 => Action::TakeFood,
-        3 => Action::Eat,
-        4 => Action::Chill,
-        5 => Action::SelfMotivate,
-        // _ => Action::Chill,
-        _ => panic!("invalid index"),
-    }
 }
 
 impl Neuron {
@@ -49,22 +34,41 @@ impl Neuron {
 }
 
 #[derive(Debug, Clone)]
-pub struct NeuralAgent {
+pub struct NeuralAgent1 {
     pub data: AgentData,
     pub neurons: Vec<Neuron>,
     pub thinking: usize,
 }
 
-impl NeuralAgent {
+impl NeuralAgent1 {
     const SENSOR_COUNT: usize = 9;
 
-    pub fn new(rng: &mut impl Rng, data: AgentData, thinking: usize, size: usize) -> NeuralAgent {
-        NeuralAgent {
+    pub fn new(rng: &mut impl Rng, data: AgentData, thinking: usize, size: usize) -> NeuralAgent1 {
+        NeuralAgent1 {
             data,
             neurons: (0..size)
                 .map(|_| Neuron::new(rng, Self::SENSOR_COUNT + size))
                 .collect(),
             thinking,
+        }
+    }
+
+    pub fn evolve(&mut self, rand_alive_agent: &Agent, rng: &mut impl Rng) {
+        if let Agent::Neural1(rand_agent) = rand_alive_agent {
+            // 33/33/33 chance of either
+            // - random neurons
+            // - evolving from a live agent, strong coefficient
+            // - evolving from a live agent, small coefficient
+            let choice = rng.gen_range(0.0..=1.0);
+            if choice < 1.0 / 3.0 {
+                self.neurons = Self::new_random_neurons(rng, self.neurons.len());
+            } else if choice < 2.0 / 3.0 {
+                self.neurons = Self::evolve_neurons(rng, &rand_agent.neurons, 0.1);
+            } else {
+                self.neurons = Self::evolve_neurons(rng, &rand_agent.neurons, 0.01);
+            }
+        } else {
+            panic!("plouf");
         }
     }
 
@@ -108,8 +112,8 @@ impl NeuralAgent {
                 data.state["fullness"].s,
                 data.state["rest"].v,
                 data.state["rest"].s,
-                data.state["motivation"].v,
-                data.state["motivation"].s,
+                data.state["peace_of_mind"].v,
+                data.state["peace_of_mind"].s,
                 data.food,
                 data.altruism,
                 context.community_food,

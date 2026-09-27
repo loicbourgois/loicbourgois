@@ -16,9 +16,9 @@ impl RuleBasedAgent {
                 Action::Eat
             } else if data.state["rest"].v < data.state["rest"].s {
                 Action::Chill
-            } else if data.state["motivation"].v < data.state["motivation"].s {
-                Action::SelfMotivate
-            } else if data.state["motivation"].v > rng.gen_range(0.0..=1.0) {
+            } else if data.state["peace_of_mind"].v < data.state["peace_of_mind"].s {
+                Action::Meditate
+            } else if data.state["peace_of_mind"].v > rng.gen_range(0.0..=1.0) {
                 if data.food >= 1.0 && data.altruism > rng.gen_range(0.0..=1.0) {
                     Action::GiveFood
                 } else {
