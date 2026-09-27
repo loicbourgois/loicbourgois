@@ -4,3 +4,4 @@
 set -e
 $HOME/github.com/loicbourgois/loicbourgois/emergence/format.sh
 $HOME/github.com/loicbourgois/loicbourgois/emergence/lint.sh
+echo "✅ Format & Lint"

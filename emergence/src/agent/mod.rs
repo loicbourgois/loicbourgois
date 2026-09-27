@@ -106,23 +106,23 @@ impl Agent {
 
     pub fn happiness(&self) -> f32 {
         let data = self.get_data();
-        if data.state.is_empty() {
-            0.0
-        } else {
-            data.state
-                .values()
-                .map(|attribute| (attribute.s - attribute.v).abs())
-                .sum::<f32>()
-                / data.state.len() as f32
-        }
+        1.0 - data
+            .state
+            .values()
+            .map(|attribute| (attribute.s - attribute.v).abs())
+            .sum::<f32>()
+            / data.state.len() as f32
     }
 
     pub fn health(&self) -> f32 {
-        self.get_data()
+        let data = self.get_data();
+        let s: f32 = data
             .state
             .values()
             .map(|attribute| (attribute.v - 0.5).abs())
-            .sum()
+            .sum();
+        let l: f32 = data.state.len() as f32;
+        1.0 - (s / l * 2.0_f32)
     }
 
     pub fn eat(&mut self) {

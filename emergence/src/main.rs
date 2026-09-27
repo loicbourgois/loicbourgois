@@ -1,201 +1,60 @@
-use rand::Rng;
-use rand::seq::SliceRandom;
-use serde::Deserialize;
-use std::collections::HashMap;
 use std::error::Error;
 mod chart;
+mod community;
+use crate::community::Community;
+mod config;
 mod history;
 use crate::history::History;
 use crate::history::Metric;
+use crate::simulation::Simulation;
 use chart::print_agent_kind_chart;
 use chart::print_chart_f32;
 use chart::print_chart_usize;
+use std::time::Duration;
+use std::time::Instant;
 mod agent;
 use crate::agent::Agent;
 use crate::agent::agent_kind::AgentKind;
 mod attribute;
 use crate::agent::ActionContext;
 use crate::attribute::AttributeDefinition;
+mod action;
+mod simulation;
+use crate::action::Action;
+use crate::config::Config;
 
 const AGENT_COUNT: usize = 400;
-const TURNS: usize = 20001;
+const TURNS: usize = 50001;
 const PASSIVE_DECAY: f32 = 0.046;
 const ACTION_INCREMENT: f32 = 0.06;
 const EAT_INCREMENT: f32 = 0.5;
 const MORTALITY_CHANCE: f32 = 0.00001;
-
-#[derive(Debug, Default)]
-struct Community {
-    food: f32,
-}
-
-impl Community {
-    fn new() -> Self {
-        Community { food: 0.0 }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Action {
-    FindFood,
-    GiveFood,
-    TakeFood,
-    Eat,
-    Chill,
-    SelfMotivate,
-}
-
-fn apply_passive_updates(
-    agent: &mut Agent,
-    community: &mut Community,
-    // How much food maxim per agent
-    // If an agent has more than `food_limit`, we take and give to the community
-    food_limit: f32,
-    rng: &mut impl Rng,
-) {
-    let data = agent.get_data_mut();
-    data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
-    data.state.get_mut("fullness").unwrap().v -= PASSIVE_DECAY;
-    if data.food > food_limit {
-        let tax = (data.food - food_limit).min(1.0);
-        community.food += tax;
-        data.food -= tax;
-    }
-    if data.luck < rng.gen_range(0.0..=1.0) {
-        data.food /= 2.0;
-    }
-}
-
-fn apply_action(agent: &mut Agent, actions: Vec<Action>, community: &mut Community) {
-    for action in actions {
-        let data = agent.get_data_mut();
-        let action_applied = match action {
-            Action::FindFood => {
-                data.food += 1.0;
-                data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
-                true
-            }
-            Action::GiveFood => {
-                if data.food >= 1.0 {
-                    data.food -= 1.0;
-                    community.food += 1.0;
-                    data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
-                    true
-                } else {
-                    false
-                }
-            }
-            Action::TakeFood => {
-                if community.food >= 1.0 {
-                    community.food -= 1.0;
-                    data.food += 1.0;
-                    true
-                } else {
-                    false
-                }
-            }
-            Action::Eat => {
-                agent.eat();
-                true
-            }
-            Action::Chill => {
-                data.state.get_mut("rest").unwrap().v += ACTION_INCREMENT;
-                true
-            }
-            Action::SelfMotivate => {
-                data.state.get_mut("motivation").unwrap().v += ACTION_INCREMENT;
-                true
-            }
-        };
-
-        if action_applied {
-            return;
-        }
-    }
-
-    panic!("no valid action");
-}
-
-#[derive(Debug, Deserialize)]
-struct Config {
-    attributs: HashMap<String, AttributeDefinition>,
-}
-
-impl Config {
-    fn load() -> Result<Self, Box<dyn Error>> {
-        let contents = include_str!("config.json");
-        let config = serde_json::from_str(contents)?;
-        Ok(config)
-    }
-}
 
 #[derive(Debug)]
 struct Rule {
     name: String,
 }
 
-fn live_or_die(agent: &mut Agent, rng: &mut impl Rng) {
-    let data = agent.get_data_mut();
-
-    if data.state.values().any(|attribute| attribute.v < 0.0) {
-        data.alive = false;
-    }
-
-    if rng.gen_range(0.0..=1.0) < MORTALITY_CHANCE * (data.age as f32) {
-        data.alive = false;
-    }
+fn format_duration(duration: Duration) -> String {
+    let total_seconds = duration.as_secs();
+    let hours = total_seconds / 3600;
+    let minutes = (total_seconds % 3600) / 60;
+    let seconds = total_seconds % 60;
+    format!("{hours:02}h{minutes:02}m{seconds:02}s")
 }
 
-fn step(
-    agent: &mut Agent,
-    community: &mut Community,
-    rules: &[Rule],
-    rng: &mut impl Rng,
-    food_limit: f32,
-) {
-    if !agent.get_data().alive {
-        return;
-    }
-    let actions = agent.choose_action(
-        ActionContext {
-            community_food: community.food,
-        },
-        rng,
+fn print_progress(turn: usize, started_at: Instant) {
+    let progress = turn as f32 / TURNS as f32;
+    let elapsed = started_at.elapsed();
+    let estimated_total = elapsed.div_f32(progress);
+    let estimated_remaining = estimated_total.saturating_sub(elapsed);
+    println!(
+        "{turn}/{TURNS} - {:.1}% - {}/{}/{}",
+        progress * 100.0,
+        format_duration(estimated_remaining),
+        format_duration(elapsed),
+        format_duration(estimated_total),
     );
-    apply_action(agent, actions, community);
-    apply_passive_updates(agent, community, food_limit, rng);
-    live_or_die(agent, rng);
-    agent.get_data_mut().age += 1;
-}
-
-#[derive(Debug)]
-struct Simulation {
-    agents: Vec<Agent>,
-    rules: Vec<Rule>,
-    food_limit: f32,
-}
-
-impl Simulation {
-    fn new(config: &Config, rng: &mut impl Rng, mode: &str) -> Self {
-        Self {
-            agents: match mode {
-                "rule" => (0..AGENT_COUNT)
-                    .map(|_| Agent::new(AgentKind::RuleBased, &config.attributs, rng))
-                    .collect(),
-                "neural" => (0..AGENT_COUNT)
-                    .map(|_| Agent::new(AgentKind::Neural, &config.attributs, rng))
-                    .collect(),
-                "random" => (0..AGENT_COUNT)
-                    .map(|_| Agent::new_random(&config.attributs, rng))
-                    .collect(),
-                _ => {
-                    panic!("invalid mode")
-                }
-            },
-            rules: Vec::new(),
-            food_limit: 0.0,
-        }
-    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -204,170 +63,27 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut rng = rand::thread_rng();
     let mut simulation = Simulation::new(&config, &mut rng, &mode);
     let mut community = Community::new();
-    let rules = Community::new();
     println!(
         "created {} agents with {} attributes",
         simulation.agents.len(),
-        config.attributs.len()
+        config.attributes.len()
     );
     let mut history = History::new();
+    let food_limits = [100.0, 1.0, 0.9];
+    let started_at = Instant::now();
     for turn in 0..TURNS {
-        simulation.agents.shuffle(&mut rng);
-        // let food_limits = [100.0, 1.0, 1.2, 0.85, 0.75];
-        let food_limits = [100.0, 1.0, 0.8];
         let phase = turn * food_limits.len() / TURNS;
         simulation.food_limit = food_limits[phase];
-        for agent in &mut simulation.agents {
-            step(
-                agent,
-                &mut community,
-                &simulation.rules,
-                &mut rng,
-                simulation.food_limit,
-            );
-        }
-        // spoilage
-        community.food *= 0.5;
-        history.push(Metric {
-            deaths: simulation
-                .agents
-                .iter()
-                .filter(|agent| !agent.get_data().alive)
-                .count(),
-            community_food: community.food,
-            max_age: simulation
-                .agents
-                .iter()
-                .map(|agent| agent.get_data().age)
-                .max()
-                .unwrap_or(0),
-            median_age: {
-                let mut ages: Vec<usize> = simulation
-                    .agents
-                    .iter()
-                    .map(|agent| agent.get_data().age)
-                    .collect();
-                ages.sort();
-                if ages.is_empty() {
-                    0
-                } else if ages.len().is_multiple_of(2) {
-                    (ages[ages.len() / 2 - 1] + ages[ages.len() / 2]) / 2
-                } else {
-                    ages[ages.len() / 2]
-                }
-            },
-            avg_age: {
-                if simulation.agents.is_empty() {
-                    0.0
-                } else {
-                    simulation
-                        .agents
-                        .iter()
-                        .map(|agent| agent.get_data().age as f32)
-                        .sum::<f32>()
-                        / simulation.agents.len() as f32
-                }
-            },
-            avg_happiness: {
-                if simulation.agents.is_empty() {
-                    0.0
-                } else {
-                    simulation.agents.iter().map(Agent::happiness).sum::<f32>()
-                        / simulation.agents.len() as f32
-                }
-            },
-            median_happiness: {
-                let mut happiness: Vec<f32> =
-                    simulation.agents.iter().map(Agent::happiness).collect();
-                happiness.sort_by(|a, b| a.total_cmp(b));
-                if happiness.is_empty() {
-                    0.0
-                } else if happiness.len().is_multiple_of(2) {
-                    (happiness[happiness.len() / 2 - 1] + happiness[happiness.len() / 2]) / 2.0
-                } else {
-                    happiness[happiness.len() / 2]
-                }
-            },
-            avg_health: {
-                if simulation.agents.is_empty() {
-                    0.0
-                } else {
-                    simulation.agents.iter().map(Agent::health).sum::<f32>()
-                        / simulation.agents.len() as f32
-                }
-            },
-            median_health: {
-                let mut health: Vec<f32> = simulation.agents.iter().map(Agent::health).collect();
-                health.sort_by(|a, b| a.total_cmp(b));
-                if health.is_empty() {
-                    0.0
-                } else if health.len().is_multiple_of(2) {
-                    (health[health.len() / 2 - 1] + health[health.len() / 2]) / 2.0
-                } else {
-                    health[health.len() / 2]
-                }
-            },
-            count_by_kind: {
-                let mut count_by_kind = HashMap::new();
-                for agent in &simulation.agents {
-                    *count_by_kind.entry(agent.get_data().kind).or_insert(0) += 1;
-                }
-                count_by_kind
-            },
-        });
-        let alive_agents: Vec<Agent> = simulation
-            .agents
-            .iter()
-            .filter(|a| a.get_data().alive)
-            .cloned()
-            .collect();
-        match mode.as_str() {
-            "random" => {
-                for agent in &mut simulation.agents {
-                    if agent.is_dead() {
-                        let alive_agents_of_same_kind: Vec<&Agent> = alive_agents
-                            .iter()
-                            .filter(|a| a.get_data().kind == agent.get_data().kind)
-                            .collect();
-                        //  50% - regular reset
-                        //  50% - new random agent
-                        if rng.gen_range(0.0..=1.0) > 0.5 {
-                            if let Some(rand_alive_agent) =
-                                alive_agents_of_same_kind.choose(&mut rng)
-                            {
-                                agent.reset(&config.attributs, &mut rng, rand_alive_agent);
-                            } else {
-                                // If no alive agents of same kind, create a new random one
-                                println!("warning");
-                                *agent = Agent::new_random(&config.attributs, &mut rng);
-                            }
-                        } else {
-                            *agent = Agent::new_random(&config.attributs, &mut rng);
-                        }
-                    } else {
-                        // pass
-                    }
-                }
-            }
-            _ => {
-                for agent in &mut simulation.agents {
-                    if agent.is_dead() {
-                        let alive_agents_of_same_kind: Vec<&Agent> = alive_agents
-                            .iter()
-                            .filter(|a| a.get_data().kind == agent.get_data().kind)
-                            .collect();
-                        if let Some(rand_alive_agent) = alive_agents_of_same_kind.choose(&mut rng) {
-                            agent.reset(&config.attributs, &mut rng, rand_alive_agent);
-                        } else {
-                            panic!("no alive agents of same kind");
-                        }
-                    } else {
-                        // pass
-                    }
-                }
-            }
+        simulation.step(&mut community, &mut rng, turn);
+        history.push(Metric::from_simulation(&simulation, &community));
+        simulation.replace_dead(&config, &mut rng, &mode);
+        if turn % (TURNS / 30) == 0 {
+            print_progress(turn + 1, started_at);
+            print_chart_usize(&history.max_age(), "max_age");
+            print_chart_f32(&history.avg_age(), "avg_age");
         }
     }
+    print_agent_kind_chart(&history.count_by_kind(), "agent kind counts");
     print_chart_usize(&history.deaths(), "deaths");
     print_chart_usize(&history.median_age(), "median_age");
     print_chart_f32(&history.avg_happiness(), "avg_happiness");
@@ -375,8 +91,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     print_chart_f32(&history.avg_health(), "avg_health");
     print_chart_f32(&history.median_health(), "median_health");
     print_chart_f32(&history.community_food(), "community_food");
+    print_progress(TURNS, started_at);
     print_chart_usize(&history.max_age(), "max_age");
     print_chart_f32(&history.avg_age(), "avg_age");
-    print_agent_kind_chart(&history.count_by_kind(), "agent kind counts");
     Ok(())
 }

@@ -1,6 +1,6 @@
 use super::agent_kind::AgentKind;
 use crate::AttributeDefinition;
-use crate::attribute::Attribut;
+use crate::attribute::Attribute;
 use rand::Rng;
 use std::collections::HashMap;
 
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 pub struct AgentData {
     pub kind: AgentKind,
     pub age: usize,
-    pub state: HashMap<String, Attribut>,
+    pub state: HashMap<String, Attribute>,
     pub food: f32,
     pub altruism: f32,
     pub alive: bool,
@@ -23,7 +23,7 @@ impl AgentData {
     ) -> Self {
         let state = attribute_definitions
             .iter()
-            .map(|(name, definition)| (name.clone(), Attribut::new(definition, rng)))
+            .map(|(name, definition)| (name.clone(), Attribute::new(definition, rng)))
             .collect();
         Self {
             kind,

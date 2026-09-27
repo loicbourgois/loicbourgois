@@ -10,14 +10,14 @@ pub struct AttributeDefinition {
 }
 
 #[derive(Debug, Clone)]
-pub struct Attribut {
+pub struct Attribute {
     // Current value.
     pub v: f32,
     // Sweet spot.
     pub s: f32,
 }
 
-impl Attribut {
+impl Attribute {
     pub fn new(definition: &AttributeDefinition, rng: &mut impl Rng) -> Self {
         Self {
             v: rng.gen_range(0.0..=1.0),

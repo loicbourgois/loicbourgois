@@ -3,7 +3,9 @@ command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/README.ym
 
 models:
     # https://openrouter.ai/rankings?models=open#top-models
-    - openai/gpt-5.6-luna
+    # - openai/gpt-6-luna
+    # - openai/gpt-6-sol
+    - openai/gpt-6-sol-pro
     # - deepseek/deepseek-v4-pro-0813
     # - deepseek/deepseek-v4.1-flash
     # - z-ai/glm-5.3-flashx
@@ -11,17 +13,25 @@ models:
 
 files:
     - file://./../emergence/README.md
+    - file://./../emergence/DOCUMENTATION.md
+    - file://./../emergence/run.sh
     - file://./../emergence/Cargo.toml
-    - file://./../emergence/src/attribute.rs
-    - file://./../emergence/src/chart.rs
-    - file://./../emergence/src/history.rs
-    - file://./../emergence/src/main.rs
+    - file://./../emergence/src/config.json
+
+    - file://./../emergence/src/action.rs
     - file://./../emergence/src/agent/agent_data.rs
     - file://./../emergence/src/agent/agent_kind.rs
     - file://./../emergence/src/agent/mod.rs
     - file://./../emergence/src/agent/neural_agent.rs
     - file://./../emergence/src/agent/rule_based_agent.rs
+    - file://./../emergence/src/attribute.rs
+    - file://./../emergence/src/chart.rs
+    - file://./../emergence/src/community.rs
+    - file://./../emergence/src/config.rs
+    - file://./../emergence/src/history.rs
+    - file://./../emergence/src/main.rs
+    - file://./../emergence/src/simulation.rs
 
 
 rules:
-    - clean code
+    - thorough review

@@ -1,5 +1,5 @@
 {
-    "attributs": {
+    "attributes": {
         "fullness": {
             "min": "hungry",
             "max": "full"

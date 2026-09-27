@@ -14,6 +14,8 @@ pub fn rand(rng: &mut impl Rng, min_inclusive: f32, max_inclusive: f32) -> f32 {
     rng.gen_range(min_inclusive..=max_inclusive)
 }
 
+const ACTION_COUNT: usize = 6;
+
 fn action_from_output_index(index: usize) -> Action {
     match index {
         0 => Action::FindFood,
@@ -54,7 +56,7 @@ pub struct NeuralAgent {
 }
 
 impl NeuralAgent {
-    const SENSOR_COUNT: usize = 9; // Moved to impl block for consistency
+    const SENSOR_COUNT: usize = 9;
 
     pub fn new(rng: &mut impl Rng, data: AgentData, thinking: usize, size: usize) -> NeuralAgent {
         NeuralAgent {
@@ -117,15 +119,17 @@ impl NeuralAgent {
                 neuron.compute(&inputs);
             }
         }
-        let mut output_indexes: Vec<usize> = (0..self.neurons.len()).collect();
+        // Only the first {ACTION_COUNT} neurons are action neurons.
+        let action_neurons = &self.neurons[0..ACTION_COUNT];
+        // Sort by output in descending order
+        let mut output_indexes: Vec<usize> = (0..action_neurons.len()).collect();
         output_indexes.sort_by(|left, right| {
-            self.neurons[*right]
+            action_neurons[*right]
                 .output
-                .total_cmp(&self.neurons[*left].output)
+                .total_cmp(&action_neurons[*left].output)
         });
         output_indexes
             .into_iter()
-            .filter(|index| *index <= 5)
             .map(action_from_output_index)
             .collect()
     }
