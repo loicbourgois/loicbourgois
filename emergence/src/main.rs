@@ -18,7 +18,7 @@ use crate::agent::ActionContext;
 use crate::attribute::AttributeDefinition;
 
 const AGENT_COUNT: usize = 400;
-const TURNS: usize = 4001;
+const TURNS: usize = 20001;
 const PASSIVE_DECAY: f32 = 0.046;
 const ACTION_INCREMENT: f32 = 0.06;
 const EAT_INCREMENT: f32 = 0.5;
@@ -66,40 +66,54 @@ fn apply_passive_updates(
     }
 }
 
-fn apply_action(agent: &mut Agent, action: Action, community: &mut Community) {
-    let data = agent.get_data_mut();
-    match action {
-        Action::FindFood => {
-            data.food += 1.0;
-            data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
-        }
-        Action::GiveFood => {
-            if data.food >= 1.0 {
-                data.food -= 1.0;
-                community.food += 1.0;
-                data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
-            } else {
-                panic!("invalid action");
-            }
-        }
-        Action::TakeFood => {
-            if community.food >= 1.0 {
-                community.food -= 1.0;
+fn apply_action(agent: &mut Agent, actions: Vec<Action>, community: &mut Community) {
+    for action in actions {
+        let data = agent.get_data_mut();
+        let action_applied = match action {
+            Action::FindFood => {
                 data.food += 1.0;
-            } else {
-                panic!("invalid action");
+                data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
+                true
             }
-        }
-        Action::Eat => {
-            agent.eat();
-        }
-        Action::Chill => {
-            data.state.get_mut("rest").unwrap().v += ACTION_INCREMENT;
-        }
-        Action::SelfMotivate => {
-            data.state.get_mut("motivation").unwrap().v += ACTION_INCREMENT;
+            Action::GiveFood => {
+                if data.food >= 1.0 {
+                    data.food -= 1.0;
+                    community.food += 1.0;
+                    data.state.get_mut("rest").unwrap().v -= PASSIVE_DECAY;
+                    true
+                } else {
+                    false
+                }
+            }
+            Action::TakeFood => {
+                if community.food >= 1.0 {
+                    community.food -= 1.0;
+                    data.food += 1.0;
+                    true
+                } else {
+                    false
+                }
+            }
+            Action::Eat => {
+                agent.eat();
+                true
+            }
+            Action::Chill => {
+                data.state.get_mut("rest").unwrap().v += ACTION_INCREMENT;
+                true
+            }
+            Action::SelfMotivate => {
+                data.state.get_mut("motivation").unwrap().v += ACTION_INCREMENT;
+                true
+            }
+        };
+
+        if action_applied {
+            return;
         }
     }
+
+    panic!("no valid action");
 }
 
 #[derive(Debug, Deserialize)]
@@ -142,13 +156,13 @@ fn step(
     if !agent.get_data().alive {
         return;
     }
-    let action = agent.choose_action(
+    let actions = agent.choose_action(
         ActionContext {
             community_food: community.food,
         },
         rng,
     );
-    apply_action(agent, action, community);
+    apply_action(agent, actions, community);
     apply_passive_updates(agent, community, food_limit, rng);
     live_or_die(agent, rng);
     agent.get_data_mut().age += 1;
@@ -162,14 +176,22 @@ struct Simulation {
 }
 
 impl Simulation {
-    fn new(config: &Config, rng: &mut impl Rng) -> Self {
-        let agents = (0..AGENT_COUNT)
-            // .map(|_| Agent::new(AgentKind::RuleBased, &config.attributs, rng))
-            .map(|_| Agent::new_random(&config.attributs, rng))
-            // .map(|_| Agent::new(AgentKind::Neural, &config.attributs, rng))
-            .collect();
+    fn new(config: &Config, rng: &mut impl Rng, mode: &str) -> Self {
         Self {
-            agents,
+            agents: match mode {
+                "rule" => (0..AGENT_COUNT)
+                    .map(|_| Agent::new(AgentKind::RuleBased, &config.attributs, rng))
+                    .collect(),
+                "neural" => (0..AGENT_COUNT)
+                    .map(|_| Agent::new(AgentKind::Neural, &config.attributs, rng))
+                    .collect(),
+                "random" => (0..AGENT_COUNT)
+                    .map(|_| Agent::new_random(&config.attributs, rng))
+                    .collect(),
+                _ => {
+                    panic!("invalid mode")
+                }
+            },
             rules: Vec::new(),
             food_limit: 0.0,
         }
@@ -177,9 +199,10 @@ impl Simulation {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let mode = std::env::args().nth(1).unwrap();
     let config = Config::load()?;
     let mut rng = rand::thread_rng();
-    let mut simulation = Simulation::new(&config, &mut rng);
+    let mut simulation = Simulation::new(&config, &mut rng, &mode);
     let mut community = Community::new();
     let rules = Community::new();
     println!(
@@ -190,7 +213,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut history = History::new();
     for turn in 0..TURNS {
         simulation.agents.shuffle(&mut rng);
-        let food_limits = [100.0, 1.0, 1.2, 0.85, 0.75];
+        // let food_limits = [100.0, 1.0, 1.2, 0.85, 0.75];
+        let food_limits = [100.0, 1.0, 0.8];
         let phase = turn * food_limits.len() / TURNS;
         simulation.food_limit = food_limits[phase];
         for agent in &mut simulation.agents {
@@ -285,28 +309,73 @@ fn main() -> Result<(), Box<dyn Error>> {
             },
             count_by_kind: {
                 let mut count_by_kind = HashMap::new();
-
                 for agent in &simulation.agents {
                     *count_by_kind.entry(agent.get_data().kind).or_insert(0) += 1;
                 }
-
                 count_by_kind
             },
         });
-        for agent in &mut simulation.agents {
-            if !agent.get_data().alive {
-                agent.reset(&config.attributs, &mut rng);
+        let alive_agents: Vec<Agent> = simulation
+            .agents
+            .iter()
+            .filter(|a| a.get_data().alive)
+            .cloned()
+            .collect();
+        match mode.as_str() {
+            "random" => {
+                for agent in &mut simulation.agents {
+                    if agent.is_dead() {
+                        let alive_agents_of_same_kind: Vec<&Agent> = alive_agents
+                            .iter()
+                            .filter(|a| a.get_data().kind == agent.get_data().kind)
+                            .collect();
+                        //  50% - regular reset
+                        //  50% - new random agent
+                        if rng.gen_range(0.0..=1.0) > 0.5 {
+                            if let Some(rand_alive_agent) =
+                                alive_agents_of_same_kind.choose(&mut rng)
+                            {
+                                agent.reset(&config.attributs, &mut rng, rand_alive_agent);
+                            } else {
+                                // If no alive agents of same kind, create a new random one
+                                println!("warning");
+                                *agent = Agent::new_random(&config.attributs, &mut rng);
+                            }
+                        } else {
+                            *agent = Agent::new_random(&config.attributs, &mut rng);
+                        }
+                    } else {
+                        // pass
+                    }
+                }
+            }
+            _ => {
+                for agent in &mut simulation.agents {
+                    if agent.is_dead() {
+                        let alive_agents_of_same_kind: Vec<&Agent> = alive_agents
+                            .iter()
+                            .filter(|a| a.get_data().kind == agent.get_data().kind)
+                            .collect();
+                        if let Some(rand_alive_agent) = alive_agents_of_same_kind.choose(&mut rng) {
+                            agent.reset(&config.attributs, &mut rng, rand_alive_agent);
+                        } else {
+                            panic!("no alive agents of same kind");
+                        }
+                    } else {
+                        // pass
+                    }
+                }
             }
         }
     }
     print_chart_usize(&history.deaths(), "deaths");
-    print_chart_usize(&history.max_age(), "max_age");
     print_chart_usize(&history.median_age(), "median_age");
     print_chart_f32(&history.avg_happiness(), "avg_happiness");
     print_chart_f32(&history.median_happiness(), "median_happiness");
     print_chart_f32(&history.avg_health(), "avg_health");
     print_chart_f32(&history.median_health(), "median_health");
     print_chart_f32(&history.community_food(), "community_food");
+    print_chart_usize(&history.max_age(), "max_age");
     print_chart_f32(&history.avg_age(), "avg_age");
     print_agent_kind_chart(&history.count_by_kind(), "agent kind counts");
     Ok(())

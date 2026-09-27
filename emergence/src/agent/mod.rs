@@ -11,7 +11,7 @@ use agent_kind::AgentKind;
 use rand::Rng;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Agent {
     Neural(NeuralAgent),
     RuleBased(RuleBasedAgent),
@@ -34,10 +34,10 @@ impl Agent {
             AgentKind::RuleBased => Agent::RuleBased(RuleBasedAgent {
                 data: AgentData::new_data(kind, attribute_definitions, rng),
             }),
-            AgentKind::Neural => Agent::Neural(NeuralAgent {
-                data: AgentData::new_data(kind, attribute_definitions, rng),
-                brain: Vec::new(),
-            }),
+            AgentKind::Neural => {
+                let data = AgentData::new_data(kind, attribute_definitions, rng);
+                Agent::Neural(NeuralAgent::new(rng, data, 3, 16))
+            }
         }
     }
 
@@ -56,13 +56,36 @@ impl Agent {
         &mut self,
         attribute_definitions: &HashMap<String, AttributeDefinition>,
         rng: &mut impl Rng,
+        rand_alive_agent: &Agent,
     ) {
-        *self.get_data_mut() = AgentData::new_data(self.get_data().kind, attribute_definitions, rng)
+        *self.get_data_mut() =
+            AgentData::new_data(self.get_data().kind, attribute_definitions, rng);
+        match self {
+            Agent::Neural(a) => {
+                if let Agent::Neural(rand_agent) = rand_alive_agent {
+                    // 33/33/33 chance of either
+                    // - random neurons
+                    // - evolving from a live agent, strong coefficient
+                    // - evolving from a live agent, small coefficient
+                    let choice = rng.gen_range(0.0..=1.0);
+                    if choice < 1.0 / 3.0 {
+                        a.neurons = NeuralAgent::new_random_neurons(rng, a.neurons.len());
+                    } else if choice < 2.0 / 3.0 {
+                        a.neurons = NeuralAgent::evolve_neurons(rng, &rand_agent.neurons, 0.1);
+                    } else {
+                        a.neurons = NeuralAgent::evolve_neurons(rng, &rand_agent.neurons, 0.01);
+                    }
+                } else {
+                    panic!("plouf");
+                }
+            }
+            Agent::RuleBased(a) => {}
+        }
     }
 
-    pub fn choose_action(&self, context: ActionContext, rng: &mut impl Rng) -> Action {
+    pub fn choose_action(&mut self, context: ActionContext, rng: &mut impl Rng) -> Vec<Action> {
         match self {
-            Agent::Neural(a) => a.choose_action(context, rng),
+            Agent::Neural(a) => a.choose_action(context),
             Agent::RuleBased(a) => a.choose_action(context, rng),
         }
     }
@@ -107,5 +130,9 @@ impl Agent {
         let v = data.food.min(1.0);
         data.food -= v;
         data.state.get_mut("fullness").unwrap().v += EAT_INCREMENT * v;
+    }
+
+    pub fn is_dead(&self) -> bool {
+        !self.get_data().alive
     }
 }

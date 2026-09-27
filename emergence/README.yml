@@ -1,0 +1,27 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/README.yml
+
+
+models:
+    # https://openrouter.ai/rankings?models=open#top-models
+    - openai/gpt-5.6-luna
+    # - deepseek/deepseek-v4-pro-0813
+    # - deepseek/deepseek-v4.1-flash
+    # - z-ai/glm-5.3-flashx
+
+
+files:
+    - file://./../emergence/README.md
+    - file://./../emergence/Cargo.toml
+    - file://./../emergence/src/attribute.rs
+    - file://./../emergence/src/chart.rs
+    - file://./../emergence/src/history.rs
+    - file://./../emergence/src/main.rs
+    - file://./../emergence/src/agent/agent_data.rs
+    - file://./../emergence/src/agent/agent_kind.rs
+    - file://./../emergence/src/agent/mod.rs
+    - file://./../emergence/src/agent/neural_agent.rs
+    - file://./../emergence/src/agent/rule_based_agent.rs
+
+
+rules:
+    - clean code

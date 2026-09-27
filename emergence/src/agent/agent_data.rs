@@ -4,7 +4,7 @@ use crate::attribute::Attribut;
 use rand::Rng;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AgentData {
     pub kind: AgentKind,
     pub age: usize,
