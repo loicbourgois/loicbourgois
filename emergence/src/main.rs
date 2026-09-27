@@ -31,11 +31,11 @@ use std::time::Duration;
 use std::time::Instant;
 
 const AGENT_COUNT: usize = 401;
-const TURNS: usize = 50001;
+const TURNS: usize = 200001;
 const PASSIVE_DECAY: f32 = 0.1;
 const MEDITATION_INCREMENT: f32 = 0.2;
-const REST_INCREMENT: f32 = 0.7;
-const EAT_INCREMENT: f32 = 0.7;
+const REST_INCREMENT: f32 = 0.75;
+const EAT_INCREMENT: f32 = 0.75;
 const MORTALITY_CHANCE: f32 = 0.00001;
 const FOOD_FOUND: f32 = 1.0;
 
