@@ -1,6 +1,7 @@
 * {
   padding: 0;
   margin: 0;
+  font-family: monospace;
 }
 body {
   /* background: #888; */
@@ -12,4 +13,36 @@ canvas {
   background: #222;
   margin: auto;
   image-rendering: pixelated;
+}
+#score {
+  position: absolute;
+  top: 0px;
+  right: 0px; 
+  background: #fff2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+#score > * {
+  font-size: 1rem;
+  flex-grow: 1;
+}
+#score p {
+  width: 4rem;
+  display: inline-block;
+  text-align: right;
+  padding: 0.5rem;
+  display: flex;    
+  font-size: 1.5rem;          
+  justify-content: center;    
+  align-items: center;        
+}
+label {
+  color: #fff;
+}
+#debug {
+  background: #111;
+  color: #fff;
+  border: none;
+  padding: 0.5rem;
 }

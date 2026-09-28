@@ -1,0 +1,16 @@
+{
+    "attributes": {
+        "fullness": {
+            "min": "hungry",
+            "max": "full"
+        },
+        "rest": {
+            "min": "tired",
+            "max": "rested"
+        },
+        "peace_of_mind": {
+            "min": "not peaceful",
+            "max": "peaceful"
+        }
+    }
+}

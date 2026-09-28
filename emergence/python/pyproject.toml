@@ -1,0 +1,61 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+preview = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+
+ignore = [
+    "incorrect-blank-line-before-class",
+    "multi-line-summary-second-line",
+    "undocumented-public-function",
+    "missing-copyright-notice",
+    "undocumented-public-module",
+    "import-outside-top-level",
+    "docstring-missing-returns",
+    "missing-return-type-undocumented-public-function",
+    "datetime-timezone-utc",
+    "unsorted-imports",
+    "undocumented-public-method",
+    "commented-out-code",
+    "suspicious-non-cryptographic-random-usage",
+    "undocumented-public-init",
+    "undocumented-public-class",
+    "missing-trailing-comma",
+    "unused-loop-control-variable",
+    "missing-type-function-argument",
+    "f-string-in-exception",
+    "raise-vanilla-args",
+    "raise-vanilla-class",
+    "float-equality-comparison",
+    "line-too-long",
+    "raw-string-in-exception",
+    "logging-string-concat",
+    "needless-else",
+    "logging-f-string",
+    "relative-imports",
+    "undocumented-public-package",
+    "undocumented-magic-method",
+    "typing-only-standard-library-import",
+    "boolean-positional-value-in-call",
+    "assert",
+    "magic-value-comparison",
+    "reimplemented-operator",
+    "zip-without-explicit-strict",
+    "if-else-block-instead-of-if-exp",
+    "nested-min-max",
+    "missing-return-type-special-method",
+    "loop-iterator-mutation",
+    "collapsible-else-if",
+    "del-attr-with-constant",
+    "private-member-access",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+docstring-code-format = true

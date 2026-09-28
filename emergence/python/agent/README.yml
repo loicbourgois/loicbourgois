@@ -1,0 +1,15 @@
+commands: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/agent/README.yml
+
+
+models:
+    - openai/gpt-5.6-luna
+
+
+files:
+    - file://./../../emergence/agent/README.md
+
+
+rules:
+    - cleanup the README
+    - don't remove anything
+    - don't add anything

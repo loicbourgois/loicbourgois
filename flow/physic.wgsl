@@ -1,0 +1,186 @@
+// Physics engine
+
+
+// import file://./shared.wgsl
+
+
+@group(0) @binding(0) var<storage, read_write> pi: array<Particle>; // particles_in
+@group(0) @binding(1) var<storage, read_write> po: array<Particle>; // particles_out
+@group(0) @binding(2) var<uniform> m: Metadata;
+@group(0) @binding(3) var<storage, read_write> regions: array<i32>;
+@group(0) @binding(4) var<storage, read> sorted_items: array<SortItem>;
+@group(0) @binding(5) var<storage, read_write> region_ranges: array<RegionRange>;
+@group(0) @binding(6) var<storage, read> particle_links: array<ParticleLink>;
+
+
+const PARTICLE_COUNT = __PARTICLE_COUNT__;
+const DIAMETER = __DIAMETER__;
+const THREADS_PER_WORK_GROUP = __THREADS_PER_WORK_GROUP__;
+const REGION_SIDE: i32 = __REGION_SIDE__;
+const LINK_COUNT: u32 = __LINK_COUNT__;
+const LINK_REST_LENGTH: f32 = __LINK_REST_LENGTH__;
+
+
+fn collision_response(p1: Particle, p2: Particle) -> vec2f {
+  let dv = p2.v - p1.v; // delta velocity
+  let dp = p2.p - p1.p; // delta position
+  let mf = .1; // mass factor
+  let dot_vp = dot_(dv, dp);
+  let n_sqrd = norm_sqrd(dp);
+  let factor = mf * dot_vp / n_sqrd;
+  return dp * factor;
+}
+
+
+@compute @workgroup_size(__WORKGROUP_SIZE__) fn main(
+    @builtin(workgroup_id) workgroup_id : vec3<u32>,
+    @builtin(local_invocation_id) local_invocation_id : vec3<u32>,
+    @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
+    @builtin(local_invocation_index) local_invocation_index: u32,
+    @builtin(num_workgroups) num_workgroups: vec3<u32>
+) {
+  let workgroup_index =  
+      workgroup_id.x
+      + workgroup_id.y * num_workgroups.x
+      + workgroup_id.z * num_workgroups.x * num_workgroups.y;
+  let i =
+    workgroup_index * THREADS_PER_WORK_GROUP
+    + local_invocation_index;
+  let ordp = 0.01; // overlap response delta (position) ratio
+  let crdv = 0.2; // collision response delta (velocity)
+  let diameter_sqrd = DIAMETER * DIAMETER;
+  var dv = vec2f(0.0, 0.0);
+  var odp = vec2f(0.0, 0.0);
+
+  let current_region = pi[i].region_id;
+  let current_region_x = current_region % REGION_SIDE;
+  let current_region_y = current_region / REGION_SIDE;
+
+  for (var region_dy: i32 = -1; region_dy <= 1; region_dy++) {
+    let candidate_region_y = current_region_y + region_dy;
+
+    if (candidate_region_y < 0 || candidate_region_y >= REGION_SIDE) {
+      continue;
+    }
+
+    for (var region_dx: i32 = -1; region_dx <= 1; region_dx++) {
+      let candidate_region_x = current_region_x + region_dx;
+
+      if (candidate_region_x < 0 || candidate_region_x >= REGION_SIDE) {
+        continue;
+      }
+
+      let candidate_region = candidate_region_y * REGION_SIDE + candidate_region_x;
+      let range_start = atomicLoad(&region_ranges[u32(candidate_region)].start);
+      let range_end = atomicLoad(&region_ranges[u32(candidate_region)].end);
+
+      if (range_start >= range_end) {
+        continue;
+      }
+
+      for (var sorted_i: u32 = range_start; sorted_i < range_end; sorted_i++) {
+        let i2 = sorted_items[sorted_i].index;
+
+        if (i2 == i) {
+          continue;
+        }
+
+        let d_sqrd = distance_sqrd(pi[i].p, pi[i2].p);
+
+        if (d_sqrd <= 0.00000001) {
+          continue;
+        }
+
+        if (d_sqrd >= diameter_sqrd) {
+          continue;
+        }
+
+        let cr = collision_response(pi[i], pi[i2]);
+        dv += cr * crdv;
+
+        var or = pi[i2].p - pi[i].p;
+        or = normalize(or) * (DIAMETER - sqrt(norm_sqrd(or)));
+        odp -= or * ordp;
+      }
+    }
+  }
+
+
+
+  let link_strength = 0.005;
+  let link_damping = 0.06;
+  for (var link_index: u32 = 0u; link_index < LINK_COUNT; link_index++) {
+    let link = particle_links[link_index];
+    if (link.a != i && link.b != i) {
+      continue;
+    }
+    let other_index = select(link.a, link.b, link.a == i);
+    let delta_position = pi[other_index].p - pi[i].p;
+    let distance_squared = norm_sqrd(delta_position);
+    if (distance_squared <= 0.00000001) {
+      continue;
+    }
+    let distance = sqrt(distance_squared);
+    let direction = delta_position / distance;
+    let stretch = distance - LINK_REST_LENGTH;
+    let relative_velocity = pi[other_index].v - pi[i].v;
+    let damping = dot_(relative_velocity, direction) * link_damping;
+    dv += direction * (stretch * link_strength + damping);
+  }
+
+
+  let g = -0.000005;
+  let gravity = vec2f(0.0, g);
+  po[i].v = pi[i].v + gravity + dv + odp;
+  po[i].p = pi[i].p + po[i].v + gravity;
+  if po[i].p.x < m.bounds.min_x * 0.5 && po[i].p.y < m.bounds.max_y * 0.25 {
+    // po[i].v.y -= g*1.05;
+  }
+  if po[i].p.y < m.bounds.min_y * 0.9  && po[i].p.x >  m.bounds.min_y * 0.95 {
+    po[i].v.x += g * m.pump.flow_rate;
+  }
+  if po[i].p.x > m.bounds.min_x * 0.2 
+    && po[i].p.x < m.bounds.max_x * 0.2 
+    && po[i].p.y < m.bounds.max_y * 0.15 {
+    // po[i].v.y -= g*1.05;
+    // po[i].v.x *= .999;
+  }
+  if po[i].p.x < m.bounds.min_x + DIAMETER*0.5*diameter_ratio {
+    po[i].v.x += 0.0001;
+  }
+  if po[i].p.x > m.bounds.max_x - DIAMETER*0.5*diameter_ratio {
+    po[i].v.x -= 0.0001;
+  }
+  if po[i].p.y < m.bounds.min_y + DIAMETER*0.5*diameter_ratio {
+    po[i].v.y += 0.0001;
+  }
+  if po[i].p.y > m.bounds.max_y + DIAMETER*0.5*diameter_ratio {
+    po[i].v.y -= 0.0001;
+  }
+
+
+  if i == 0 || pi[i].kind == 1.0 {
+  //   po[i].p = pi[i].p;
+    po[i].v.y += 0.00000;
+  }
+
+
+  var region_x: i32 = 0;
+  var region_y: i32 = 0;
+  if po[i].p.x < m.bounds.min_x {
+    region_x = 0;
+  } else if po[i].p.x > m.bounds.max_x {
+    region_x = REGION_SIDE-1;
+  } else {
+    region_x = i32(floor( (po[i].p.x - m.bounds.min_x) / (m.bounds.max_x - m.bounds.min_x) * f32(REGION_SIDE) ));
+  }
+  if po[i].p.y < m.bounds.min_y {
+    region_y = 0;
+  } else if po[i].p.y > m.bounds.max_y {
+    region_y = REGION_SIDE - 1;
+  } else {
+    region_y = i32(floor( (po[i].p.y - m.bounds.min_y) / (m.bounds.max_y - m.bounds.min_y) * f32(REGION_SIDE) ));
+  }
+  regions[i] = region_y * REGION_SIDE + region_x;
+  po[i].region_id = regions[i];
+}

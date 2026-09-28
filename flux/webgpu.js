@@ -1,4 +1,4 @@
-const fields_per_pix = 4;
+const fields_per_pix = 5;
 
 
 const setup_webgpu = async (
@@ -64,14 +64,16 @@ const setup_webgpu = async (
     const buffer_data_js = new Int32Array(unit_count*unit_count*fields_per_pix);
     for (let y = 0; y < unit_count; y++) {
         for (let x = 0; x < unit_count; x++) {
-            const k = (x + y * unit_count) * 4;
+            const k = (x + y * unit_count) * fields_per_pix;
             const r = k+1;
             const g = k+2;
             const b = k+3;
+            const dir = k+4;
             buffer_data_js[k] = 0;
             buffer_data_js[r] = 0;
             buffer_data_js[g] = 0;
             buffer_data_js[b] = 0;
+            buffer_data_js[dir] = 0;
         }
     }
     const buffer_data_gpu = device.createBuffer({
@@ -79,7 +81,7 @@ const setup_webgpu = async (
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     //
-    const buffer_imgs_js = new Int32Array(imgs.length * 8 * 8);
+    const buffer_imgs_js = new Float32Array(imgs.length * 8 * 8);
     let img_i = 0
     for (const img of imgs) {
         for (const e of img) {
@@ -153,18 +155,21 @@ function render(x, world) {
         noise_ratio,
         x.speed,
         x.unit_count,
+        world.tick,
     ]);
     for (let y = 0; y < x.unit_count; y++) {
         for (let x_ = 0; x_ < x.unit_count; x_++) {
             const i = x_ + y * x.unit_count
-            const k = i * 4;
+            const k = i * fields_per_pix;
             const r = k+1;
             const g = k+2;
             const b = k+3;
+            const d = k+4;
             x.buffer_data_js[k] = world.blocks[i].k;
             x.buffer_data_js[r] = world.blocks[i].r;
             x.buffer_data_js[g] = world.blocks[i].g;
             x.buffer_data_js[b] = world.blocks[i].b;
+            x.buffer_data_js[d] = world.blocks[i].direction;
         }
     }
     //

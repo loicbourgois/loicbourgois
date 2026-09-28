@@ -21,7 +21,7 @@ const setup_compute = async (x) => {
     if (particles_count != numResults) {
         throw `Invalid particle count: ${particles_count} != ${numResults}`
     }
-    const source_code = await (await fetch(`./code_2.wgsl`, {cache: "no-store"})).text()
+    const source_code = await (await fetch(`./physic.wgsl`, {cache: "no-store"})).text()
     const disk_generated_code = await (await fetch(`./disk_generated.wgsl`, {cache: "no-store"})).text()
     const module = x.device.createShaderModule({
         code: source_code.replace(
@@ -123,7 +123,7 @@ const setup_webgpu = async (
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     const uniformValues = new Float32Array(uniformBufferSize / 4);
-    const source_code = await (await fetch(`./code.wgsl`, {cache: "no-store"})).text()
+    const source_code = await (await fetch(`./display.wgsl`, {cache: "no-store"})).text()
     const disk_generated_code = await (await fetch(`./disk_generated.wgsl`, {cache: "no-store"})).text()
     const module = device.createShaderModule({
         label: 'shaders',
