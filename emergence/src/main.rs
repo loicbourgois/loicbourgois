@@ -60,7 +60,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut rng = rand::thread_rng();
     let mut simulation = Simulation::new(&config, &mut rng, &mode);
     let shared_state_clone = simulation.shared_state.clone();
-    // Bind before starting the simulation, so a bind error leaves no worker running.
+    // Bind HTTP server before starting the simulation
+    // so a bind error leaves no worker running.
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(shared_state_clone.clone()))
@@ -79,11 +80,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
             simulation.step(&mut community, &mut rng);
             history.push(Metric::from_simulation(&simulation, &community));
             simulation.replace_dead(&config, &mut rng, &mode);
-            let mut state = simulation.shared_state.lock().unwrap();
-            if state.turn.is_multiple_of(1000) {
-                print_wip(&history, started_at, state.turn);
+            let turn = {
+                let mut state = simulation
+                    .shared_state
+                    .lock()
+                    .map_err(|_| "shared state poisoned")?;
+                state.turn += 1;
+                state.turn
+            };
+            if turn.is_multiple_of(1000) {
+                print_wip(&history, started_at, turn);
             }
-            state.turn += 1;
         }
     });
     let server_result = server.await; // Returns when Ctrl+C stops the server.
