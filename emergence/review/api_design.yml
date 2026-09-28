@@ -1,0 +1,21 @@
+command: s review $HOME/github.com/loicbourgois/loicbourgois/emergence/review/api_design.yml
+
+
+models:
+    # https://openrouter.ai/rankings?models=open#top-models
+    # - openai/gpt-6-sol-pro
+    # - deepseek/deepseek-v4-pro-0813
+    # - mistralai/devstral-2512
+    # - anthropic/claude-fable-5.1
+    - openai/gpt-6-luna
+    # - z-ai/glm-5.3-flashx
+
+
+files:
+    - file://./../../emergence/src/main.rs
+    - file://./../../emergence/src/simulation.rs
+
+
+rules:
+    - thorough review
+    - focus on API design
