@@ -51,7 +51,7 @@ impl Agent {
             }),
             AgentKind::Neural1 => {
                 let data = AgentData::new_data(kind, attribute_definitions, rng);
-                Agent::Neural1(NeuralAgent1::new(rng, data, 3, 16))
+                Agent::Neural1(NeuralAgent1::new(rng, data, 5, 20))
             }
             AgentKind::Neural2 => {
                 let data = AgentData::new_data(kind, attribute_definitions, rng);

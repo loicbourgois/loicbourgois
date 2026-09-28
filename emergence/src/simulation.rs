@@ -12,11 +12,21 @@ use crate::PASSIVE_DECAY;
 use crate::REST_INCREMENT;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use std::sync::Mutex;
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+pub struct SharedState {
+    pub food_limit: f32,
+    pub turn: usize,
+}
 
 #[derive(Debug)]
 pub struct Simulation {
     pub agents: Vec<Agent>,
     pub food_limit: f32,
+    pub shared_state: Arc<Mutex<SharedState>>,
 }
 
 fn live_or_die(agent: &mut Agent, rng: &mut impl Rng) {
@@ -152,7 +162,11 @@ impl Simulation {
                     panic!("invalid mode")
                 }
             },
-            food_limit: 0.0,
+            food_limit: 1000.0,
+            shared_state: Arc::new(Mutex::new(SharedState {
+                food_limit: 1000.0,
+                turn: 0,
+            })),
         }
     }
 

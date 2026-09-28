@@ -7,4 +7,3 @@ cargo fmt \
     --all \
     -- \
     --config reorder_imports=true
-# TODO: put all mod at top

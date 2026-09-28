@@ -3,7 +3,7 @@ use crate::agent::agent_kind::AgentKind;
 use std::collections::HashMap;
 
 const DEATH_CHART_WIDTH: usize = 220;
-const CHART_HEIGHT: usize = 26 * 2;
+const CHART_HEIGHT: usize = 26;
 // █▓▒░▌▍
 const CR: char = '▒'; // RuleBased
 const CN1: char = '█'; // Neural1

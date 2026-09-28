@@ -25,4 +25,5 @@ cargo clippy \
     -Aclippy::erasing_op \
     -Aclippy::needless_range_loop \
     -Aunused_variables \
-    -Adead_code
+    -Adead_code \
+    -Aclippy::println_empty_string

@@ -55,17 +55,15 @@ impl NeuralAgent1 {
 
     pub fn evolve(&mut self, rand_alive_agent: &Agent, rng: &mut impl Rng) {
         if let Agent::Neural1(rand_agent) = rand_alive_agent {
-            // 33/33/33 chance of either
-            // - random neurons
-            // - evolving from a live agent, strong coefficient
-            // - evolving from a live agent, small coefficient
             let choice = rng.gen_range(0.0..=1.0);
-            if choice < 1.0 / 3.0 {
+            if choice < 1.0 / 4.0 {
                 self.neurons = Self::new_random_neurons(rng, self.neurons.len());
-            } else if choice < 2.0 / 3.0 {
+            } else if choice < 2.0 / 4.0 {
                 self.neurons = Self::evolve_neurons(rng, &rand_agent.neurons, 0.1);
-            } else {
+            } else if choice < 3.0 / 4.0 {
                 self.neurons = Self::evolve_neurons(rng, &rand_agent.neurons, 0.01);
+            } else {
+                self.neurons = Self::evolve_neurons(rng, &rand_agent.neurons, 0.001);
             }
         } else {
             panic!("plouf");
