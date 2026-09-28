@@ -25,7 +25,6 @@ pub struct SharedState {
 #[derive(Debug)]
 pub struct Simulation {
     pub agents: Vec<Agent>,
-    pub food_limit: f32,
     pub shared_state: Arc<Mutex<SharedState>>,
 }
 
@@ -162,7 +161,6 @@ impl Simulation {
                     panic!("invalid mode")
                 }
             },
-            food_limit: 1000.0,
             shared_state: Arc::new(Mutex::new(SharedState {
                 food_limit: 1000.0,
                 turn: 0,
@@ -172,8 +170,9 @@ impl Simulation {
 
     pub fn step(&mut self, community: &mut Community, rng: &mut impl Rng) {
         self.agents.shuffle(rng);
+        let food_limit = { self.shared_state.lock().unwrap().food_limit };
         for agent in &mut self.agents {
-            step(agent, community, rng, self.food_limit);
+            step(agent, community, rng, food_limit);
         }
         // spoilage
         community.food *= 0.5;

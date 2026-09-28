@@ -1,9 +1,10 @@
 use crate::Action;
 use crate::agent::agent_kind::AgentKind;
 use std::collections::HashMap;
+use std::fmt::Write;
 
 const DEATH_CHART_WIDTH: usize = 220;
-const CHART_HEIGHT: usize = 26;
+const CHART_HEIGHT: usize = 20;
 // █▓▒░▌▍
 const CR: char = '▒'; // RuleBased
 const CN1: char = '█'; // Neural1
@@ -34,33 +35,28 @@ fn chart_y_f32(value: f32, max_value: f32) -> usize {
     }
 }
 
-pub fn print_chart_f32(history: &[f32], title: &str) {
+pub fn get_chart_f32(history: &[f32], title: &str) -> String {
+    let mut output = String::new();
     if history.is_empty() {
-        println!("No metrics to display.");
-        return;
+        writeln!(output, "No metrics to display.").unwrap();
+        return output;
     }
-
     let max_value = history
         .iter()
         .copied()
         .fold(0.0_f32, |max, value| max.max(value));
-
-    println!("{title}");
-
+    writeln!(output, "{title}").unwrap();
     if max_value <= 0.0 {
-        println!("No values recorded.");
-        return;
+        writeln!(output, "No values recorded.").unwrap();
+        return output;
     }
-
     let bucket_count = DEATH_CHART_WIDTH.min(history.len());
     let mut buckets = Vec::with_capacity(bucket_count);
-
     for bucket_index in 0..bucket_count {
         let start = bucket_index * history.len() / bucket_count;
         let end = ((bucket_index + 1) * history.len() / bucket_count).max(start + 1);
         let end = end.min(history.len());
         let bucket = &history[start..end];
-
         let bucket_min = bucket
             .iter()
             .copied()
@@ -69,33 +65,33 @@ pub fn print_chart_f32(history: &[f32], title: &str) {
             .iter()
             .copied()
             .fold(f32::NEG_INFINITY, |max, value| max.max(value));
-
         buckets.push((bucket_min, bucket_max));
     }
-
     let mut grid = vec![vec![' '; bucket_count]; CHART_HEIGHT];
-
     for (x, (min_value, max_bucket_value)) in buckets.iter().enumerate() {
         let min_y = chart_y_f32(*min_value, max_value);
         let max_y = chart_y_f32(*max_bucket_value, max_value);
-
         for row in max_y..=min_y {
             grid[row][x] = '█';
         }
     }
-
     for (row_index, row) in grid.iter().enumerate() {
         let value = max_value * (CHART_HEIGHT - 1 - row_index) as f32 / (CHART_HEIGHT - 1) as f32;
-
-        println!("{:>8.2} │{}", value, row.iter().collect::<String>());
+        writeln!(output, "{:>8.2} │{}", value, row.iter().collect::<String>()).unwrap();
     }
-
-    println!("         └{}", "─".repeat(bucket_count));
-    println!(
+    writeln!(output, "         └{}", "─".repeat(bucket_count)).unwrap();
+    writeln!(
+        output,
         "          0{}{}",
         " ".repeat(bucket_count.saturating_sub(2)),
         history.len().saturating_sub(1)
-    );
+    )
+    .unwrap();
+    output
+}
+
+pub fn print_chart_f32(history: &[f32], title: &str) {
+    print!("{}", get_chart_f32(history, title));
 }
 
 pub fn print_chart_usize(history: &[usize], title: &str) {
@@ -103,49 +99,37 @@ pub fn print_chart_usize(history: &[usize], title: &str) {
         println!("No metrics to display.");
         return;
     }
-
     let max_value = history.iter().copied().max().unwrap_or(0);
-
     println!("{title}");
-
     if max_value == 0 {
         println!("No values recorded.");
         return;
     }
-
     let bucket_count = DEATH_CHART_WIDTH.min(history.len());
     let mut buckets = Vec::with_capacity(bucket_count);
-
     for bucket_index in 0..bucket_count {
         let start = bucket_index * history.len() / bucket_count;
         let end = ((bucket_index + 1) * history.len() / bucket_count).max(start + 1);
         let end = end.min(history.len());
         let bucket = &history[start..end];
-
         let bucket_min = bucket.iter().copied().min().unwrap_or(0);
         let bucket_max = bucket.iter().copied().max().unwrap_or(0);
-
         buckets.push((bucket_min, bucket_max));
     }
-
     let mut grid = vec![vec![' '; bucket_count]; CHART_HEIGHT];
-
     for (x, (min_value, max_bucket_value)) in buckets.iter().enumerate() {
         let min_y = death_chart_y(*min_value, max_value);
         let max_y = death_chart_y(*max_bucket_value, max_value);
-
         for row in max_y..=min_y {
             grid[row][x] = '█';
         }
     }
-
     for (row_index, row) in grid.iter().enumerate() {
         let value =
             max_value as f32 * (CHART_HEIGHT - 1 - row_index) as f32 / (CHART_HEIGHT - 1) as f32;
 
         println!("{:>8.0} │{}", value, row.iter().collect::<String>());
     }
-
     println!("         └{}", "─".repeat(bucket_count));
     println!(
         "          0{}{}",
@@ -388,16 +372,23 @@ fn action_chart_label(action: Action) -> &'static str {
 }
 
 pub fn print_actions_chart(history: &[HashMap<Action, usize>], actions: &[Action], title: &str) {
+    print!("{}", get_actions_chart(history, actions, title));
+}
+
+pub fn get_actions_chart(
+    history: &[HashMap<Action, usize>],
+    actions: &[Action],
+    title: &str,
+) -> String {
+    let mut output = String::new();
     if history.is_empty() {
-        println!("No metrics to display.");
-        return;
+        writeln!(output, "No metrics to display.").unwrap();
+        return output;
     }
-
     if actions.is_empty() {
-        println!("No actions selected.");
-        return;
+        writeln!(output, "No actions selected.").unwrap();
+        return output;
     }
-
     let legend = actions
         .iter()
         .map(|action| {
@@ -409,12 +400,9 @@ pub fn print_actions_chart(history: &[HashMap<Action, usize>], actions: &[Action
         })
         .collect::<Vec<_>>()
         .join(", ");
-
-    println!("{title}, {legend}\n");
-
+    writeln!(output, "{title}, {legend}\n").unwrap();
     let bucket_count = DEATH_CHART_WIDTH.min(history.len());
     let mut buckets = Vec::with_capacity(bucket_count);
-
     for bucket_index in 0..bucket_count {
         let start = bucket_index * history.len() / bucket_count;
         let end = ((bucket_index + 1) * history.len() / bucket_count).max(start + 1);
@@ -450,8 +438,8 @@ pub fn print_actions_chart(history: &[HashMap<Action, usize>], actions: &[Action
         .unwrap_or(0);
 
     if max_value == 0 {
-        println!("No action counts recorded.");
-        return;
+        writeln!(output, "No action counts recorded.").unwrap();
+        return output;
     }
 
     let mut grid = vec![vec![' '; bucket_count]; CHART_HEIGHT];
@@ -478,13 +466,16 @@ pub fn print_actions_chart(history: &[HashMap<Action, usize>], actions: &[Action
     for (row_index, row) in grid.iter().enumerate() {
         let value = max_value as f32 * (CHART_HEIGHT - row_index) as f32 / CHART_HEIGHT as f32;
 
-        println!("{:>8.0} │{}", value, row.iter().collect::<String>());
+        writeln!(output, "{:>8.0} │{}", value, row.iter().collect::<String>()).unwrap();
     }
 
-    println!("         └{}", "─".repeat(bucket_count));
-    println!(
+    writeln!(output, "         └{}", "─".repeat(bucket_count)).unwrap();
+    writeln!(
+        output,
         "          0{}{}",
         " ".repeat(bucket_count.saturating_sub(2)),
         history.len().saturating_sub(1)
-    );
+    )
+    .unwrap();
+    output
 }

@@ -20,18 +20,17 @@ use crate::community::Community;
 use crate::config::Config;
 use crate::history::History;
 use crate::metric::Metric;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread;
-// use crate::print::print_final;
+use crate::print::print_final;
 use crate::print::print_wip;
 use crate::simulation::SharedState;
 use serde::Serialize;
 use simulation::Simulation;
 use std::error::Error;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
 use std::time::Instant;
 
 const AGENT_COUNT: usize = 401;
-const TURNS: usize = 200001;
 const PASSIVE_DECAY: f32 = 0.1;
 const MEDITATION_INCREMENT: f32 = 0.2;
 const REST_INCREMENT: f32 = 0.75;
@@ -49,13 +48,20 @@ struct TurnResponse {
 use std::sync::{Arc, Mutex};
 
 async fn get_turn(data: web::Data<Arc<Mutex<SharedState>>>) -> impl Responder {
-    let state = data.lock().unwrap();
-    HttpResponse::Ok().json(TurnResponse { turn: state.turn })
+    match data.lock() {
+        Ok(state) => HttpResponse::Ok().json(TurnResponse { turn: state.turn }),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
 }
 
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mode = std::env::args().nth(1).unwrap();
+    let mode = std::env::args()
+        .nth(1)
+        .ok_or("missing mode: expected rule, neural, or random")?;
+    if !matches!(mode.as_str(), "rule" | "neural" | "random") {
+        return Err(format!("invalid mode {mode:?}: expected rule, neural, or random").into());
+    }
     let config = Config::load()?;
     let mut rng = rand::thread_rng();
     let mut simulation = Simulation::new(&config, &mut rng, &mode);
@@ -81,10 +87,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             history.push(Metric::from_simulation(&simulation, &community));
             simulation.replace_dead(&config, &mut rng, &mode);
             let turn = {
-                let mut state = simulation
-                    .shared_state
-                    .lock()
-                    .map_err(|_| "shared state poisoned")?;
+                let mut state = simulation.shared_state.lock().unwrap();
                 state.turn += 1;
                 state.turn
             };
@@ -92,6 +95,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 print_wip(&history, started_at, turn);
             }
         }
+        print_final(
+            &history,
+            started_at,
+            simulation.shared_state.lock().unwrap().turn,
+        );
     });
     let server_result = server.await; // Returns when Ctrl+C stops the server.
     stop.store(true, Ordering::Relaxed);
